@@ -1,0 +1,33 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# --- Project data (large, regenerable, or machine-specific) ---
+# OSM extracts and OSRM preprocessing output — hundreds of MB, rebuild from infra/
+data/osm/
+data/osrm/
+*.osm.pbf
+*.osrm*
+
+# Distance-matrix cache — machine-local, regenerable
+data/cache/
+
+# Raw benchmark output — regenerate with `python -m bench.runner`
+bench/out/
+report/figures/
+report/raw/
+
+# --- Plan build artifacts ---
+docs/plan/fonts/
+docs/plan/_cdpprofile/
+docs/plan/waybill_print.html
+docs/plan/*.log
+
+# --- macOS ---
+.DS_Store
