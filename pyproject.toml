@@ -1,0 +1,17 @@
+[project]
+name = "waybill"
+version = "0.1.0"
+description = "Courier route optimization engine — exact and heuristic solvers with measured optimality gaps"
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = ["slow: deselect with -m 'not slow'"]
+
+[tool.setuptools]
+packages = ["core", "bench", "tools"]

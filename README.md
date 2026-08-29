@@ -126,7 +126,32 @@ Phases 0–2 satisfy the assignment's stated requirements in full.
 
 ## Status
 
-Planning complete. **Phase 0 not yet started** — no source code in this repository yet.
+**Phase 0 complete — exit gate passed.** Phase 1 (distance contract + adapters) is next.
+
+```
+make setup    # create .venv, install dev deps
+make test     # 156 tests
+make gate     # verify the current phase's exit gate
+```
+
+Phase 0 delivered the pure model layer (`Instance`, `Solution`, `Stop`, `TimeWindow`,
+`Vehicle`, `DistanceMatrix`), the TSPLIB distance conventions, the independent
+feasibility checker, the `SolveStatus`/`SolveReport` contract, the `Solver` protocol,
+brute-force enumeration, and the core purity checker.
+
+**Gate evidence** — our own distance implementation scoring the published optimal tours:
+
+| Instance | n | Computed | Published | Match |
+|---|---:|---:|---:|:--:|
+| eil51    |  51 |    426 |    426 | ✓ |
+| berlin52 |  52 |   7542 |   7542 | ✓ |
+| st70     |  70 |    675 |    675 | ✓ |
+| pr76     |  76 | 108159 | 108159 | ✓ |
+| kroA100  | 100 |  21282 |  21282 | ✓ |
+
+Brute force additionally agrees with unreduced permutation enumeration on 60 random
+instances (30 symmetric, 30 asymmetric), and `tools/check_purity.py` fails the build on
+a planted `import requests` inside `core/`.
 
 The full architecture and build plan is in [`docs/architecture-plan.pdf`](docs/architecture-plan.pdf)
 (24 pages). Revision 1 is kept in `docs/archive/` for reference; the current document opens
