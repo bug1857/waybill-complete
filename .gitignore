@@ -31,3 +31,7 @@ docs/plan/*.log
 
 # --- macOS ---
 .DS_Store
+
+# --- OSRM preprocessing artefacts (regenerate with infra/prepare-osrm.sh) ---
+data/osm/*.osrm*
+data/osm/*.timestamp

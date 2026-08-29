@@ -1,0 +1,19 @@
+# Self-hosted OSRM.
+#
+# Preprocessing must run before the server starts; `make osrm-prepare` does that.
+# The extract is pinned in data/osm/ so benchmark runs are reproducible -- a
+# public demo server could change its data or profile between runs and silently
+# invalidate a comparison.
+services:
+  osrm:
+    image: ghcr.io/project-osrm/osrm-backend:latest
+    container_name: waybill-osrm
+    command: >
+      osrm-routed --algorithm mld
+      --max-table-size 10000
+      /data/${OSRM_EXTRACT:-monaco-latest}.osrm
+    volumes:
+      - ../data/osm:/data
+    ports:
+      - "${OSRM_PORT:-5001}:5000"
+    restart: unless-stopped

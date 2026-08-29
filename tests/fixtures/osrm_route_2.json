@@ -1,0 +1,33 @@
+{
+  "code": "Ok",
+  "routes": [
+    {
+      "legs": [],
+      "weight_name": "routability",
+      "geometry": "_d}iG}qil@??]DMQkEp@OD?o@i@iEc@eDIk@AKk@KO@SBm@RA@MDNVLVLVLVJXJZJXHZBLPp@^pAT|AJ~@FdAHdAFbAB`@FlA@\\LnCBh@J|ABp@BVHlBHxAAP?JADADABABADCBCDAD?B?B?D@B@@@BBBD@B?BABCBC@E?E?EAE?CAACEEAEGACGKESEa@IuACk@ACCWGm@OgACUACCUKu@Ee@C_@Ci@AWAc@AMCMAKIWYiAEQEQESCOESEg@Ii@CSEQ?CBOAc@AQAQCSCKCMCIEICIGKCGEGGMIIIIEEIGAAEAKAKAK@I@C?KBODC@MFOHEBC@IAQBKLOXGLKFK@MEICE@",
+      "weight": 6873.9,
+      "duration": 322.2,
+      "distance": 1796.2
+    }
+  ],
+  "waypoints": [
+    {
+      "hint": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "location": [
+        7.427034,
+        43.735835
+      ],
+      "name": "Quai de l\u2019Hirondelle",
+      "distance": 121.3926317
+    },
+    {
+      "hint": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "location": [
+        7.427391,
+        43.73962
+      ],
+      "name": "",
+      "distance": 19.04213508
+    }
+  ]
+}

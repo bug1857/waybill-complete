@@ -126,20 +126,25 @@ Phases 0–2 satisfy the assignment's stated requirements in full.
 
 ## Status
 
-**Phase 0 complete — exit gate passed.** Phase 1 (distance contract + adapters) is next.
+**Phases 0 and 1 complete — both exit gates passed.** Phase 2 (assignment-complete
+solver core) is next.
 
 ```
-make setup    # create .venv, install dev deps
-make test     # 156 tests
-make gate     # verify the current phase's exit gate
+make setup          # create .venv, install dev deps
+make test           # 186 tests (179 without Docker)
+make gate           # verify every exit gate reached so far
+make osrm-prepare   # one-off: preprocess the OSM extract (~1 min for Monaco)
+make osrm-up        # start the local routing server
 ```
 
-Phase 0 delivered the pure model layer (`Instance`, `Solution`, `Stop`, `TimeWindow`,
-`Vehicle`, `DistanceMatrix`), the TSPLIB distance conventions, the independent
-feasibility checker, the `SolveStatus`/`SolveReport` contract, the `Solver` protocol,
-brute-force enumeration, and the core purity checker.
+### Phase 0 — contracts and truth
 
-**Gate evidence** — our own distance implementation scoring the published optimal tours:
+The pure model layer (`Instance`, `Solution`, `Stop`, `TimeWindow`, `Vehicle`,
+`DistanceMatrix`), TSPLIB distance conventions, the independent feasibility checker,
+the `SolveStatus`/`SolveReport` contract, the `Solver` protocol, brute-force
+enumeration, and the core purity checker.
+
+Our own distance implementation scoring the published optimal tours:
 
 | Instance | n | Computed | Published | Match |
 |---|---:|---:|---:|:--:|
@@ -149,9 +154,27 @@ brute-force enumeration, and the core purity checker.
 | pr76     |  76 | 108159 | 108159 | ✓ |
 | kroA100  | 100 |  21282 |  21282 | ✓ |
 
-Brute force additionally agrees with unreduced permutation enumeration on 60 random
-instances (30 symmetric, 30 asymmetric), and `tools/check_purity.py` fails the build on
-a planted `import requests` inside `core/`.
+Brute force also agrees with unreduced permutation enumeration on 60 random instances
+(30 symmetric, 30 asymmetric), and `tools/check_purity.py` fails the build on a planted
+`import requests` inside `core/`.
+
+### Phase 1 — distance contract and adapters
+
+`DistanceProvider` implementations live in `adapters/`, never in `core/`: Haversine for
+offline and hermetic tests, a self-hosted OSRM client for real road data, and a SQLite
+cache that wraps either. `infra/` carries the Docker pipeline and a pinned OSM extract,
+so matrices are reproducible rather than dependent on a public server's current data.
+
+Same five Monaco stops, two providers:
+
+| Provider | Symmetric | Matrix hash |
+|---|:--:|---|
+| `haversine` | **true** | `587a429c5c88b7d6` |
+| `osrm` | **false** | `b04816a09b5f83ce` |
+
+All 10 coordinate pairs differ by direction under real road data; the largest gap is
+**130 s** (296 s one way, 426 s back). That asymmetry is not a curiosity — it is what
+invalidates textbook 2-opt, and Phase 4 has to handle it.
 
 The full architecture and build plan is in [`docs/architecture-plan.pdf`](docs/architecture-plan.pdf)
 (24 pages). Revision 1 is kept in `docs/archive/` for reference; the current document opens

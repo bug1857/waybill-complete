@@ -11,7 +11,10 @@ dev = ["pytest>=8.0"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
-markers = ["slow: deselect with -m 'not slow'"]
+markers = [
+  "slow: deselect with -m 'not slow'",
+  "integration: needs a live OSRM server (make osrm-up)",
+]
 
 [tool.setuptools]
 packages = ["core", "bench", "tools"]
