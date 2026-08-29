@@ -675,18 +675,17 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
   .end { break-inside: avoid; }
 }
 </style>
-
 <div class="shell">
 
   <header class="masthead">
-    <p class="eyebrow">Design &amp; Analysis of Algorithms · Project 4 · Architecture and build plan · Revision 2</p>
-    <h1>Waybill —<br>a courier routing engine<br>that <em>proves what it claims</em></h1>
-    <p class="standfirst">The assignment says TSP, Greedy, and Branch &amp; Bound. Couriers do not solve TSP. This is the plan for building what they actually solve, on real roads — and for never claiming more about an answer than the evidence supports.</p>
+    <p class="eyebrow">Design &amp; Analysis of Algorithms · Project 4 · Architecture and build plan · Revision 3</p>
+    <h1>Waybill —<br>a courier routing engine<br>whose <em>report cannot lie</em></h1>
+    <p class="standfirst">The assignment says TSP, Greedy, and Branch &amp; Bound. Couriers do not solve TSP. This is the plan for building what they actually solve — and for making it structurally impossible for a number in the write-up to disagree with the code that produced it.</p>
     <div class="facts">
-      <div class="fact"><b>True problem</b><span>CVRPTW</span></div>
-      <div class="fact"><b>Mandatory solvers</b><span>6 + 2 optional</span></div>
-      <div class="fact"><b>Distances</b><span>OSRM via adapter</span></div>
-      <div class="fact"><b>Validation</b><span>4-link chain</span></div>
+      <div class="fact"><b>Built</b><span>Phases 0–1 ✓</span></div>
+      <div class="fact"><b>Tests</b><span>186 passing</span></div>
+      <div class="fact"><b>Verified</b><span>5 TSPLIB optima</span></div>
+      <div class="fact"><b>Road data</b><span>live OSRM</span></div>
       <div class="fact"><b>Phases</b><span>9, gated</span></div>
     </div>
     <button class="pdf-btn" id="pdf">↓ Save as PDF</button>
@@ -694,32 +693,31 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
   </header>
 
   <div class="changelog">
-    <h2>What changed in revision 2</h2>
-    <p class="sub">Response to the architecture review. The review found one real contradiction and several places where revision 1 claimed more than it could support.</p>
+    <h2>What changed in revision 3</h2>
+    <p class="sub">Two things happened since revision 2: Phases 0 and 1 were built and measured, and a parallel implementation was reviewed. Both changed the plan.</p>
     <div class="cl-grid">
       <div class="cl-col acc">
-        <h3>Accepted — the review was right</h3>
+        <h3>Learned from building</h3>
         <ul>
-          <li><strong>The purity contradiction.</strong> R1 said <code>core/</code> imports no network code, then put the OSRM client inside <code>core/distance/</code>. Fixed with an <code>adapters/</code> layer.</li>
-          <li><strong>Pre-claimed solver scale.</strong> R1 asserted "1-tree makes B&amp;B viable past n=40" and supplied a template sentence with invented numbers. Both removed.</li>
-          <li><strong>Conflated claims.</strong> A proven-optimal TSP tour said nothing about whether a 150-stop CVRPTW plan is good. Now separate, typed statuses.</li>
-          <li><strong>Loose use of "optimality gap."</strong> Only valid against a proven optimum or valid bound.</li>
+          <li><strong>The claim contract works.</strong> <code>SolveReport</code> refusing to construct is better than a convention. Nine tests now exercise those refusals.</li>
+          <li><strong>Real roads are more asymmetric than expected.</strong> On five Monaco stops, <em>all 10</em> pairs differ by direction — largest gap 130 s against 296 s. The 2-opt guard is not hypothetical.</li>
+          <li><strong>A validation gate caught a real bug</strong> in the solver meant to be ground truth. The bottom of the chain needs its own independent reference.</li>
         </ul>
       </div>
       <div class="cl-col ref">
-        <h3>Refined — accepted with changes</h3>
+        <h3>Learned from the review</h3>
         <ul>
-          <li><strong>Solver count.</strong> Agreed on tiering, but the 1-tree bound moves to <em>recommended</em>, not stretch — gated on the bound-validity invariant rather than deferred.</li>
-          <li><strong>Metaheuristic choice.</strong> The review left ALNS-or-SA open. This plan picks <strong>simulated annealing</strong>, for reasons stated in §05.</li>
-          <li><strong>Capacity dimension.</strong> One dimension for the baseline — parcel count, not weight, because violations are then visible by inspection.</li>
+          <li><strong>Fabricated data is the top risk</strong>, above every algorithmic concern. A parallel build had 17 of 52 coordinates wrong in one instance and the wrong distance model entirely in another.</li>
+          <li><strong>A hand-written report drifts from its engine.</strong> That build claimed a 96.4% pruning ratio; its own code returned 89.2%.</li>
+          <li><strong>Volume is not evidence.</strong> 7,246 lines with no tests proves nothing.</li>
         </ul>
       </div>
       <div class="cl-col add">
-        <h3>Added — in neither document</h3>
+        <h3>New in this revision</h3>
         <ul>
-          <li><strong>The asymmetry trap (§07).</strong> Textbook 2-opt is <em>invalid</em> on the asymmetric matrices this project deliberately introduces. This changes which operators are mandatory.</li>
-          <li><strong>Validation continuity (§08).</strong> Both documents left an unchecked band between brute force and TSPLIB. Now closed explicitly.</li>
-          <li><strong>The confidently-wrong failure mode (§06).</strong> An invalid lower bound does not crash — it silently prunes the optimum and reports success.</li>
+          <li><strong>The evidence bundle (§04).</strong> The report and the demo are <em>generated</em> from measured runs, so neither can state a number the engine did not produce.</li>
+          <li><strong>Data integrity rules (§05).</strong> No numeric instance data may be typed into source. Ever.</li>
+          <li><strong>A named list of claims this project will not make (§13).</strong></li>
         </ul>
       </div>
     </div>
@@ -730,18 +728,18 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
     <ol>
       <li><span class="n">00</span><a href="#plain">In plain terms</a></li>
       <li><span class="n">01</span><a href="#problem">The real problem</a></li>
-      <li><span class="n">02</span><a href="#claims">The claim model</a></li>
-      <li><span class="n">03</span><a href="#works">How it works</a></li>
+      <li><span class="n">02</span><a href="#standing">Where it stands</a></li>
+      <li><span class="n">03</span><a href="#claims">The claim model</a></li>
       <li><span class="n">04</span><a href="#arch">Architecture</a></li>
-      <li><span class="n">05</span><a href="#ladder">Solver scope</a></li>
-      <li><span class="n">06</span><a href="#bnb">Branch &amp; Bound</a></li>
-      <li><span class="n">07</span><a href="#asym">The asymmetry trap</a></li>
-      <li><span class="n">08</span><a href="#validation">Validation chain</a></li>
-      <li><span class="n">09</span><a href="#evidence">Evidence discipline</a></li>
-      <li><span class="n">10</span><a href="#cvrptw">CVRPTW scope</a></li>
+      <li><span class="n">05</span><a href="#data">Data integrity</a></li>
+      <li><span class="n">06</span><a href="#ladder">Solver scope</a></li>
+      <li><span class="n">07</span><a href="#bnb">Branch &amp; Bound</a></li>
+      <li><span class="n">08</span><a href="#asym">The asymmetry trap</a></li>
+      <li><span class="n">09</span><a href="#validation">Validation chain</a></li>
+      <li><span class="n">10</span><a href="#evidence">Evidence discipline</a></li>
       <li><span class="n">11</span><a href="#plan">Build plan</a></li>
       <li><span class="n">12</span><a href="#done">Definition of done</a></li>
-      <li><span class="n">13</span><a href="#narrative">The report</a></li>
+      <li><span class="n">13</span><a href="#nonclaims">What it will not claim</a></li>
     </ol>
   </nav>
 
@@ -755,105 +753,82 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
       <div class="qa">
         <h3>What is the actual job?</h3>
         <p>A delivery company has a warehouse and 150 parcels to deliver today. It has 6 vans. Somebody has to decide two things: <strong>which van takes which parcels</strong>, and <strong>what order each driver visits their stops in</strong>.</p>
-        <p>Get it right and every driver is home by 5pm having burned less fuel. Get it wrong and one van is overloaded, another is half empty, and somebody is still driving at 8pm. That decision is made every morning by every delivery company on earth.</p>
+        <p>Get it right and every driver is home by 5pm having burned less fuel. Get it wrong and one van is overloaded, another is half empty, and somebody is still driving at 8pm.</p>
       </div>
 
       <div class="qa">
         <h3>Why can't a computer just try every option?</h3>
         <p>Because the number of options doesn't grow steadily — it explodes.</p>
-
         <div class="scale">
-          <div class="scale-item">
-            <b>10 stops</b><span class="scale-num">181,440</span>
-            <i>possible routes. A laptop checks all of them before you blink.</i>
-          </div>
-          <div class="scale-item">
-            <b>15 stops</b><span class="scale-num">43.6 billion</span>
-            <i>possible routes. Now about 44 seconds of solid computing.</i>
-          </div>
-          <div class="scale-item">
-            <b>20 stops</b><span class="scale-num">60.8 quadrillion</span>
-            <i>possible routes. Checking a billion every second: <strong>1.9 years</strong>.</i>
-          </div>
+          <div class="scale-item"><b>10 stops</b><span class="scale-num">181,440</span><i>possible routes. A laptop checks all of them before you blink.</i></div>
+          <div class="scale-item"><b>15 stops</b><span class="scale-num">43.6 billion</span><i>possible routes. Now about 44 seconds of solid computing.</i></div>
+          <div class="scale-item"><b>20 stops</b><span class="scale-num">60.8 quadrillion</span><i>possible routes. Checking a billion every second: <strong>1.9 years</strong>.</i></div>
         </div>
-
-        <p>Twenty stops is a light morning for one driver. So "just check everything" stops working almost immediately — and no faster computer rescues you, because five more stops multiplies the work by millions again.</p>
+        <p>Twenty stops is a light morning for one driver, so "check everything" stops working almost immediately — and no faster computer rescues you.</p>
       </div>
 
       <div class="qa">
         <h3>So what do you do instead?</h3>
-        <p><strong>The quick way — be greedy.</strong> Repeatedly drive to the nearest stop you haven't visited. Like being at a party and always talking to whoever is standing closest. Instant, reasonable — but because you never planned ahead you end up stranded across the room, facing one long miserable drive home.</p>
-        <p><strong>The careful way — be clever about what you skip.</strong> Suppose you've found a route costing 87 km. Now you look at a huge group of routes that all begin with the same bad first move, and you can prove that <em>even in the luckiest case</em> anything in that group costs at least 94. You throw the entire group away without checking one of them.</p>
-        <p>That is <strong>Branch &amp; Bound</strong>. You're not searching faster — you're proving that enormous regions can't contain the winner.</p>
+        <p><strong>The quick way — be greedy.</strong> Repeatedly drive to the nearest stop you haven't visited. Like being at a party and always talking to whoever is closest. Instant, reasonable, and because you never planned ahead you end up stranded across the room facing one long drive home.</p>
+        <p><strong>The careful way — be clever about what you skip.</strong> You've found a route costing 87 km. You look at a huge group of routes that all start with the same bad move, and you prove that <em>even at their luckiest</em> they cost at least 94. You discard the whole group unopened. That is <strong>Branch &amp; Bound</strong>.</p>
       </div>
 
       <div class="qa">
         <h3>What makes this project different?</h3>
-        <p>Most student projects implement one method and print a route. The route looks plausible, and nobody can tell whether it's good, because there's nothing to compare it to.</p>
-        <p>This project builds both kinds, runs them on identical problems, and measures the difference — then <strong>labels every number with how much it is actually entitled to claim</strong>. "Proven best" and "best we found" are different statements, and the system never confuses them.</p>
+        <p>Most projects implement one method and print a route. Nobody can tell whether it's good, because there's nothing to compare against.</p>
+        <p>This one builds both kinds, runs them on identical problems, measures the difference, and <strong>labels every number with how much it is entitled to claim</strong>. "Proven best" and "best we found" are different statements, and the system refuses to confuse them.</p>
+        <p>It goes one step further, and that step is the point of this revision: <strong>the write-up is generated from the measurements</strong>. Nobody types a result into a document. If a number appears in the report, a command produced it, and that command can be re-run.</p>
       </div>
 
       <div class="qa">
-        <h3>Why does the map part matter?</h3>
-        <p>Most projects measure distance in a straight line, as if vans could fly. Two addresses might be 2 km apart as the crow flies but a 3.4 km drive, because of one-way streets and a river. Worse, driving A→B is often a <em>different distance</em> than B→A.</p>
-        <p>That last detail is not cosmetic. It quietly breaks one of the standard textbook algorithms, which is the subject of §07 and one of the more interesting findings available here.</p>
+        <h3>Why does that last part matter so much?</h3>
+        <p>Because the most common way these projects go wrong is not a bad algorithm — it is a good-looking number that nothing produced. A report says one thing, the code says another, and nobody notices until someone asks.</p>
+        <p>A reviewed implementation of this same brief claimed a "96.4% pruning ratio." Its own code, run directly, returned 89.2%. Neither number was checkable, because the report was written by hand.</p>
       </div>
 
       <h4>The six words worth knowing</h4>
       <dl class="glossary">
         <dt>TSP</dt>
-        <dd>Travelling Salesman Problem. One vehicle, a list of stops: what's the shortest round trip visiting each once? The hard problem this is built on.</dd>
-
+        <dd>Travelling Salesman Problem. One vehicle, a list of stops: shortest round trip visiting each once.</dd>
         <dt>Greedy</dt>
-        <dd>Any method that always takes the choice that looks best right now. Fast, simple, usually decent — never guaranteed.</dd>
-
+        <dd>Any method that always takes the choice that looks best right now. Fast, decent, never guaranteed.</dd>
         <dt>Branch &amp; Bound</dt>
-        <dd>Split the possibilities into groups, calculate the best conceivable outcome for each group, and discard whole groups whose best case is still worse than an answer you already hold.</dd>
-
+        <dd>Split possibilities into groups, compute each group's best conceivable outcome, discard whole groups whose best case loses to an answer you already hold.</dd>
         <dt>Lower bound</dt>
-        <dd>A number you can prove no route in a group can beat. The engine of Branch &amp; Bound — and if it's ever wrong in the optimistic direction, the whole proof collapses silently.</dd>
-
+        <dd>A number you can prove no route in a group beats. If it is ever wrong in the optimistic direction, the whole proof collapses silently.</dd>
         <dt>Optimality gap</dt>
-        <dd>How much worse a fast answer is than a <em>proven</em> best one, as a percentage. If you don't have a proven best, you don't have this number — you have something weaker.</dd>
-
+        <dd>How much worse a fast answer is than a <em>proven</em> best one. Without a proof you don't have this number — you have something weaker.</dd>
         <dt>CVRPTW</dt>
-        <dd>The realistic version: multiple vehicles, capacity limits, and delivery time windows. Ugly name, but it's the problem actual couriers have.</dd>
+        <dd>The realistic version: multiple vehicles, capacity limits, delivery time windows.</dd>
       </dl>
     </section>
 
     <!-- 01 -->
     <section id="problem">
       <div class="sec-head"><span class="sec-num">01</span><h2>The problem the title gets wrong</h2><span class="rev kept">kept</span></div>
-      <p class="sec-sub">Unchanged from revision 1. The review endorsed this framing.</p>
 
       <p class="lede">TSP is the kernel. It is not the system. Building the kernel and calling it a courier system is the single reason these projects read as coursework.</p>
 
-      <p>The <strong>Travelling Salesman Problem</strong> asks for the minimum-cost Hamiltonian cycle over <code>n</code> nodes. It is NP-hard. A symmetric instance has <code>(n−1)!/2</code> distinct tours, so <code>n = 20</code> is already about 6×10<sup>16</sup> of them.</p>
-
-      <p>But a courier fleet violates every simplifying assumption TSP makes:</p>
+      <p>The <strong>Travelling Salesman Problem</strong> asks for the minimum-cost Hamiltonian cycle over <code>n</code> nodes. It is NP-hard; a symmetric instance has <code>(n−1)!/2</code> distinct tours. A courier fleet violates every simplifying assumption it makes:</p>
 
       <ul>
-        <li><strong>Multiple vehicles.</strong> Deciding <em class="term">which van takes which stops</em> is a partitioning problem sitting on top of the sequencing problem — and it dominates the cost.</li>
+        <li><strong>Multiple vehicles.</strong> Deciding <em class="term">which van takes which stops</em> is a partitioning problem on top of the sequencing problem — and it dominates the cost.</li>
         <li><strong>Capacity.</strong> A tour optimal in distance is worthless if it needs 1.4 vans.</li>
-        <li><strong>Time windows.</strong> "Between 09:00 and 11:00" turns ordering into scheduling. Early means waiting; late means failing.</li>
-        <li><strong>Service time.</strong> Minutes at the door — often larger than driving time between adjacent urban stops.</li>
-        <li><strong>Asymmetry.</strong> On a real road network <code>d(A,B) ≠ d(B,A)</code>. Every textbook symmetric-matrix assumption breaks — see §07 for what that actually costs you.</li>
+        <li><strong>Time windows.</strong> "Between 09:00 and 11:00" turns ordering into scheduling.</li>
+        <li><strong>Service time.</strong> Minutes at the door, often exceeding driving time between adjacent urban stops.</li>
+        <li><strong>Asymmetry.</strong> <code>d(A,B) ≠ d(B,A)</code>. Measured, not assumed — see §08.</li>
         <li><strong>Shift limits.</strong> Legal maximum hours and mandated breaks.</li>
       </ul>
 
-      <p>The correct name is <em class="term">CVRPTW</em>. TSP is the special case with one vehicle, infinite capacity, and no clock.</p>
+      <p>The correct name is <em class="term">CVRPTW</em>. TSP is the special case with one vehicle, infinite capacity, and no clock — and in this codebase that is literally true: one <code>Instance</code> type covers all three, and <code>problem_type</code> classifies an instance by inspecting it rather than by trusting a label.</p>
 
       <figure class="wide">
-        <svg viewBox="0 0 900 424" role="img" aria-label="The same nine stops solved two ways: as one unconstrained TSP tour on the left, and as three capacity- and time-limited vehicle routes from a depot on the right.">
+        <svg viewBox="0 0 900 424" role="img" aria-label="The same nine stops solved two ways: one unconstrained TSP tour on the left, three capacity- and time-limited vehicle routes on the right.">
           <line x1="450" y1="28" x2="450" y2="400" stroke="currentColor" stroke-width="1" opacity="0.18" stroke-dasharray="3 5"/>
-
           <text x="34" y="44" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="currentColor" letter-spacing="1.4">WHAT THE TITLE ASKS FOR</text>
           <text x="34" y="66" font-family="Archivo, sans-serif" font-size="19" font-weight="700" fill="currentColor">TSP — one tour</text>
           <text x="34" y="88" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" opacity="0.6">1 vehicle · no capacity · no clock</text>
-
-          <polyline points="225,255 105,160 185,140 220,190 300,150 375,205 355,305 275,365 155,360 90,290 225,255"
-                    fill="none" stroke="currentColor" stroke-width="1.8" opacity="0.55"/>
-
+          <polyline points="225,255 105,160 185,140 220,190 300,150 375,205 355,305 275,365 155,360 90,290 225,255" fill="none" stroke="currentColor" stroke-width="1.8" opacity="0.55"/>
           <g fill="var(--surface)" stroke="currentColor" stroke-width="1.6">
             <circle cx="105" cy="160" r="6"/><circle cx="185" cy="140" r="6"/><circle cx="220" cy="190" r="6"/>
             <circle cx="300" cy="150" r="6"/><circle cx="375" cy="205" r="6"/><circle cx="355" cy="305" r="6"/>
@@ -866,11 +841,9 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
           <text x="484" y="44" font-family="IBM Plex Mono, monospace" font-size="12" font-weight="600" fill="var(--accent)" letter-spacing="1.4">WHAT A COURIER ACTUALLY RUNS</text>
           <text x="484" y="66" font-family="Archivo, sans-serif" font-size="19" font-weight="700" fill="currentColor">CVRPTW — three routes</text>
           <text x="484" y="88" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" opacity="0.6">3 vans · cap 8 · windows · shift 8h</text>
-
           <polyline points="675,255 555,160 540,290 605,360 675,255" fill="none" stroke="var(--accent)" stroke-width="2.2"/>
           <polyline points="675,255 670,190 635,140 750,150 675,255" fill="none" stroke="var(--teal)" stroke-width="2.2"/>
           <polyline points="675,255 825,205 805,305 725,365 675,255" fill="none" stroke="var(--amber)" stroke-width="2.2"/>
-
           <g fill="var(--surface)" stroke="currentColor" stroke-width="1.6">
             <circle cx="555" cy="160" r="6"/><circle cx="635" cy="140" r="6"/><circle cx="670" cy="190" r="6"/>
             <circle cx="750" cy="150" r="6"/><circle cx="825" cy="205" r="6"/><circle cx="805" cy="305" r="6"/>
@@ -878,352 +851,292 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
           </g>
           <rect x="666" y="246" width="18" height="18" fill="currentColor"/>
           <text x="675" y="284" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" text-anchor="middle" opacity="0.7">DEPOT</text>
-
           <line x1="750" y1="150" x2="806" y2="112" stroke="var(--amber)" stroke-width="1" stroke-dasharray="2 3"/>
           <rect x="800" y="98" width="86" height="20" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1"/>
           <text x="843" y="112" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--amber)" text-anchor="middle">09:00–11:00</text>
-
           <text x="512" y="330" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--accent)" font-weight="600">van A  6/8</text>
           <text x="700" y="122" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--teal)" font-weight="600">van B  8/8</text>
           <text x="800" y="352" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--amber)" font-weight="600">van C  5/8</text>
-
           <text x="484" y="400" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" opacity="0.6">partition <tspan font-weight="600">and</tspan> sequence · respect load, window, shift</text>
         </svg>
-        <figcaption><b>Identical nine stops, two different problems.</b> The left panel optimises a sequence. The right must first decide which van gets which stops, then sequence each, then check every arrival against a clock and every load against a limit. The partitioning decision on the right is where most of the cost — and all of the difficulty — lives.</figcaption>
+        <figcaption><b>Identical nine stops, two different problems.</b> The left optimises a sequence. The right must first decide which van gets which stops, then sequence each, then check every arrival against a clock and every load against a limit. The partitioning decision is where most of the cost — and all of the difficulty — lives.</figcaption>
       </figure>
-
-      <div class="note key">
-        <span class="tag">The framing that wins</span>
-        <p>Implement TSP with Greedy and Branch &amp; Bound exactly as specified, prove they work — then show, with your own measurements, that the TSP formulation cannot express a real delivery day, and extend it. You answer the assignment <em>and</em> critique it with evidence.</p>
-      </div>
     </section>
 
     <!-- 02 -->
+    <section id="standing">
+      <div class="sec-head"><span class="sec-num">02</span><h2>Where the project stands</h2><span class="rev new">new</span></div>
+      <p class="sec-sub">Revisions 1 and 2 were plans. This section reports measurements.</p>
+
+      <p><strong>Phases 0 and 1 are built and their gates passed.</strong> 2,242 lines of implementation, 1,002 lines of tests, 186 tests passing. Everything below is output from a command in the repository, not an expectation.</p>
+
+      <h3>Distance conventions reproduce published optima</h3>
+      <p>Our own implementation scoring the published <code>.opt.tour</code> files — two independent facts that must agree:</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Instance</th><th class="num">n</th><th class="num">Computed</th><th class="num">Published</th><th>Match</th></tr></thead>
+          <tbody>
+            <tr><td>eil51</td><td class="num">51</td><td class="num">426</td><td class="num">426</td><td>✓</td></tr>
+            <tr><td>berlin52</td><td class="num">52</td><td class="num">7542</td><td class="num">7542</td><td>✓</td></tr>
+            <tr><td>st70</td><td class="num">70</td><td class="num">675</td><td class="num">675</td><td>✓</td></tr>
+            <tr><td>pr76</td><td class="num">76</td><td class="num">108159</td><td class="num">108159</td><td>✓</td></tr>
+            <tr><td>kroA100</td><td class="num">100</td><td class="num">21282</td><td class="num">21282</td><td>✓</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Real roads are asymmetric, measured</h3>
+      <p>Five real Monaco locations through a self-hosted OSRM against a pinned OpenStreetMap extract:</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Provider</th><th>Symmetric</th><th>Matrix hash</th><th>Asymmetric pairs</th></tr></thead>
+          <tbody>
+            <tr class="heur"><td>haversine</td><td>true</td><td>587a429c5c88b7d6</td><td>0 of 10</td></tr>
+            <tr class="exact"><td>osrm (driving)</td><td><strong>false</strong></td><td>b04816a09b5f83ce</td><td><strong>10 of 10</strong></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>Largest directional gap: <strong>130 seconds</strong> — 296 s one way against 426 s back, a 44% difference from one-way streets. Every pair differed. This is the concrete justification for the operator constraints in §08, and it is stronger than anticipated: revision 2 argued asymmetry <em>matters</em>; the measurement says it is the normal case, not an edge case.</p>
+
+      <div class="note warn">
+        <span class="tag">A gate caught a real bug — in the ground truth itself</span>
+        <p>The brute-force solver initially applied an invalid symmetry reduction: it fixed which customer was visited first, which discards genuine tours rather than duplicates. On a three-customer instance it enumerated 2 of 3 and could return a non-optimal answer stamped <code>PROVEN_OPTIMAL_TSP</code>.</p>
+        <p>It was caught by comparing against an enumeration applying <em>no</em> reduction at all. The lesson generalises: <strong>the bottom of a validation chain needs its own independent reference</strong>, because everything above inherits its errors. That reference test is now permanent.</p>
+      </div>
+    </section>
+
+    <!-- 03 -->
     <section id="claims">
-      <div class="sec-head"><span class="sec-num">02</span><h2>The claim model</h2><span class="rev new">new · P0</span></div>
-      <p class="sec-sub">The review's most important structural addition. Exactness is a property of one formulation, instance, and solver run — never of the application.</p>
+      <div class="sec-head"><span class="sec-num">03</span><h2>The claim model</h2><span class="rev rvsd">implemented</span></div>
+      <p class="sec-sub">Revision 2 specified this. It is now code, and the code refuses.</p>
 
-      <p class="lede">Revision 1 let a proven-optimal 12-stop TSP tour sit in the same system as a heuristic 150-stop fleet plan, with nothing in the types to stop the word "optimal" migrating from one to the other. That is the most dangerous kind of bug: it never crashes.</p>
-
-      <p>Every solve returns an explicit status. The UI, the report, and the benchmark tables all read that status and are forbidden from wording a result more strongly than it permits.</p>
+      <p>Exactness is a property of one formulation, one instance, and one solver run — never of the application. Every solve returns an explicit status, and nothing may be worded more strongly than its status permits.</p>
 
       <div class="tbl-wrap">
         <table>
           <thead><tr><th>Status</th><th>Means</th><th>Permitted wording</th></tr></thead>
           <tbody>
-            <tr class="exact">
-              <td class="nw">PROVEN_OPTIMAL_TSP</td>
-              <td>An exact solver finished with a valid proof condition on a single-vehicle instance.</td>
-              <td>"Optimal" — for that TSP instance only.</td>
-            </tr>
-            <tr class="exact">
-              <td class="nw">EXACT_TIMEOUT_WITH_INCUMBENT</td>
-              <td>Exact search found feasible tours but hit its budget before proving optimality.</td>
-              <td>Report incumbent <em>and</em> best lower bound. Never "optimal".</td>
-            </tr>
-            <tr class="heur">
-              <td class="nw">HEURISTIC_FEASIBLE_CVRPTW</td>
-              <td>A multi-vehicle plan passed the independent feasibility gate.</td>
-              <td>"Feasible." Quality only ever relative to a stated comparator.</td>
-            </tr>
-            <tr class="heur">
-              <td class="nw">HEURISTIC_INFEASIBLE</td>
-              <td>Candidate violates capacity, window, shift, or visit-once constraints.</td>
-              <td>Reject. Never surface as a route.</td>
-            </tr>
-            <tr class="refr">
-              <td class="nw">REFERENCE_GAP_ONLY</td>
-              <td>Compared against OR-Tools or a best-known value, not a proven optimum.</td>
-              <td>"Gap to reference" — never "optimality gap".</td>
-            </tr>
+            <tr class="exact"><td class="nw">PROVEN_OPTIMAL_TSP</td><td>Exact solver finished with a valid proof condition on a single-vehicle instance.</td><td>"Optimal" — that instance only.</td></tr>
+            <tr class="exact"><td class="nw">EXACT_TIMEOUT_WITH_INCUMBENT</td><td>Exact search hit its budget before proving optimality.</td><td>Incumbent <em>and</em> lower bound. Never "optimal".</td></tr>
+            <tr class="heur"><td class="nw">HEURISTIC_FEASIBLE_CVRPTW</td><td>Multi-vehicle plan passed the independent feasibility gate.</td><td>"Feasible." Quality relative to a named comparator.</td></tr>
+            <tr class="heur"><td class="nw">HEURISTIC_INFEASIBLE</td><td>Violates capacity, window, shift, or visit-once.</td><td>Reject. Never surfaced as a route.</td></tr>
+            <tr class="refr"><td class="nw">REFERENCE_GAP_ONLY</td><td>Compared to OR-Tools or a best-known value.</td><td>"Gap to reference" — never "optimality gap".</td></tr>
           </tbody>
         </table>
       </div>
 
-      <div class="note warn">
-        <span class="tag">Wording rule</span>
-        <p><em class="term">Optimality gap</em> is mathematically meaningful only when the denominator is a proven optimum or a valid bound. Against TSPLIB published optima it is legitimate. Against OR-Tools it is <strong>not</strong> — OR-Tools is a strong heuristic, not an oracle. Call that one <em class="term">gap to reference</em>, and name the comparator every time it appears.</p>
-      </div>
-
-      <h3>The SolveReport contract</h3>
-      <p>Every solver returns one of these, and the benchmark harness refuses to plot a run that cannot fill in the mandatory fields.</p>
-
-      <pre class="tree"><b>SolveReport</b>
-├── problem_type        <i># TSP | CVRP | CVRPTW</i>
-├── status              <i># the enum above — mandatory</i>
-├── objective_value     <i># integer, in stated units</i>
-├── objective_units     <i># metres | seconds — never "cost"</i>
-├── best_lower_bound    <i># when an exact search exposes one</i>
-├── <u>proven_gap</u>           <i># (incumbent − lower_bound)/incumbent — only when valid</i>
-├── reference_value     <i># OR-Tools / TSPLIB comparator</i>
-├── reference_source    <i># provenance string — mandatory if reference_value set</i>
-├── <s>stop_reason</s>          <i># optimal | timeout | memory_cap | infeasible | cancelled</i>
-├── wall_time_ms, cpu_time_ms, peak_memory_mb
-├── nodes_created, nodes_explored, nodes_pruned, peak_frontier   <i># B&amp;B</i>
-└── seed, solver_config_hash, distance_matrix_hash, hardware_id</pre>
-
-      <p>Two fields carry more weight than they look. <code>distance_matrix_hash</code> mechanically enforces that every compared solver saw the identical input — a comparison across two different matrices is meaningless, and the harness can now refuse it rather than trusting you to remember. And <code>stop_reason</code> is what makes exact-versus-heuristic comparison fair at all: a run that hit a timeout is not a data point about algorithm quality, it is a data point about the budget.</p>
-    </section>
-
-    <!-- 03 -->
-    <section id="works">
-      <div class="sec-head"><span class="sec-num">03</span><h2>How the system works, end to end</h2><span class="rev rvsd">revised</span></div>
-      <p class="sec-sub">Same pipeline as revision 1, with the claim status now flowing through it as a first-class output.</p>
-
-      <p>A solve is a pipeline. Addresses become coordinates, coordinates become a cost matrix, the matrix feeds a solver, and the solver's output is checked against every constraint before it is allowed out. Below a size threshold the system returns a provably optimal answer <em>with its certificate</em>; above it, a feasible answer labelled with what it is entitled to claim.</p>
-
-      <figure class="wide">
-        <svg viewBox="0 0 900 380" role="img" aria-label="Solve pipeline: stops and fleet are geocoded, a cost matrix is built through an adapter with caching and a Haversine fallback, then routed either through an exact solver for small instances or a construct-improve-escape heuristic chain, both passing through a feasibility gate that stamps a claim status before producing routes with ETAs.">
-          <defs>
-            <marker id="p2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
-            </marker>
-            <marker id="p2a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
-            </marker>
-            <marker id="p2t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--teal)"/>
-            </marker>
-          </defs>
-
-          <rect x="24" y="150" width="112" height="60" fill="none" stroke="currentColor" stroke-width="1.4"/>
-          <text x="80" y="174" font-family="Archivo, sans-serif" font-size="12.5" font-weight="700" fill="currentColor" text-anchor="middle">Stops + fleet</text>
-          <text x="80" y="192" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" text-anchor="middle" opacity="0.6">CSV / API</text>
-
-          <line x1="136" y1="180" x2="182" y2="180" stroke="currentColor" stroke-width="1.4" marker-end="url(#p2)"/>
-          <text x="159" y="171" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" text-anchor="middle" opacity="0.65">parse</text>
-
-          <rect x="182" y="118" width="140" height="124" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
-          <text x="252" y="140" font-family="Archivo, sans-serif" font-size="12.5" font-weight="700" fill="currentColor" text-anchor="middle">Matrix adapter</text>
-          <line x1="196" y1="150" x2="308" y2="150" stroke="currentColor" stroke-width="1" opacity="0.3"/>
-          <text x="200" y="168" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor">1 · cache hit?</text>
-          <text x="200" y="186" font-family="IBM Plex Mono, monospace" font-size="10" fill="var(--teal)" font-weight="600">2 · OSRM /table</text>
-          <text x="200" y="204" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.7">3 · haversine×1.3</text>
-          <text x="200" y="228" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--accent)" font-weight="600">emits matrix_hash</text>
-
-          <path d="M 322 180 L 356 180 L 356 92 L 392 92" fill="none" stroke="var(--accent)" stroke-width="1.6" marker-end="url(#p2a)"/>
-          <text x="374" y="82" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--accent)" text-anchor="middle" font-weight="600">small n</text>
-
-          <path d="M 322 180 L 356 180 L 356 272 L 392 272" fill="none" stroke="var(--teal)" stroke-width="1.6" marker-end="url(#p2t)"/>
-          <text x="374" y="292" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--teal)" text-anchor="middle" font-weight="600">large n</text>
-
-          <rect x="392" y="60" width="150" height="64" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
-          <text x="467" y="82" font-family="Archivo, sans-serif" font-size="12.5" font-weight="700" fill="var(--accent)" text-anchor="middle">Exact solver</text>
-          <text x="467" y="100" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.75">Held–Karp · B&amp;B</text>
-          <text x="467" y="115" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.75">+ certificate or bound</text>
-
-          <rect x="392" y="240" width="98" height="64" fill="none" stroke="var(--teal)" stroke-width="1.6"/>
-          <text x="441" y="264" font-family="Archivo, sans-serif" font-size="12" font-weight="700" fill="currentColor" text-anchor="middle">Construct</text>
-          <text x="441" y="281" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">savings / NN</text>
-
-          <line x1="490" y1="272" x2="524" y2="272" stroke="var(--teal)" stroke-width="1.6" marker-end="url(#p2t)"/>
-
-          <rect x="524" y="240" width="98" height="64" fill="none" stroke="var(--teal)" stroke-width="1.6"/>
-          <text x="573" y="264" font-family="Archivo, sans-serif" font-size="12" font-weight="700" fill="currentColor" text-anchor="middle">Improve</text>
-          <text x="573" y="281" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">Or-opt · 2-opt*</text>
-
-          <line x1="622" y1="272" x2="656" y2="272" stroke="var(--teal)" stroke-width="1.6" marker-end="url(#p2t)"/>
-
-          <rect x="656" y="240" width="98" height="64" fill="none" stroke="var(--teal)" stroke-width="1.6"/>
-          <text x="705" y="264" font-family="Archivo, sans-serif" font-size="12" font-weight="700" fill="currentColor" text-anchor="middle">Escape</text>
-          <text x="705" y="281" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">annealing</text>
-
-          <path d="M 542 92 L 700 92 L 700 152" fill="none" stroke="var(--accent)" stroke-width="1.6"/>
-          <path d="M 754 272 L 790 272 L 790 212" fill="none" stroke="var(--teal)" stroke-width="1.6"/>
-
-          <rect x="640" y="152" width="210" height="58" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
-          <text x="745" y="176" font-family="Archivo, sans-serif" font-size="12.5" font-weight="700" fill="currentColor" text-anchor="middle">Feasibility gate</text>
-          <text x="745" y="194" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">load · window · shift · visit-once</text>
-
-          <line x1="745" y1="210" x2="745" y2="248" stroke="currentColor" stroke-width="1.4" marker-end="url(#p2)"/>
-
-          <rect x="600" y="248" width="290" height="30" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.4"/>
-          <text x="745" y="268" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="var(--accent)" text-anchor="middle">stamp claim status  (§02)</text>
-
-          <line x1="745" y1="278" x2="745" y2="324" stroke="currentColor" stroke-width="1.4" marker-end="url(#p2)"/>
-          <rect x="600" y="326" width="290" height="34" fill="none" stroke="currentColor" stroke-width="1.8"/>
-          <text x="745" y="348" font-family="Archivo, sans-serif" font-size="12.5" font-weight="700" fill="currentColor" text-anchor="middle">Routes + ETAs + status + provenance</text>
-        </svg>
-        <figcaption><b>One pipeline, two lanes, one claim stamp.</b> Both lanes pass the same independent feasibility gate, so a heuristic can never return a plan that quietly overloads a van. The stamp after the gate is what revision 1 was missing: nothing leaves the system without a machine-readable statement of what it is entitled to claim. Note the <code>2-opt*</code> — see §07 for why that asterisk exists.</figcaption>
-      </figure>
+      <h3>Enforcement, not convention</h3>
+      <p>The difference between a documented rule and an enforced one is the difference between a project that holds and one that drifts. <code>SolveReport</code> <strong>cannot be constructed</strong> if it:</p>
+      <ul>
+        <li>claims proven optimality with any <code>stop_reason</code> other than <code>OPTIMAL</code>;</li>
+        <li>claims TSP optimality for a CVRPTW run — a single-vehicle certificate says nothing about a fleet plan;</li>
+        <li>reports a timeout without the lower bound that makes the residual gap knowable;</li>
+        <li>supplies a reference value without provenance naming the comparator;</li>
+        <li>carries a lower bound above its own objective, which would mean the bound is invalid and may already have pruned the optimum.</li>
+      </ul>
+      <p>A <code>headline()</code> method returns the strongest permitted phrase, so display code never composes its own wording. The rules live in one place and are tested by nine cases that each assert a refusal.</p>
     </section>
 
     <!-- 04 -->
     <section id="arch">
-      <div class="sec-head"><span class="sec-num">04</span><h2>Architecture — make the purity rule mechanical</h2><span class="rev rvsd">revised · P0</span></div>
-      <p class="sec-sub">The review's best catch. Revision 1 asserted a rule its own repository layout broke.</p>
+      <div class="sec-head"><span class="sec-num">04</span><h2>Architecture — and the evidence bundle</h2><span class="rev new">new · the centrepiece</span></div>
 
-      <p class="lede">R1 said "<code>core/</code> imports nothing from the web, the database, or the network," then listed <code>core/distance/ — Protocol + haversine, OSRM, cached impls</code>. An OSRM client is a network client. The rule was prose; the layout contradicted it.</p>
+      <p class="lede">The most common failure in a project like this is not a wrong algorithm. It is a right-looking number that nothing produced. The fix is architectural: make the report a build artefact rather than a document.</p>
 
-      <p>The fix is structural, not editorial. <code>core/</code> holds the <em>protocol</em> — what a distance matrix is and what a provider must offer. Every implementation that touches a socket, a disk, or a database lives in <code>adapters/</code>. Now the rule is enforced by the import graph and can be checked by a test, rather than by remembering.</p>
+      <p>A reviewed implementation of this same brief stated a 96.4% pruning ratio in its report while its own engine returned 89.2%. Neither figure was wrong on purpose. The report was simply written by hand at one moment and the code changed at another, and nothing connected them. That failure mode is available to any project whose write-up is prose.</p>
+
+      <p>So <code>bench/</code> emits a single <em class="term">evidence bundle</em>: a JSON file containing every measured result together with the manifest that produced it — input hashes, matrix hash, code revision, solver configuration, seed, environment, budget. <strong>The report and the demo both render from that bundle and from nothing else.</strong> Neither can state a number the engine did not produce, because neither contains any numbers of its own.</p>
 
       <figure class="wide">
-        <svg viewBox="0 0 900 420" role="img" aria-label="Layered architecture: a pure solver core defining only protocols is imported by adapters, bench, and api; adapters hold every implementation touching network, disk, or database; the web client talks to the API over HTTP and server-sent events.">
+        <svg viewBox="0 0 900 400" role="img" aria-label="Two ways to produce a report: on the left a human writes prose separately from the engine and the two drift apart; on the right the engine emits an evidence bundle that both the report and the demo render from, so they cannot disagree.">
           <defs>
-            <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+            <marker id="e1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
             </marker>
-            <marker id="a4a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
-              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
-            </marker>
-            <marker id="a4t" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+            <marker id="e2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--teal)"/>
+            </marker>
+            <marker id="e3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--amber)"/>
             </marker>
           </defs>
 
-          <rect x="150" y="300" width="600" height="96" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="2"/>
-          <text x="170" y="324" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="var(--accent)" letter-spacing="1.3">core/ — PURE. STDLIB ONLY. NO SOCKET, NO DISK, NO DB.</text>
+          <line x1="450" y1="26" x2="450" y2="380" stroke="currentColor" stroke-width="1" opacity="0.18" stroke-dasharray="3 5"/>
 
-          <g font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor">
-            <rect x="170" y="334" width="88" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1"/>
-            <text x="214" y="350" text-anchor="middle">model/</text>
-            <rect x="266" y="334" width="88" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1"/>
-            <text x="310" y="350" text-anchor="middle">construct/</text>
-            <rect x="362" y="334" width="88" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1"/>
-            <text x="406" y="350" text-anchor="middle">exact/</text>
-            <rect x="458" y="334" width="88" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1"/>
-            <text x="502" y="350" text-anchor="middle">local/</text>
-            <rect x="554" y="334" width="88" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1"/>
-            <text x="598" y="350" text-anchor="middle">meta/</text>
-            <rect x="650" y="334" width="80" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1"/>
-            <text x="690" y="350" text-anchor="middle">eval/</text>
+          <!-- LEFT: drift -->
+          <text x="30" y="44" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="var(--amber)" letter-spacing="1.3">HAND-WRITTEN REPORT — DRIFTS</text>
 
-            <rect x="170" y="364" width="180" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1"/>
-            <text x="260" y="380" text-anchor="middle">constraints/</text>
-            <rect x="358" y="364" width="200" height="24" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.4"/>
-            <text x="458" y="380" text-anchor="middle" fill="var(--accent)" font-weight="600">distance/protocol.py</text>
-            <rect x="566" y="364" width="164" height="24" fill="var(--surface)" stroke="currentColor" stroke-width="1"/>
-            <text x="648" y="380" text-anchor="middle">reporting/</text>
-          </g>
+          <rect x="30" y="70" width="150" height="52" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+          <text x="105" y="92" font-family="Archivo, sans-serif" font-size="13" font-weight="700" fill="currentColor" text-anchor="middle">solvers</text>
+          <text x="105" y="110" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">produce numbers</text>
 
-          <!-- adapters -->
-          <rect x="150" y="212" width="252" height="66" fill="var(--teal-bg)" stroke="var(--teal)" stroke-width="1.8"/>
-          <text x="276" y="236" font-family="Archivo, sans-serif" font-size="14" font-weight="700" fill="var(--teal)" text-anchor="middle">adapters/</text>
-          <text x="276" y="255" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.8">OSRM client · disk cache · Postgres</text>
-          <text x="276" y="269" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--teal)" text-anchor="middle" font-weight="600">every I/O implementation lives here</text>
+          <path d="M 105 122 L 105 176" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#e1)"/>
+          <text x="116" y="152" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity="0.65">console output</text>
 
-          <path d="M 276 300 L 276 280" fill="none" stroke="var(--teal)" stroke-width="1.8" marker-end="url(#a4t)"/>
-          <text x="290" y="294" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--teal)" font-weight="600">implements protocol</text>
+          <rect x="30" y="176" width="150" height="46" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3"/>
+          <text x="105" y="203" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" text-anchor="middle" opacity="0.75">read once, by a human</text>
 
-          <rect x="440" y="212" width="140" height="66" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/>
-          <text x="510" y="240" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="currentColor" text-anchor="middle">bench/</text>
-          <text x="510" y="258" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">experiments · OR-Tools ref</text>
-          <path d="M 510 300 L 510 280" fill="none" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#a4a)"/>
+          <path d="M 180 199 L 240 199" fill="none" stroke="var(--amber)" stroke-width="1.6" marker-end="url(#e3)"/>
+          <text x="210" y="190" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--amber)" text-anchor="middle" font-weight="600">typed</text>
 
-          <rect x="610" y="212" width="140" height="66" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/>
-          <text x="680" y="240" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="currentColor" text-anchor="middle">api/</text>
-          <text x="680" y="258" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">FastAPI · jobs · SSE</text>
-          <path d="M 680 300 L 680 280" fill="none" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#a4a)"/>
+          <rect x="240" y="70" width="170" height="152" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.6"/>
+          <text x="325" y="94" font-family="Archivo, sans-serif" font-size="13" font-weight="700" fill="currentColor" text-anchor="middle">report.md</text>
+          <text x="325" y="114" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.75">prose with numbers</text>
+          <text x="325" y="130" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.75">baked into it</text>
+          <line x1="256" y1="144" x2="394" y2="144" stroke="var(--amber)" stroke-width="1" opacity="0.5"/>
+          <text x="325" y="164" font-family="IBM Plex Mono, monospace" font-size="11" fill="var(--amber)" text-anchor="middle" font-weight="600">"96.4% pruning"</text>
+          <text x="325" y="184" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">engine now says</text>
+          <text x="325" y="200" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" text-anchor="middle" font-weight="600">89.2%</text>
 
-          <!-- top row -->
-          <rect x="150" y="104" width="252" height="62" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="4 3"/>
-          <text x="276" y="130" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="currentColor" text-anchor="middle">infra/</text>
-          <text x="276" y="149" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">docker: OSRM, Postgres, Redis</text>
-          <path d="M 276 212 L 276 168" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="3 3" marker-end="url(#a4)"/>
-          <text x="290" y="192" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity="0.6">configures</text>
+          <text x="30" y="258" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.72">Nothing connects the two after the moment they</text>
+          <text x="30" y="274" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.72">were copied. Every later code change widens the gap,</text>
+          <text x="30" y="290" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.72">and no test can notice.</text>
 
-          <rect x="440" y="104" width="140" height="62" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="4 3"/>
-          <text x="510" y="130" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="currentColor" text-anchor="middle">report/</text>
-          <text x="510" y="149" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">plots · tables · findings</text>
-          <path d="M 510 212 L 510 168" fill="none" stroke="currentColor" stroke-width="1.4" marker-end="url(#a4)"/>
-          <text x="522" y="192" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity="0.6">emits</text>
+          <!-- RIGHT: generated -->
+          <text x="484" y="44" font-family="IBM Plex Mono, monospace" font-size="11.5" font-weight="600" fill="var(--teal)" letter-spacing="1.3">GENERATED REPORT — CANNOT DRIFT</text>
 
-          <rect x="610" y="104" width="140" height="62" fill="none" stroke="currentColor" stroke-width="1.6"/>
-          <text x="680" y="130" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="currentColor" text-anchor="middle">web/</text>
-          <text x="680" y="149" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">React + MapLibre</text>
-          <path d="M 680 212 L 680 168" fill="none" stroke="currentColor" stroke-width="1.6" marker-end="url(#a4)"/>
-          <text x="692" y="192" font-family="IBM Plex Mono, monospace" font-size="9" fill="currentColor" opacity="0.6">HTTP + SSE</text>
+          <rect x="484" y="70" width="150" height="52" fill="var(--surface-2)" stroke="currentColor" stroke-width="1.4"/>
+          <text x="559" y="92" font-family="Archivo, sans-serif" font-size="13" font-weight="700" fill="currentColor" text-anchor="middle">solvers</text>
+          <text x="559" y="110" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">produce numbers</text>
 
-          <text x="150" y="40" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="var(--accent)" letter-spacing="1.2">THE RULE, NOW MECHANICAL</text>
-          <text x="150" y="62" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.72">A test walks core/'s import graph and fails the build if it reaches</text>
-          <text x="150" y="78" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.72">socket, requests, httpx, psycopg, redis, or open(). Prose can drift; this cannot.</text>
+          <path d="M 559 122 L 559 150" fill="none" stroke="var(--teal)" stroke-width="1.6" marker-end="url(#e2)"/>
+
+          <rect x="470" y="150" width="400" height="66" fill="var(--teal-bg)" stroke="var(--teal)" stroke-width="2"/>
+          <text x="670" y="172" font-family="Archivo, sans-serif" font-size="13.5" font-weight="700" fill="var(--teal)" text-anchor="middle">evidence.json — the bundle</text>
+          <text x="670" y="190" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.8">results + manifest: input hash · matrix hash · code rev</text>
+          <text x="670" y="206" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.8">seed · config · environment · budget</text>
+
+          <path d="M 570 216 L 570 258" fill="none" stroke="var(--teal)" stroke-width="1.6" marker-end="url(#e2)"/>
+          <path d="M 770 216 L 770 258" fill="none" stroke="var(--teal)" stroke-width="1.6" marker-end="url(#e2)"/>
+          <text x="582" y="240" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--teal)" font-weight="600">renders</text>
+          <text x="782" y="240" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--teal)" font-weight="600">renders</text>
+
+          <rect x="484" y="258" width="172" height="52" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <text x="570" y="280" font-family="Archivo, sans-serif" font-size="12.5" font-weight="700" fill="currentColor" text-anchor="middle">report/</text>
+          <text x="570" y="298" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">tables · figures</text>
+
+          <rect x="684" y="258" width="172" height="52" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <text x="770" y="280" font-family="Archivo, sans-serif" font-size="12.5" font-weight="700" fill="currentColor" text-anchor="middle">web/</text>
+          <text x="770" y="298" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.7">static demo</text>
+
+          <text x="484" y="342" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.72">Neither contains a number of its own. A stale figure is</text>
+          <text x="484" y="358" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.72">impossible: regenerate the bundle and both update, or</text>
+          <text x="484" y="374" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" opacity="0.72">the build fails because a required field is missing.</text>
         </svg>
-        <figcaption><b>The protocol stays in the core; every implementation that touches the outside world moves out.</b> Because <code>bench/</code> and <code>api/</code> import the same pure solver code, a benchmark number is a claim about the deployed system. And because <code>core/</code> can reach nothing external, the entire solver suite runs offline in unit tests — which is what makes the validation chain in §08 cheap enough to run on every commit.</figcaption>
+        <figcaption><b>The difference is one file.</b> On the left a human is the only link between engine and report, so the two drift the moment either changes. On the right the bundle is the only source of numbers for both outputs, so "the report says something the code doesn't" stops being a thing that can happen. The manifest travels with the results, which is what lets a reader trace any figure back to the run that produced it.</figcaption>
       </figure>
 
-      <h3>Repository layout</h3>
+      <h3>The demo runs without a server</h3>
+      <p>A second benefit falls out of the bundle, and it matters more than it looks. Because the demo renders from a static JSON file, <strong>the whole thing opens from disk</strong> — no Python process, no Docker, no build step for an examiner who wants to look at it. Live interactive solving, where a marker is dragged and routes re-optimise, is an <em>additional</em> mode behind the FastAPI service, not a prerequisite for seeing the evidence.</p>
+
+      <p>That inverts the usual fragility. The demo degrades gracefully: with the server it is interactive, without it, it still shows every measured result.</p>
+
+      <h3>Layout</h3>
 
       <pre class="tree"><b>waybill/</b>
-├── <b>core/</b>                  <i># stdlib only — enforced by an import test</i>
-│   ├── model/               <i># Instance, Solution, Vehicle, Stop, TimeWindow</i>
-│   ├── distance/
-│   │   ├── protocol.py      <i># DistanceMatrix / DistanceProvider interfaces</i>  <u>← interface only</u>
-│   │   └── matrix.py        <i># validation, symmetry check, hashing</i>
-│   ├── construct/           <i># nearest_neighbour, savings, insertion</i>
-│   ├── exact/               <i># brute_force, held_karp, branch_bound/</i>
-│   │   └── bounds/          <i># reduction, hungarian, one_tree</i>
-│   ├── local/               <i># or_opt, relocate, swap, two_opt (symmetric-guarded)</i>
-│   ├── meta/                <i># simulated_annealing</i>
-│   ├── constraints/         <i># capacity, windows, shift, forward slack</i>
-│   ├── eval/                <i># objective + independent feasibility checker</i>
-│   └── reporting/           <i># SolveReport schema + status enum</i>
-├── <b>adapters/</b>              <s>← every socket, file, and DB call lives here</s>
-│   ├── distance/            <i># haversine, osrm_client, persistent_cache</i>
-│   └── storage/             <i># Postgres / SQLite result persistence</i>
-├── <b>bench/</b>                 <i># experiment runner, manifests, plots, OR-Tools ref</i>
-├── <b>api/</b>                   <i># thin FastAPI orchestration — no algorithms</i>
-├── <b>web/</b>                   <i># React + MapLibre</i>
-├── <b>infra/</b>                 <i># docker compose: osrm, postgres, redis</i>
-└── <b>report/</b>                <i># generated tables, figures, written analysis</i></pre>
+├── <b>core/</b>                  <i># stdlib only — enforced by tools/check_purity.py</i>  <s>built</s>
+│   ├── model/ distance/ construct/ exact/ local/ meta/
+│   ├── constraints/ eval/ reporting/
+├── <b>adapters/</b>              <i># every socket, file, and DB call</i>  <s>built</s>
+│   ├── distance/            <i># haversine, osrm_client, sqlite cache</i>
+│   └── storage/
+├── <b>bench/</b>                 <i># experiment runner → the evidence bundle</i>
+│   ├── tsplib/              <i># loader + published optima</i>  <s>built</s>
+│   ├── experiments/         <i># one module per experiment family (§10)</i>
+│   ├── manifest.py          <i># provenance record attached to every result</i>
+│   └── bundle.py            <i># emits evidence.json</i>  <u>← single source of numbers</u>
+├── <b>report/</b>                <i># renders FROM the bundle. contains no numbers.</i>
+├── <b>web/</b>                   <i># static demo, reads evidence.json; live mode optional</i>
+├── <b>api/</b>                   <i># thin FastAPI — only for interactive mode</i>
+├── <b>infra/</b>                 <i># docker compose: OSRM + pinned OSM extract</i>  <s>built</s>
+├── <b>data/</b>                  <i># external inputs, checksummed, never hand-typed</i>  <s>built</s>
+└── <b>tools/</b>                 <i># check_purity, verify_gate</i>  <s>built</s></pre>
 
-      <div class="note">
-        <span class="tag">Write this test in phase 0</span>
-        <p>A dozen lines walking <code>core/</code>'s AST for imports of <code>socket</code>, <code>requests</code>, <code>httpx</code>, <code>psycopg</code>, <code>redis</code>, or bare <code>open()</code>, failing the build on a hit. It is the cheapest architectural guarantee in the project and it is the reason revision 1's contradiction could not recur.</p>
+      <div class="note key">
+        <span class="tag">The rule that makes it mechanical</span>
+        <p>A build step greps <code>report/</code> and <code>web/</code> for numeric literals outside of layout constants. Any bare figure that is not read from the bundle fails the build. It is a crude check, and it is exactly strong enough to prevent the failure it targets.</p>
       </div>
     </section>
 
     <!-- 05 -->
+    <section id="data">
+      <div class="sec-head"><span class="sec-num">05</span><h2>Data integrity</h2><span class="rev new">new · highest risk</span></div>
+
+      <p class="lede">The review found that the single largest threat to this project is not an algorithm. It is a plausible number in the wrong place.</p>
+
+      <p>A parallel implementation of this brief inlined benchmark coordinates directly into its source. Checked against the real files: one instance had <strong>17 of 52 coordinates wrong</strong> — correct for the first 35, then drifting, with some values recycled from other positions and the real file's last two absent entirely. Scoring the genuine published optimal tour against that data gives <strong>16,883 instead of 7,542</strong>.</p>
+
+      <p>A second instance was worse in a subtler way. <code>bayg29</code> is <code>EDGE_WEIGHT_TYPE: EXPLICIT</code> — its true distances live in a matrix inside the file, and its coordinates are <code>DISPLAY_DATA</code>, present only for drawing. Applying a Euclidean formula to display coordinates produces a different problem, which was then paired with the real problem's published optimum. Summed across all pairs the two models differ by <strong>6.07×</strong>.</p>
+
+      <p>That instance's own benchmark output reported a nearest-neighbour gap of <strong>621%</strong>. Nearest neighbour runs about 25% above optimal. The number was visible in the output the whole time.</p>
+
+      <h3>Rules</h3>
+      <ul>
+        <li><strong>No numeric instance data may be typed into source. Ever.</strong> Coordinates, distance matrices, and published optima are loaded from files in <code>data/</code>. A model reproducing a table from memory is confabulation with a plausible failure mode, and this is the only defence that reliably works.</li>
+        <li><strong>Every input file carries a recorded SHA-256</strong>, checked on load. A silently edited fixture is then impossible rather than merely unlikely.</li>
+        <li><strong>Provenance is recorded per file</strong> — source URL, retrieval date, and the archive it came from — so any reader can re-fetch and compare.</li>
+        <li><strong>Every published optimum is cross-checked</strong> by scoring the real <code>.opt.tour</code> with our own implementation. Two independent facts agreeing; the test prints both when they do not, so the cause is immediately visible.</li>
+        <li><strong>Support <code>EXPLICIT</code> before using an <code>EXPLICIT</code> instance.</strong> Many classic TSPLIB instances are matrix-defined. Treating their display coordinates as geometry is silently wrong.</li>
+        <li><strong>A gap above 100% is treated as a data fault, not a result</strong>, and fails the build. No heuristic in the ladder is capable of being twice as bad as optimal; if one appears to be, the instance is wrong.</li>
+      </ul>
+
+      <div class="note warn">
+        <span class="tag">Why this outranks the algorithms</span>
+        <p>An algorithmic bug produces a number that is wrong. A data bug produces a number that is wrong <em>and internally consistent</em> — every downstream comparison agrees with every other, the plots look reasonable, and nothing fails. The only thing that catches it is an external reference the project does not control.</p>
+      </div>
+    </section>
+
+    <!-- 06 -->
     <section id="ladder">
-      <div class="sec-head"><span class="sec-num">05</span><h2>Solver scope — fewer mandatory, more evidence</h2><span class="rev rvsd">revised</span></div>
-      <p class="sec-sub">Nine partially-tested solvers are worth less than six fully validated ones. Tiering accepted from the review, with two changes.</p>
+      <div class="sec-head"><span class="sec-num">06</span><h2>Solver scope</h2><span class="rev rvsd">revised</span></div>
+      <p class="sec-sub">Six mandatory methods, fully validated, beat nine partially tested ones.</p>
 
       <div class="tbl-wrap">
         <table>
           <thead><tr><th>Method</th><th>Class</th><th>Tier</th><th>Purpose</th></tr></thead>
           <tbody>
-            <tr class="exact"><td>Brute force</td><td><span class="chip ex">exact</span></td><td><span class="chip md">mandatory</span></td><td>Ground truth for n ≤ 12; the root of the validation chain</td></tr>
+            <tr class="exact"><td>Brute force</td><td><span class="chip ex">exact</span></td><td><span class="chip md">built</span></td><td>Ground truth to n≈10; root of the validation chain</td></tr>
             <tr class="exact"><td>Held–Karp DP</td><td><span class="chip ex">exact</span></td><td><span class="chip md">mandatory</span></td><td>Exact reference to the memory wall; exposes that wall as a result</td></tr>
-            <tr class="exact"><td>B&amp;B + reduced-cost bound</td><td><span class="chip ex">exact</span></td><td><span class="chip md">mandatory</span></td><td>The assignment's named technique; baseline for bound comparison</td></tr>
-            <tr class="exact"><td>B&amp;B + Hungarian bound</td><td><span class="chip ex">exact</span></td><td><span class="chip md">mandatory</span></td><td>Second bound — without it there is no bound-quality experiment</td></tr>
+            <tr class="exact"><td>B&amp;B + reduced-cost bound</td><td><span class="chip ex">exact</span></td><td><span class="chip md">mandatory</span></td><td>The assignment's named technique; bound-comparison baseline</td></tr>
+            <tr class="exact"><td>B&amp;B + Hungarian bound</td><td><span class="chip ex">exact</span></td><td><span class="chip md">mandatory</span></td><td>Second bound — without it there is no bound experiment</td></tr>
             <tr class="exact"><td>B&amp;B + 1-tree / subgradient</td><td><span class="chip ex">exact</span></td><td><span class="chip st">recommended</span></td><td>A structurally different relaxation; gated on the validity invariant</td></tr>
-            <tr class="heur"><td>Nearest neighbour</td><td><span class="chip he">heur</span></td><td><span class="chip md">mandatory</span></td><td>Greedy baseline — the assignment's "Greedy"</td></tr>
-            <tr class="heur"><td>Clarke–Wright savings</td><td><span class="chip he">heur</span></td><td><span class="chip md">mandatory</span></td><td>Fleet-aware construction; answers partitioning and sequencing at once</td></tr>
-            <tr class="heur"><td>Or-opt / relocate</td><td><span class="chip he">heur</span></td><td><span class="chip md">mandatory</span></td><td>Local search that stays valid under asymmetry (§07)</td></tr>
-            <tr class="heur"><td>2-opt (symmetric-guarded)</td><td><span class="chip he">heur</span></td><td><span class="chip md">mandatory</span></td><td>Classic improvement — with the guard that makes it honest</td></tr>
+            <tr class="heur"><td>Nearest neighbour</td><td><span class="chip he">heur</span></td><td><span class="chip md">mandatory</span></td><td>The assignment's "Greedy"; the baseline to beat</td></tr>
+            <tr class="heur"><td>Clarke–Wright savings</td><td><span class="chip he">heur</span></td><td><span class="chip md">mandatory</span></td><td>Fleet-aware construction; partitions and sequences at once</td></tr>
+            <tr class="heur"><td>Or-opt / relocate</td><td><span class="chip he">heur</span></td><td><span class="chip md">mandatory</span></td><td>Asymmetry-safe local search (§08)</td></tr>
+            <tr class="heur"><td>2-opt (symmetry-guarded)</td><td><span class="chip he">heur</span></td><td><span class="chip md">mandatory</span></td><td>Classic improvement, with the guard that makes it honest</td></tr>
             <tr class="heur"><td>Simulated annealing</td><td><span class="chip he">heur</span></td><td><span class="chip st">recommended</span></td><td>One well-instrumented metaheuristic, for the anytime curve</td></tr>
-            <tr class="refr"><td>OR-Tools</td><td><span class="chip md">ruler</span></td><td><span class="chip md">reference</span></td><td>External baseline in <code>bench/</code> only. Never inside a submitted solver.</td></tr>
+            <tr class="refr"><td>OR-Tools</td><td><span class="chip md">ruler</span></td><td><span class="chip md">reference</span></td><td>External baseline in <code>bench/</code> only, never inside a solver</td></tr>
           </tbody>
         </table>
       </div>
 
-      <h3>Two departures from the review</h3>
-
-      <p><strong>The 1-tree bound moves from stretch to recommended.</strong> The review's concern is sound — a subtly wrong bound is worse than no bound, because it silently prunes the optimum. But the mitigation already exists in the review's own invariant list: <em>a lower bound must never exceed the true optimum on a brute-force-verifiable instance</em>. With that test running on a thousand small instances, an invalid 1-tree implementation cannot reach the report. Gate it on the test rather than deferring it, because bound quality is the one place where this project can produce a genuinely interesting algorithmic result, and a comparison of two bounds from the same family (both LP-relaxation flavoured) is much less interesting than one that includes a spanning-tree relaxation.</p>
-
-      <p><strong>Pick simulated annealing over ALNS.</strong> The review left this open; leaving it open is the risk. SA is roughly 80 lines with three parameters, its acceptance behaviour follows directly from the cooling schedule, and you can derive and defend that behaviour on a whiteboard. ALNS is several hundred lines of destroy/repair operators with adaptive weights — more impressive when it works, much harder to validate, and nearly impossible to explain rigorously under questioning. For a graded project where every line must be defensible, SA is the better risk-adjusted choice. If SA is finished, instrumented, and the anytime curve is generated with time to spare, then ALNS becomes a genuine stretch goal.</p>
-
-      <div class="note key">
-        <span class="tag">Scope rule</span>
-        <p>A solver enters the final comparison only after it passes the feasibility checker, agrees with exact cross-validation where applicable, reproduces under a fixed seed, and fills every mandatory <code>SolveReport</code> field. <strong>"Implemented" is not "included."</strong> A method that fails any of these is reported as attempted-and-excluded, with the reason — which is itself a more honest result than quietly dropping it.</p>
+      <div class="note warn">
+        <span class="tag">A metaheuristic that does nothing still returns a number</span>
+        <p>In the reviewed implementation, simulated annealing and Clarke–Wright returned <em>identical</em> costs on eil51 — 458 for both. The annealer improved on its starting solution zero times, and reported a result anyway.</p>
+        <p>An under-calibrated SA is indistinguishable from a working one unless you look. So SA must record <strong>moves proposed, moves accepted, accepted-worsening moves, and best-cost-over-time</strong>, and a run where acceptance is zero fails the phase gate rather than producing a data point. A cooling schedule that starts too cold accepts nothing and degenerates into a slower local search; one that starts too hot spends its budget as a random walk. The instrumentation is what tells the two apart, and the anytime curve is meaningless without it.</p>
       </div>
+
+      <p><strong>Choose SA over ALNS.</strong> SA is roughly 80 lines with three parameters and its acceptance behaviour follows directly from the cooling schedule, so it can be derived and defended on a whiteboard. ALNS is several hundred lines of destroy/repair operators with adaptive weights — more impressive when it works, much harder to validate and to explain under questioning. If SA is finished, instrumented, and its curve generated with time to spare, ALNS becomes a genuine stretch goal.</p>
     </section>
 
-    <!-- 06 -->
+    <!-- 07 -->
     <section id="bnb">
-      <div class="sec-head"><span class="sec-num">06</span><h2>Branch &amp; Bound — the experimental design</h2><span class="rev rvsd">revised</span></div>
+      <div class="sec-head"><span class="sec-num">07</span><h2>Branch &amp; Bound — the experimental design</h2><span class="rev kept">kept</span></div>
 
-      <p class="lede">Branch &amp; Bound is a bound with a search wrapped around it. Revision 1 said that and then undercut itself by asserting how far the bounds would scale. The scale is the experiment's output, not its premise.</p>
+      <p class="lede">Branch &amp; Bound is a bound with a search wrapped around it. How far it scales is the experiment's output, never its premise.</p>
 
-      <p>The mechanism is unchanged: maintain the best complete tour found (the <em class="term">incumbent</em>); for each partial tour compute a <em class="term">lower bound</em> on the best possible completion; if that bound is already ≥ the incumbent, discard the whole subtree unexplored.</p>
+      <p>Maintain the best complete tour found (the <em class="term">incumbent</em>); for each partial tour compute a <em class="term">lower bound</em> on the best possible completion; if that bound is already ≥ the incumbent, discard the subtree unexplored.</p>
 
       <figure>
-        <svg viewBox="0 0 820 340" role="img" aria-label="A Branch and Bound search tree where one node's lower bound of 94 exceeds the incumbent of 87, pruning its whole subtree without enumeration.">
+        <svg viewBox="0 0 820 340" role="img" aria-label="A Branch and Bound tree where a node's lower bound of 94 exceeds the incumbent of 87 and its subtree is pruned; a second panel shows that an invalid bound prunes the optimum without any error.">
           <defs>
-            <marker id="b3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <marker id="b4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
             </marker>
           </defs>
-
           <rect x="536" y="24" width="256" height="42" fill="var(--teal-bg)" stroke="var(--teal)" stroke-width="1.4"/>
           <text x="552" y="42" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--teal)" letter-spacing="1">INCUMBENT (best found)</text>
           <text x="552" y="58" font-family="IBM Plex Mono, monospace" font-size="12" fill="currentColor">cost = 87 · from greedy seed</text>
@@ -1232,8 +1145,8 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
           <text x="130" y="61" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" text-anchor="middle">root</text>
           <text x="130" y="26" font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" text-anchor="middle" opacity="0.65">LB 61</text>
 
-          <line x1="130" y1="77" x2="76" y2="139" stroke="currentColor" stroke-width="1.4" marker-end="url(#b3)"/>
-          <line x1="130" y1="77" x2="216" y2="139" stroke="currentColor" stroke-width="1.4" marker-end="url(#b3)"/>
+          <line x1="130" y1="77" x2="76" y2="139" stroke="currentColor" stroke-width="1.4" marker-end="url(#b4)"/>
+          <line x1="130" y1="77" x2="216" y2="139" stroke="currentColor" stroke-width="1.4" marker-end="url(#b4)"/>
           <text x="86" y="112" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity="0.6" text-anchor="end">include 1→3</text>
           <text x="200" y="112" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" opacity="0.6">exclude 1→3</text>
 
@@ -1242,9 +1155,8 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
           <circle cx="222" cy="160" r="21" fill="var(--surface)" stroke="currentColor" stroke-width="1.8"/>
           <text x="222" y="165" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" text-anchor="middle">69</text>
 
-          <line x1="70" y1="181" x2="46" y2="239" stroke="currentColor" stroke-width="1.4" marker-end="url(#b3)"/>
-          <line x1="70" y1="181" x2="140" y2="239" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#b3)"/>
-
+          <line x1="70" y1="181" x2="46" y2="239" stroke="currentColor" stroke-width="1.4" marker-end="url(#b4)"/>
+          <line x1="70" y1="181" x2="140" y2="239" stroke="var(--accent)" stroke-width="1.8" marker-end="url(#b4)"/>
           <circle cx="42" cy="260" r="21" fill="var(--surface)" stroke="currentColor" stroke-width="1.8"/>
           <text x="42" y="265" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" text-anchor="middle">81</text>
 
@@ -1252,16 +1164,14 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
           <text x="146" y="265" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="var(--accent)" text-anchor="middle">94</text>
           <line x1="132" y1="246" x2="160" y2="274" stroke="var(--accent)" stroke-width="2"/>
           <line x1="160" y1="246" x2="132" y2="274" stroke="var(--accent)" stroke-width="2"/>
-
           <g opacity="0.2">
             <line x1="146" y1="281" x2="112" y2="312" stroke="currentColor" stroke-width="1"/>
             <line x1="146" y1="281" x2="180" y2="312" stroke="currentColor" stroke-width="1"/>
             <circle cx="108" cy="320" r="10" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/>
             <circle cx="184" cy="320" r="10" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 2"/>
           </g>
-
-          <line x1="222" y1="181" x2="200" y2="239" stroke="currentColor" stroke-width="1.4" marker-end="url(#b3)"/>
-          <line x1="222" y1="181" x2="268" y2="239" stroke="currentColor" stroke-width="1.4" marker-end="url(#b3)"/>
+          <line x1="222" y1="181" x2="200" y2="239" stroke="currentColor" stroke-width="1.4" marker-end="url(#b4)"/>
+          <line x1="222" y1="181" x2="268" y2="239" stroke="currentColor" stroke-width="1.4" marker-end="url(#b4)"/>
           <circle cx="252" cy="260" r="21" fill="var(--surface)" stroke="currentColor" stroke-width="1.8"/>
           <text x="252" y="265" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" text-anchor="middle">76</text>
           <circle cx="316" cy="260" r="21" fill="var(--surface)" stroke="currentColor" stroke-width="1.8"/>
@@ -1278,88 +1188,78 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
           <text x="422" y="286" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" opacity="0.85">An over-optimistic LB prunes the optimum</text>
           <text x="422" y="303" font-family="IBM Plex Mono, monospace" font-size="11" fill="currentColor" opacity="0.85">and still reports PROVEN_OPTIMAL. No crash.</text>
         </svg>
-        <figcaption><b>One prune eliminates a subtree — and one invalid bound eliminates the answer.</b> The amber panel is the failure mode neither the original plan nor the review's tables made vivid: a bound that is too high does not error, it quietly discards the branch containing the optimum and returns a confident wrong answer. This is why the bound-validity invariant in §09 is the single most important test in the project.</figcaption>
+        <figcaption><b>One prune eliminates a subtree — one invalid bound eliminates the answer.</b> The amber panel is the failure this project guards hardest against: a bound that is too high does not error, it discards the branch containing the optimum and returns a confident wrong answer.</figcaption>
       </figure>
 
-      <h3>Control variables — so differences are attributable to the bound</h3>
-      <p>The bound-quality experiment only means something if the bound is the <em>only</em> thing that changes. Hold constant: the instance, the incumbent initialisation (same greedy-plus-local-search seed tour for every variant), the branching rule, the search strategy, and the timeout.</p>
+      <h3>Control variables</h3>
+      <p>The bound experiment means something only if the bound is the <em>only</em> thing that changes. Hold constant: the instance, the incumbent initialisation (the same greedy-plus-local-search seed tour for every variant), the branching rule, the search strategy, and the timeout.</p>
       <ul>
-        <li><strong>Record bound computation time separately.</strong> A tighter bound that costs too much per node can lose overall — that trade-off is a result, and you can only see it if the two costs are measured apart.</li>
-        <li><strong>Record peak frontier size.</strong> Best-first's memory blow-up then becomes a measured curve instead of a crash.</li>
-        <li><strong>On timeout, save the incumbent and the best remaining lower bound.</strong> The run still yields a certified residual gap — a timeout becomes data rather than a hole in the table.</li>
-        <li><strong>Expose DFS and best-first, but fix one as the default</strong> for the primary bound experiment, or you are varying two things at once.</li>
+        <li><strong>Record bound computation time separately.</strong> A tighter bound that costs too much per node can lose overall — visible only if the two costs are measured apart.</li>
+        <li><strong>Record peak frontier size</strong>, so best-first's memory growth is a curve rather than a crash.</li>
+        <li><strong>On timeout, save incumbent and best remaining lower bound.</strong> A timeout then yields a certified residual gap instead of a hole in the table.</li>
+        <li><strong>Fix one search strategy as default</strong> for the primary bound comparison, or two things vary at once.</li>
       </ul>
 
-      <div class="note warn">
-        <span class="tag">Claims deleted from revision 1</span>
-        <p>These were written as expectations and read as findings. They are hypotheses drawn from the literature, and the submitted report must replace them with measured ranges from your implementation on your hardware:</p>
-        <p>"1-tree makes B&amp;B viable past n = 40." · "ALNS lands within 1%." · "Nearest neighbour is ~25% worse." · "Forward slack gives two orders of magnitude." · And the entire worked "sentence to aim for," which supplied invented numbers in a shape designed to be copied.</p>
+      <div class="note key">
+        <span class="tag">The sentence to fill in</span>
+        <p><em>"On this hardware and instance family, exact method X remained provably optimal through n = ___ under a ___-second budget; beyond that, heuristic Y achieved a median gap of ___% in ___ ms. Changing only the lower bound reduced explored nodes by ___×."</em></p>
+        <p>Blanks are filled by the bundle, not by hand. Under the §04 architecture that is not a discipline — it is the only way the sentence can be rendered at all.</p>
       </div>
-
-      <p>What replaces them is a sentence with blanks, filled only after the experiments run: <em>"On this hardware and instance family, exact method X remained provably optimal through n = ___ under a ___-second budget; beyond that, heuristic Y achieved a median gap of ___% in ___ ms. Changing only the lower bound reduced explored nodes by ___×."</em></p>
     </section>
 
-    <!-- 07 -->
+    <!-- 08 -->
     <section id="asym">
-      <div class="sec-head"><span class="sec-num">07</span><h2>The asymmetry trap</h2><span class="rev new">new</span></div>
-      <p class="sec-sub">Absent from both revision 1 and the review. It connects the "real roads" feature directly to algorithm correctness, and it changes which operators are mandatory.</p>
+      <div class="sec-head"><span class="sec-num">08</span><h2>The asymmetry trap</h2><span class="rev rvsd">now measured</span></div>
 
-      <p class="lede">Textbook 2-opt is not valid on an asymmetric matrix. Since this project deliberately introduces asymmetric road distances, that is a correctness problem sitting directly between two of its headline features.</p>
+      <p class="lede">Textbook 2-opt is not valid on an asymmetric matrix. Revision 2 argued this; the OSRM measurement settles it.</p>
 
-      <p>2-opt removes two edges from a tour and reconnects them the other way. Remove <code>(a,b)</code> and <code>(c,d)</code>, add <code>(a,c)</code> and <code>(b,d)</code> — and to keep the tour connected, the entire path from <code>b</code> to <code>c</code> must be <strong>traversed in reverse</strong>.</p>
+      <p>2-opt removes edges <code>(a,b)</code> and <code>(c,d)</code>, adds <code>(a,c)</code> and <code>(b,d)</code>, and to keep the tour connected the path from <code>b</code> to <code>c</code> must be <strong>traversed in reverse</strong>.</p>
 
-      <p>On a symmetric matrix that reversal is free: every internal edge <code>(x,y)</code> becomes <code>(y,x)</code>, and <code>d(x,y) = d(y,x)</code>, so the internal cost is unchanged. The move's delta collapses to four terms and evaluates in constant time. That <code>O(1)</code> delta is the entire reason 2-opt is fast enough to be useful.</p>
+      <p>On a symmetric matrix that reversal is free — every internal edge <code>(x,y)</code> becomes <code>(y,x)</code> at the same cost — so the delta collapses to four terms and evaluates in constant time. That <code>O(1)</code> delta is the entire reason 2-opt is fast enough to use.</p>
 
-      <p>On an asymmetric matrix <code>d(x,y) ≠ d(y,x)</code>, so every reversed internal edge changes cost. The delta now includes a sum over the whole reversed segment: <code>O(k)</code> for a segment of length <code>k</code>. Evaluate the neighbourhood naively and 2-opt silently becomes an order of magnitude slower — or, far worse, keep the four-term formula and the search is now optimising a cost function that <em>is not the tour cost</em>.</p>
+      <p>On an asymmetric matrix every reversed internal edge changes cost. The delta needs a sum over the whole reversed segment: <code>O(k)</code>. Keep the four-term formula and the search is optimising <strong>a quantity that is not the tour length</strong> — without erroring.</p>
 
       <figure class="wide">
-        <svg viewBox="0 0 900 360" role="img" aria-label="A 2-opt move reverses the path between b and c; on a symmetric matrix the reversed internal edges cost the same so the delta has four terms, but on an asymmetric matrix every reversed edge changes cost and the delta must sum over the whole segment.">
+        <svg viewBox="0 0 900 360" role="img" aria-label="A 2-opt move reverses the path between b and c; on a symmetric matrix the reversed internal edges cost the same so the delta has four terms, but on an asymmetric matrix every reversed edge changes cost and the delta must sum over the segment.">
           <defs>
-            <marker id="s1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <marker id="t1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="currentColor"/>
             </marker>
-            <marker id="s2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+            <marker id="t2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
               <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
             </marker>
           </defs>
-
           <text x="30" y="36" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="currentColor" letter-spacing="1.2">BEFORE — tour order a → b → m → n → c → d</text>
-
           <g font-family="IBM Plex Mono, monospace" font-size="11">
-            <circle cx="80"  cy="86" r="15" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><text x="80"  y="91" text-anchor="middle" fill="currentColor">a</text>
+            <circle cx="80" cy="86" r="15" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><text x="80" y="91" text-anchor="middle" fill="currentColor">a</text>
             <circle cx="220" cy="86" r="15" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><text x="220" y="91" text-anchor="middle" fill="currentColor">b</text>
             <circle cx="360" cy="86" r="15" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><text x="360" y="91" text-anchor="middle" fill="currentColor">m</text>
             <circle cx="500" cy="86" r="15" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><text x="500" y="91" text-anchor="middle" fill="currentColor">n</text>
             <circle cx="640" cy="86" r="15" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><text x="640" y="91" text-anchor="middle" fill="currentColor">c</text>
             <circle cx="780" cy="86" r="15" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><text x="780" y="91" text-anchor="middle" fill="currentColor">d</text>
           </g>
-
-          <line x1="96"  y1="86" x2="203" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#s1)"/>
-          <line x1="236" y1="86" x2="343" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#s1)"/>
-          <line x1="376" y1="86" x2="483" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#s1)"/>
-          <line x1="516" y1="86" x2="623" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#s1)"/>
-          <line x1="656" y1="86" x2="763" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#s1)"/>
-
+          <line x1="96" y1="86" x2="203" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#t1)"/>
+          <line x1="236" y1="86" x2="343" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#t1)"/>
+          <line x1="376" y1="86" x2="483" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#t1)"/>
+          <line x1="516" y1="86" x2="623" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#t1)"/>
+          <line x1="656" y1="86" x2="763" y2="86" stroke="currentColor" stroke-width="1.5" marker-end="url(#t1)"/>
           <rect x="205" y="108" width="450" height="16" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3 3" opacity="0.5"/>
           <text x="430" y="120" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="currentColor" text-anchor="middle" opacity="0.65">segment that must reverse</text>
 
           <text x="30" y="176" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="var(--accent)" letter-spacing="1.2">AFTER — a → c → n → m → b → d</text>
-
           <g font-family="IBM Plex Mono, monospace" font-size="11">
-            <circle cx="80"  cy="226" r="15" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><text x="80"  y="231" text-anchor="middle" fill="currentColor">a</text>
+            <circle cx="80" cy="226" r="15" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><text x="80" y="231" text-anchor="middle" fill="currentColor">a</text>
             <circle cx="220" cy="226" r="15" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.8"/><text x="220" y="231" text-anchor="middle" fill="currentColor">c</text>
             <circle cx="360" cy="226" r="15" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.8"/><text x="360" y="231" text-anchor="middle" fill="currentColor">n</text>
             <circle cx="500" cy="226" r="15" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.8"/><text x="500" y="231" text-anchor="middle" fill="currentColor">m</text>
             <circle cx="640" cy="226" r="15" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.8"/><text x="640" y="231" text-anchor="middle" fill="currentColor">b</text>
             <circle cx="780" cy="226" r="15" fill="var(--surface)" stroke="currentColor" stroke-width="1.6"/><text x="780" y="231" text-anchor="middle" fill="currentColor">d</text>
           </g>
-
-          <line x1="96"  y1="226" x2="203" y2="226" stroke="currentColor" stroke-width="1.5" marker-end="url(#s1)"/>
-          <line x1="236" y1="226" x2="343" y2="226" stroke="var(--accent)" stroke-width="2" marker-end="url(#s2)"/>
-          <line x1="376" y1="226" x2="483" y2="226" stroke="var(--accent)" stroke-width="2" marker-end="url(#s2)"/>
-          <line x1="516" y1="226" x2="623" y2="226" stroke="var(--accent)" stroke-width="2" marker-end="url(#s2)"/>
-          <line x1="656" y1="226" x2="763" y2="226" stroke="currentColor" stroke-width="1.5" marker-end="url(#s1)"/>
-
+          <line x1="96" y1="226" x2="203" y2="226" stroke="currentColor" stroke-width="1.5" marker-end="url(#t1)"/>
+          <line x1="236" y1="226" x2="343" y2="226" stroke="var(--accent)" stroke-width="2" marker-end="url(#t2)"/>
+          <line x1="376" y1="226" x2="483" y2="226" stroke="var(--accent)" stroke-width="2" marker-end="url(#t2)"/>
+          <line x1="516" y1="226" x2="623" y2="226" stroke="var(--accent)" stroke-width="2" marker-end="url(#t2)"/>
+          <line x1="656" y1="226" x2="763" y2="226" stroke="currentColor" stroke-width="1.5" marker-end="url(#t1)"/>
           <text x="290" y="252" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--accent)">d(c,n)</text>
           <text x="430" y="252" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--accent)">d(n,m)</text>
           <text x="570" y="252" font-family="IBM Plex Mono, monospace" font-size="9.5" fill="var(--accent)">d(m,b)</text>
@@ -1372,187 +1272,141 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
           <text x="46" y="332" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor">Δ = d(a,c)+d(b,d) − d(a,b) − d(c,d)   →  O(1)</text>
 
           <rect x="460" y="292" width="410" height="52" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.4"/>
-          <text x="476" y="312" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--amber)" letter-spacing="1">ASYMMETRIC · d(x,y) ≠ d(y,x)</text>
+          <text x="476" y="312" font-family="IBM Plex Mono, monospace" font-size="10" font-weight="600" fill="var(--amber)" letter-spacing="1">ASYMMETRIC · measured: 10 of 10 pairs</text>
           <text x="476" y="332" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor">Δ = same 4 terms + Σ reversed edges  →  O(k)</text>
         </svg>
-        <figcaption><b>The reversal is free only when the matrix is symmetric.</b> Under OSRM road distances every accent edge changes cost when the segment flips, so the four-term delta is simply the wrong number. Using it does not raise an error — the search happily optimises a quantity that is not the tour length.</figcaption>
+        <figcaption><b>The reversal is free only when the matrix is symmetric.</b> Under the OSRM matrix measured in §02, <em>every</em> pair of the five Monaco stops differed by direction, so every accent edge above changes cost when the segment flips. The four-term delta is simply the wrong number.</figcaption>
       </figure>
 
-      <h3>What this changes in the plan</h3>
+      <h3>What follows</h3>
       <ul>
-        <li><strong>Or-opt and relocate become mandatory, not optional.</strong> They move a short segment without reversing it, so their delta stays <code>O(1)</code> and correct under asymmetry. This is the asymmetry-safe workhorse — and it is why the review's instinct to require "one relocation operator" was right, though for a reason it did not state.</li>
-        <li><strong>2-opt gets a symmetry guard.</strong> The matrix carries an <code>is_symmetric</code> flag, set once at construction. 2-opt asserts on it, or switches to the honest <code>O(k)</code> delta. It must never silently use the four-term formula on an asymmetric input.</li>
-        <li><strong>The TSP experiments run on symmetric instances</strong> (TSPLIB is symmetric, and random Euclidean is symmetric), so the classical comparison is clean and comparable to published results. The <strong>asymmetric road matrix belongs to the CVRPTW demo and the road-matrix experiment</strong>, where Or-opt-family operators do the improving.</li>
+        <li><strong>Or-opt and relocate are mandatory, not optional.</strong> They move a short segment without reversing it, so their delta stays <code>O(1)</code> and correct under asymmetry.</li>
+        <li><strong>2-opt carries a symmetry guard.</strong> <code>DistanceMatrix.is_symmetric</code> is computed once at construction and already exists. 2-opt asserts on it or switches to the honest <code>O(k)</code> delta — never silently using four terms on asymmetric input.</li>
+        <li><strong>TSP experiments run on symmetric instances</strong> (TSPLIB and random Euclidean), so classical comparisons stay comparable to published results. The <strong>asymmetric road matrix belongs to the CVRPTW demo and the road-matrix experiment.</strong></li>
       </ul>
 
       <div class="note key">
-        <span class="tag">This is a free finding</span>
-        <p>Take one instance. Solve it with the symmetric Haversine matrix, then with the OSRM road matrix over the identical stops. Report how much the tour length, the visiting order, and the operator's validity change. You get three things at once: a quantified justification for real road data, a demonstration that you understood why an algorithm's assumptions matter, and a result that essentially no other submission will contain.</p>
-      </div>
-    </section>
-
-    <!-- 08 -->
-    <section id="validation">
-      <div class="sec-head"><span class="sec-num">08</span><h2>Validation — an unbroken chain</h2><span class="rev new">new · revised</span></div>
-      <p class="sec-sub">Both documents specified the links. Neither checked that they connect.</p>
-
-      <p>Brute force is trustworthy to about <code>n = 12</code>. TSPLIB's published optima start at <code>n = 52</code>. Revision 1 claimed Held–Karp was exact to <code>n ≈ 20</code> and B&amp;B beyond — but between 13 and 51 nothing external checks either of them. That band is exactly where the interesting exact-solver results live, so it cannot be a gap.</p>
-
-      <p>It closes with <em class="term">mutual agreement</em>: three independently-written exact solvers agreeing on the same instance is strong evidence, because they share no code path. Held–Karp is a dynamic program over subsets; B&amp;B is a tree search with a bound; brute force is exhaustive enumeration. A common bug producing identical wrong answers across all three is vanishingly unlikely.</p>
-
-      <figure class="wide">
-        <svg viewBox="0 0 900 250" role="img" aria-label="A validation chain covering all instance sizes: brute force verifies up to n=12, mutual agreement between Held-Karp and Branch and Bound covers 13 to 51, TSPLIB published optima cover 52 and above, and the independent feasibility checker covers all CVRPTW plans.">
-          <line x1="60" y1="150" x2="850" y2="150" stroke="currentColor" stroke-width="1.5"/>
-          <g font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.7">
-            <line x1="60"  y1="145" x2="60"  y2="155" stroke="currentColor" stroke-width="1.5"/><text x="60"  y="172" text-anchor="middle">n=4</text>
-            <line x1="280" y1="145" x2="280" y2="155" stroke="currentColor" stroke-width="1.5"/><text x="280" y="172" text-anchor="middle">n=12</text>
-            <line x1="600" y1="145" x2="600" y2="155" stroke="currentColor" stroke-width="1.5"/><text x="600" y="172" text-anchor="middle">n=52</text>
-            <line x1="850" y1="145" x2="850" y2="155" stroke="currentColor" stroke-width="1.5"/><text x="850" y="172" text-anchor="middle">n=1000+</text>
-          </g>
-
-          <rect x="60" y="96" width="220" height="34" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>
-          <text x="170" y="118" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="var(--accent)" text-anchor="middle">brute-force truth</text>
-
-          <rect x="280" y="96" width="320" height="34" fill="var(--teal-bg)" stroke="var(--teal)" stroke-width="1.5"/>
-          <text x="440" y="118" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="var(--teal)" text-anchor="middle">mutual agreement: HK ≡ B&amp;B (all bounds)</text>
-
-          <rect x="600" y="96" width="250" height="34" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
-          <text x="725" y="118" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="var(--amber)" text-anchor="middle">TSPLIB published optima</text>
-
-          <rect x="60" y="52" width="790" height="30" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="4 3"/>
-          <text x="455" y="72" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" text-anchor="middle" opacity="0.8">independent feasibility checker — every solution, every size, every constraint</text>
-
-          <rect x="60" y="196" width="790" height="30" fill="none" stroke="var(--accent)" stroke-width="1.3"/>
-          <text x="455" y="216" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--accent)" text-anchor="middle" font-weight="600">bound-validity invariant: LB ≤ true optimum, on every brute-force-verifiable instance</text>
-
-          <text x="60" y="30" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="currentColor" letter-spacing="1.2">NO SIZE IS UNCHECKED — the three bands overlap at their boundaries</text>
-        </svg>
-        <figcaption><b>Every problem size has something checking it.</b> The bands deliberately overlap at n=12 and n=52 rather than merely touching, so each handover is itself verified. The two full-width rules are the checks that apply everywhere: the feasibility gate on all solutions, and the bound-validity invariant that protects the exact solvers from the silent failure in §06.</figcaption>
-      </figure>
-
-      <div class="tbl-wrap">
-        <table>
-          <thead><tr><th>Tier</th><th>Check</th><th>Covers</th></tr></thead>
-          <tbody>
-            <tr><td>1</td><td>Brute force on random instances</td><td>n ≤ 12 — the root of trust</td></tr>
-            <tr><td>2</td><td>Brute force ≡ Held–Karp ≡ B&amp;B (every bound variant)</td><td>n ≤ 12 overlap, then 13–51 by mutual agreement</td></tr>
-            <tr><td>3</td><td>TSPLIB loader reproduces published tour costs exactly</td><td>n ≥ 52, external ground truth</td></tr>
-            <tr><td>4</td><td>Independent feasibility checker on every heuristic output</td><td>All sizes, all constraints</td></tr>
-            <tr><td>5</td><td>OR-Tools stored separately with explicit provenance</td><td>Reference only — never truth</td></tr>
-            <tr><td>6</td><td>End-to-end real-road run: raw stops → matrix → plan → map</td><td>The integration path</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="note warn">
-        <span class="tag">The TSPLIB rounding trap</span>
-        <p>TSPLIB defines specific distance conventions — <code>EUC_2D</code> rounds to the nearest integer, <code>ATT</code> and <code>GEO</code> use their own formulas. Get the convention wrong and your tour costs differ from the published optimum by a percent or two, which looks exactly like a mediocre solver. Tier 3 exists to catch this <em>before</em> any gap number is computed: load a published optimal tour, score it, and require an exact match.</p>
+        <span class="tag">A finding already half-collected</span>
+        <p>Solve one instance under the symmetric Haversine matrix, then under the OSRM road matrix over identical stops. Report how tour length, visiting order, and operator validity change. §02 has the matrices and their hashes; what remains is running the solvers across both and recording the difference.</p>
       </div>
     </section>
 
     <!-- 09 -->
-    <section id="evidence">
-      <div class="sec-head"><span class="sec-num">09</span><h2>Evidence discipline</h2><span class="rev new">new</span></div>
-      <p class="sec-sub">The benchmark is the product. These are the rules that make its numbers mean something.</p>
+    <section id="validation">
+      <div class="sec-head"><span class="sec-num">09</span><h2>Validation — an unbroken chain</h2><span class="rev kept">kept</span></div>
 
-      <h3>The research question</h3>
+      <p>Brute force is trustworthy to about <code>n = 12</code>. TSPLIB's published optima start at <code>n = 51</code>. Between them nothing external checks Held–Karp or B&amp;B — and that band is exactly where the interesting exact-solver results live, so it cannot be a gap.</p>
+
+      <p>It closes with <em class="term">mutual agreement</em>: three independently written exact solvers sharing no code path. Held–Karp is a dynamic program over subsets, B&amp;B is a tree search with a bound, brute force is exhaustive enumeration. A common bug producing identical wrong answers across all three is vanishingly unlikely.</p>
+
+      <figure class="wide">
+        <svg viewBox="0 0 900 250" role="img" aria-label="A validation chain covering all instance sizes: brute force to n=12, mutual agreement between Held-Karp and Branch and Bound from 13 to 50, TSPLIB published optima from 51 upward, with the feasibility checker and bound-validity invariant spanning everything.">
+          <line x1="60" y1="150" x2="850" y2="150" stroke="currentColor" stroke-width="1.5"/>
+          <g font-family="IBM Plex Mono, monospace" font-size="10" fill="currentColor" opacity="0.7">
+            <line x1="60" y1="145" x2="60" y2="155" stroke="currentColor" stroke-width="1.5"/><text x="60" y="172" text-anchor="middle">n=4</text>
+            <line x1="280" y1="145" x2="280" y2="155" stroke="currentColor" stroke-width="1.5"/><text x="280" y="172" text-anchor="middle">n=12</text>
+            <line x1="600" y1="145" x2="600" y2="155" stroke="currentColor" stroke-width="1.5"/><text x="600" y="172" text-anchor="middle">n=51</text>
+            <line x1="850" y1="145" x2="850" y2="155" stroke="currentColor" stroke-width="1.5"/><text x="850" y="172" text-anchor="middle">n=1000+</text>
+          </g>
+          <rect x="60" y="96" width="220" height="34" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>
+          <text x="170" y="118" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="var(--accent)" text-anchor="middle">brute-force truth</text>
+          <rect x="280" y="96" width="320" height="34" fill="var(--teal-bg)" stroke="var(--teal)" stroke-width="1.5"/>
+          <text x="440" y="118" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="var(--teal)" text-anchor="middle">mutual agreement: HK ≡ B&amp;B (all bounds)</text>
+          <rect x="600" y="96" width="250" height="34" fill="var(--amber-bg)" stroke="var(--amber)" stroke-width="1.5"/>
+          <text x="725" y="118" font-family="IBM Plex Mono, monospace" font-size="10.5" font-weight="600" fill="var(--amber)" text-anchor="middle">TSPLIB published optima</text>
+          <rect x="60" y="52" width="790" height="30" fill="none" stroke="currentColor" stroke-width="1.3" stroke-dasharray="4 3"/>
+          <text x="455" y="72" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="currentColor" text-anchor="middle" opacity="0.8">independent feasibility checker — every solution, every size, every constraint</text>
+          <rect x="60" y="196" width="790" height="30" fill="none" stroke="var(--accent)" stroke-width="1.3"/>
+          <text x="455" y="216" font-family="IBM Plex Mono, monospace" font-size="10.5" fill="var(--accent)" text-anchor="middle" font-weight="600">bound-validity invariant: LB ≤ true optimum, on every brute-force-verifiable instance</text>
+          <text x="60" y="30" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600" fill="currentColor" letter-spacing="1.2">NO SIZE IS UNCHECKED — the three bands overlap at their boundaries</text>
+        </svg>
+        <figcaption><b>Every problem size has something checking it.</b> The bands overlap rather than merely touch, so each handover is itself verified. The two full-width rules apply everywhere: the feasibility gate on all solutions, and the bound-validity invariant protecting the exact solvers from the silent failure in §07.</figcaption>
+      </figure>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Tier</th><th>Check</th><th>Covers</th><th>State</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>Brute force on random instances</td><td>n ≤ 12 — the root of trust</td><td>built</td></tr>
+            <tr><td>2</td><td>Brute force ≡ Held–Karp ≡ B&amp;B (every bound)</td><td>overlap at 12, then 13–50 by agreement</td><td>Phase 2</td></tr>
+            <tr><td>3</td><td>TSPLIB loader reproduces published tour costs exactly</td><td>n ≥ 51, external ground truth</td><td>built ✓</td></tr>
+            <tr><td>4</td><td>Independent feasibility checker on every output</td><td>all sizes, all constraints</td><td>built</td></tr>
+            <tr><td>5</td><td>Bound validity: LB ≤ true optimum</td><td>every bound, 1,000 instances</td><td>Phase 3</td></tr>
+            <tr><td>6</td><td>OR-Tools stored separately with provenance</td><td>reference only — never truth</td><td>Phase 6</td></tr>
+            <tr><td>7</td><td>End-to-end real-road run: stops → matrix → plan → map</td><td>the integration path</td><td>Phase 7</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 10 -->
+    <section id="evidence">
+      <div class="sec-head"><span class="sec-num">10</span><h2>Evidence discipline</h2><span class="rev rvsd">revised</span></div>
+
       <div class="note key">
-        <span class="tag">Primary question</span>
+        <span class="tag">Primary research question</span>
         <p>At what problem size and compute budget does exact optimisation stop being worth its cost — and how much solution quality is given up by switching to scalable heuristics?</p>
       </div>
 
-      <p>Every experiment below answers part of this. Having one question makes the report an argument rather than a catalogue.</p>
+      <p>Every experiment answers part of this. One question makes the report an argument rather than a catalogue.</p>
 
       <h3>Experiment families</h3>
       <ul>
-        <li><strong>Exact crossover sweep.</strong> Increase <code>n</code> until each exact method hits its time or memory budget. Record solved fraction, wall time, peak memory, and proof status. This locates the wall — the central result.</li>
-        <li><strong>Bound quality.</strong> Identical instance, incumbent, branching rule, and strategy; only the lower-bound function changes. Compare nodes explored and pruned, plus bound computation time.</li>
-        <li><strong>Heuristic gap.</strong> Where the optimum is known, repeated seeded instances; report the gap distribution with error bars.</li>
-        <li><strong>Anytime quality.</strong> Large instance; plot incumbent quality against elapsed time for the metaheuristic.</li>
-        <li><strong>Road-matrix effect.</strong> Same stops under Haversine and under OSRM. Quantify how much asymmetry changes tour cost, visiting order, and operator validity (§07).</li>
-        <li><strong>Feasibility engine.</strong> Naive downstream recomputation versus forward-slack acceleration, on identical accepted moves.</li>
+        <li><strong>Exact crossover sweep.</strong> Increase <code>n</code> until each exact method hits its time or memory budget; record solved fraction, wall time, peak memory, proof status. Locates the wall — the central result.</li>
+        <li><strong>Bound quality.</strong> Identical instance, incumbent, branching rule and strategy; only the lower-bound function changes. Compare nodes explored and pruned, plus bound computation time.</li>
+        <li><strong>Heuristic gap.</strong> Where the optimum is known, repeated seeded instances; report the gap distribution with uncertainty.</li>
+        <li><strong>Anytime quality.</strong> Large instance; incumbent quality against elapsed time, with acceptance counters proving the annealer is annealing.</li>
+        <li><strong>Road-matrix effect.</strong> Same stops under Haversine and under OSRM; quantify how asymmetry changes tour cost, visiting order, and operator validity.</li>
+        <li><strong>Feasibility engine.</strong> Naive downstream recomputation versus forward-slack acceleration on identical accepted moves.</li>
       </ul>
 
       <h3>Statistics that suit the measurement</h3>
       <ul>
-        <li><strong>Runtime: median and IQR</strong>, optionally p90. Runtime distributions are right-skewed by garbage collection, cache effects, and OS scheduling; a mean is misleading.</li>
-        <li><strong>Quality gap: mean with confidence interval</strong> across repeated instances, showing the median too when outliers are visible.</li>
-        <li><strong>Exact-solver success: solved / attempted</strong> under a fixed budget — not just statistics over the runs that happened to finish, which silently discards the hardest instances.</li>
+        <li><strong>Runtime: median and IQR</strong>, optionally p90. Runtime distributions are right-skewed by garbage collection, cache effects, and OS scheduling; a mean misleads.</li>
+        <li><strong>Quality gap: mean with a bootstrap confidence interval</strong> over ≥30 seeded instances per size. Bootstrap rather than a normal interval, because gap distributions are bounded below at zero and right-skewed, so a symmetric interval can extend into impossible territory.</li>
+        <li><strong>Exact-solver success: solved / attempted</strong> under a fixed budget — never statistics over only the runs that finished, which silently discards the hardest instances and flatters the method.</li>
         <li><strong>B&amp;B: node counts and pruning ratio</strong> alongside time, since time is contaminated by implementation overhead in a way node counts are not.</li>
-        <li>Every plot names CPU, RAM, OS, interpreter version, seed policy, and time budget.</li>
+        <li>Every figure names CPU, RAM, OS, interpreter version, seed policy, and time budget — carried in the manifest, not typed into a caption.</li>
       </ul>
 
-      <h3>Experiment manifests</h3>
-      <p>Every benchmark batch writes a machine-readable manifest: input hashes, matrix hash, code revision, solver configuration, seed, environment, and budget. A figure that cannot be traced to a manifest does not go in the report. This is what makes "one command regenerates everything" true rather than aspirational.</p>
-
       <h3>Invariant tests</h3>
-      <p>Property tests over randomly generated instances, run on every commit:</p>
+      <p>Property tests over random instances, on every commit:</p>
       <ul>
-        <li><strong>A lower bound never exceeds the true optimum</strong> on any brute-force-verifiable instance. <em class="term">The most important test in the project</em> — it is the only thing standing between you and a confidently wrong "proven optimal".</li>
+        <li><strong>A lower bound never exceeds the true optimum</strong> on any brute-force-verifiable instance. <em class="term">The most important test in the project</em> — the only thing between you and a confidently wrong "proven optimal".</li>
         <li>Route cost is unchanged by serialising and deserialising an instance.</li>
-        <li>Every customer appears exactly once in a feasible solution, unless explicitly recorded as unserved.</li>
+        <li>Every customer appears exactly once unless explicitly recorded as unserved.</li>
         <li>No accepted local-search move ever worsens feasibility.</li>
-        <li>Identical matrix + seed + configuration produces an identical objective and result trace wherever determinism is promised.</li>
-        <li>Tour cost is invariant under rotation of the tour, and under reversal <em>only</em> when the matrix is symmetric — a direct test of the §07 issue.</li>
+        <li>Identical matrix + seed + configuration produces an identical objective and result trace.</li>
+        <li>Tour cost is invariant under rotation, and under reversal <em>only</em> when the matrix is symmetric — a direct test of §08.</li>
+        <li><strong>No reported gap exceeds 100%</strong> — a data-integrity tripwire (§05), not a quality check.</li>
       </ul>
 
       <h3>Failure corpus</h3>
-      <p>When a random test finds a counterexample, persist that instance as a named regression fixture rather than trusting the seed to reproduce it. In optimisation software the most valuable tests are the small ugly instances that once broke an invariant — a three-stop instance with a zero-length edge, a time window that opens before the vehicle can physically arrive, two customers at identical coordinates.</p>
-    </section>
-
-    <!-- 10 -->
-    <section id="cvrptw">
-      <div class="sec-head"><span class="sec-num">10</span><h2>CVRPTW scope control</h2><span class="rev rvsd">revised</span></div>
-      <p class="sec-sub">The extension that makes it a courier system, kept from becoming a second research project.</p>
-
-      <p>CVRPTW sits <em>on top of</em> a validated TSP/VRP core. It is not a second exact-optimisation effort, and the system never claims global CVRPTW optimality.</p>
-
-      <h4>Mandatory</h4>
-      <ul>
-        <li>Multiple vehicles with capacity.</li>
-        <li><strong>Hard time windows first.</strong> Soft windows only after hard-window semantics are tested — soft windows introduce a penalty weight, and a penalty weight interacts with the objective in ways that are hard to debug on top of untested window logic.</li>
-        <li>Service time and route/shift duration.</li>
-        <li>Asymmetric travel matrix, with Or-opt-family operators (§07).</li>
-        <li>Independent feasibility gate covering every customer exactly once unless explicitly marked unserved.</li>
-        <li>Per-stop ETA reconstruction from the exact same matrix the solver used.</li>
-      </ul>
-
-      <h4>Simplified for the graded baseline</h4>
-      <ul>
-        <li><strong>One capacity dimension: parcel count.</strong> The review recommended picking one; parcel count is the better pick over weight because a viewer can verify a violation by counting pins on the map. Volume and weight become multi-dimensional extensions only if time remains.</li>
-        <li>Priority tiers and mandated driver breaks are stretch unless the course rubric names them.</li>
-        <li>Static OSRM travel times are enough. Time-dependent traffic matrices are future work.</li>
-        <li>Dynamic replanning freezes completed stops and is demo-only, attempted only once the core benchmarks are complete.</li>
-      </ul>
-
-      <div class="note warn">
-        <span class="tag">No false optimal badge</span>
-        <p>For the large courier demo the correct success condition is: a <strong>feasible</strong> plan, a reproducible objective, clear solver provenance, and a measured gap to a named reference where one exists. Global CVRPTW optimality is not required, not claimed, and not implied by any wording in the interface.</p>
-      </div>
+      <p>When a random test finds a counterexample, persist that instance as a named regression fixture rather than trusting the seed. Seeds stop reproducing the moment the generator changes, and the most valuable tests in optimisation software are the small ugly instances that once broke an invariant — a zero-length edge, a window that opens before the vehicle can physically arrive, two customers at identical coordinates.</p>
     </section>
 
     <!-- 11 -->
     <section id="plan">
-      <div class="sec-head"><span class="sec-num">11</span><h2>Build plan</h2><span class="rev rvsd">revised</span></div>
-      <p class="sec-sub">Nine phases. Each has an exit gate — a falsifiable condition, not a description of intent.</p>
+      <div class="sec-head"><span class="sec-num">11</span><h2>Build plan</h2><span class="rev rvsd">2 of 9 done</span></div>
+      <p class="sec-sub">Each phase has an exit gate — a falsifiable condition, not a description of intent.</p>
 
-      <p class="lede">Effort split: <strong>70% core and benchmark evidence · 20% real-road and CVRPTW integration · 10% API and interface.</strong> Deliberately asymmetric. A polished interface cannot compensate for an unvalidated exact solver.</p>
+      <p class="lede">Effort split: <strong>70% core and benchmark evidence · 20% real-road and CVRPTW integration · 10% interface.</strong> A polished interface cannot compensate for an unvalidated exact solver — and under §04 the interface is largely generated anyway.</p>
 
       <div class="phase">
-        <div class="phase-id">Phase 0</div>
+        <div class="phase-id">Phase 0 ✓</div>
         <div>
-          <h3>Contracts and truth</h3>
-          <p>Data model, objective, the status enum and <code>SolveReport</code> schema, the independent feasibility checker, the TSPLIB loader, the random generator, and the <code>core/</code> import-purity test. Integer seconds and integer metres throughout — float comparison in feasibility checks produces bugs you will not find.</p>
-          <div class="gate"><b>Exit gate</b>A published TSPLIB tour scores to its exact published cost, brute force works, and the purity test fails on a deliberately added <code>import requests</code>.</div>
+          <h3>Contracts and truth <span style="color:var(--teal);font-family:var(--f-mono);font-size:11px">COMPLETE</span></h3>
+          <p>Model layer, TSPLIB conventions, independent feasibility checker, status and <code>SolveReport</code> contract, <code>Solver</code> protocol, brute force, core purity checker.</p>
+          <div class="gate"><b>Gate passed</b>Five TSPLIB instances score their published optima exactly; brute force agrees with unreduced enumeration on 60 instances; purity check fails on a planted import.</div>
         </div>
       </div>
 
       <div class="phase">
-        <div class="phase-id">Phase 1</div>
+        <div class="phase-id">Phase 1 ✓</div>
         <div>
-          <h3>Distance contract and adapters</h3>
-          <p>Protocol and matrix hashing in <code>core/</code>; Haversine, OSRM client, and persistent cache in <code>adapters/</code>. Geocoding for CSV ingest. The <code>is_symmetric</code> flag is set here and is load-bearing from §07 onward.</p>
-          <div class="gate"><b>Exit gate</b>The same instance runs offline (Haversine) and on OSRM; both matrices log a hash, and the asymmetry flag is correct for each.</div>
+          <h3>Distance contract and adapters <span style="color:var(--teal);font-family:var(--f-mono);font-size:11px">COMPLETE</span></h3>
+          <p>Haversine, self-hosted OSRM client, SQLite cache — all in <code>adapters/</code>. Docker pipeline against a pinned OSM extract.</p>
+          <div class="gate"><b>Gate passed</b>Same stops run offline and on OSRM; both log a matrix hash; symmetry flag correct for each (10 of 10 pairs asymmetric on road data).</div>
         </div>
       </div>
 
@@ -1560,8 +1414,8 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
         <div class="phase-id">Phase 2</div>
         <div>
           <h3>Assignment-complete solver core</h3>
-          <p>Nearest neighbour, Clarke–Wright savings, brute force, Held–Karp, and B&amp;B with the reduced-cost bound. <strong>The assignment's three named techniques are satisfied at the end of this phase.</strong></p>
-          <div class="gate"><b>Exit gate</b>All three exact solvers return identical objectives across a broad seeded small-instance suite. Any disagreement blocks Phase 3.</div>
+          <p>Nearest neighbour, Clarke–Wright savings, Held–Karp DP, and B&amp;B with the reduced-cost bound. Plus TSPLIB <code>EXPLICIT</code> support, which widens the benchmark set and removes the trap that produced a 6× error elsewhere. <strong>The assignment's three named techniques are satisfied at the end of this phase.</strong></p>
+          <div class="gate"><b>Exit gate</b>All three exact solvers return identical objectives across a broad seeded suite. Any disagreement blocks Phase 3.</div>
         </div>
       </div>
 
@@ -1569,8 +1423,8 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
         <div class="phase-id">Phase 3</div>
         <div>
           <h3>The Branch &amp; Bound experiment</h3>
-          <p>Hungarian bound, then 1-tree with subgradient ascent gated on the bound-validity invariant. Full instrumentation: nodes created/explored/pruned, peak frontier, incumbent trace, bound time recorded separately. DFS and best-first both available, one fixed as default.</p>
-          <div class="gate"><b>Exit gate</b>The bound-comparison plot generates from raw benchmark data, and the validity invariant passes on 1,000 random instances for every bound.</div>
+          <p>Hungarian bound, then 1-tree with subgradient ascent gated on the validity invariant. Full instrumentation: nodes created/explored/pruned, peak frontier, incumbent trace, bound time recorded separately. DFS and best-first both available, one fixed as default.</p>
+          <div class="gate"><b>Exit gate</b>Bound comparison renders from the bundle, and the validity invariant passes on 1,000 random instances for every bound.</div>
         </div>
       </div>
 
@@ -1578,8 +1432,8 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
         <div class="phase-id">Phase 4</div>
         <div>
           <h3>Heuristic quality ladder</h3>
-          <p>Or-opt and relocate first (asymmetry-safe), then 2-opt with its symmetry guard, then simulated annealing. Neighbour lists and don't-look bits — without them local search is unusable past a few hundred stops.</p>
-          <div class="gate"><b>Exit gate</b>Gap-versus-n and anytime curves reproduce from one command, with error bars from repeated seeded runs.</div>
+          <p>Or-opt and relocate first (asymmetry-safe), then 2-opt with its symmetry guard, then simulated annealing with acceptance instrumentation. Neighbour lists and don't-look bits — without them local search is unusable past a few hundred stops.</p>
+          <div class="gate"><b>Exit gate</b>Gap-vs-n and anytime curves render from the bundle with bootstrap intervals, <em>and</em> SA records a non-zero accepted-worsening count. An annealer that never accepts a worsening move fails this gate.</div>
         </div>
       </div>
 
@@ -1587,26 +1441,26 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
         <div class="phase-id">Phase 5</div>
         <div>
           <h3>CVRPTW constraints</h3>
-          <p>Capacity (parcel count), hard time windows, service time, shift limits, multi-vehicle throughout. Forward time slack for <code>O(1)</code> move feasibility. Every operator becomes constraint-aware.</p>
-          <div class="gate"><b>Exit gate</b>A 150-stop, 6-vehicle instance with windows passes the independent checker and reports <code>HEURISTIC_FEASIBLE_CVRPTW</code> — never "optimal".</div>
+          <p>Capacity in parcel count, hard time windows, service time, shift limits, multi-vehicle throughout. Forward time slack for <code>O(1)</code> move feasibility. Every operator becomes constraint-aware.</p>
+          <div class="gate"><b>Exit gate</b>150 stops, 6 vehicles, real windows: passes the independent checker and reports <code>HEURISTIC_FEASIBLE_CVRPTW</code> — never "optimal".</div>
         </div>
       </div>
 
       <div class="phase">
         <div class="phase-id">Phase 6</div>
         <div>
-          <h3>Evidence freeze</h3>
-          <p>The full sweep runner, manifests, TSPLIB table, OR-Tools reference column, all plots, and the written findings — including results that contradicted expectation. <strong>The grade lives here.</strong></p>
-          <div class="gate"><b>Exit gate</b>Every report number regenerates from one command in a clean environment, and every figure traces to a manifest.</div>
+          <h3>The evidence bundle</h3>
+          <p>Sweep runner, manifests, OR-Tools reference column, and <code>evidence.json</code>. The report renders entirely from it; the numeric-literal check turns on. <strong>The grade lives here.</strong></p>
+          <div class="gate"><b>Exit gate</b>One command regenerates bundle, tables, and figures in a clean environment; every figure traces to a manifest; no numeric literal survives in <code>report/</code>.</div>
         </div>
       </div>
 
       <div class="phase">
         <div class="phase-id">Phase 7</div>
         <div>
-          <h3>API and map</h3>
-          <p>Thin FastAPI with <code>/solve</code>, jobs, and SSE progress. React + MapLibre with real OSRM polylines. The provenance panel showing method, formulation, status, elapsed time, objective units, comparator, and whether the number is proven or reference-relative.</p>
-          <div class="gate"><b>Exit gate</b>The demo reads real <code>SolveReport</code> fields — no algorithm logic duplicated in the API or the frontend.</div>
+          <h3>Static demo, then live mode</h3>
+          <p>A map interface rendering the bundle from disk — no server needed. Real OSRM polylines, per-stop ETAs, and a provenance panel showing method, formulation, status, elapsed time, units, comparator, and whether the number is proven or reference-relative. <em>Then</em> the thin FastAPI service for interactive solving.</p>
+          <div class="gate"><b>Exit gate</b>The demo opens from disk with no processes running and shows real measured results; live mode adds interactivity without duplicating any algorithm logic.</div>
         </div>
       </div>
 
@@ -1614,64 +1468,76 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
         <div class="phase-id">Phase 8</div>
         <div>
           <h3>Stretch only</h3>
-          <p>Dynamic insertion of new orders, failed-delivery handling, frozen completed stops. Optionally ALNS as a second metaheuristic, compared against SA.</p>
+          <p>Dynamic insertion of new orders, failed-delivery handling, frozen completed stops. Optionally ALNS compared against SA.</p>
           <div class="gate"><b>Exit gate</b>Attempted only if Phase 6 is complete and stable.</div>
         </div>
       </div>
 
       <h3>Stop rules</h3>
-      <p>Conditions under which you stop adding and start fixing:</p>
       <ul>
         <li>Do not add a solver while an existing exact solver disagrees with brute force.</li>
-        <li>Do not start frontend polish before the benchmark plots regenerate from a clean run.</li>
-        <li>Do not implement Phase 8 while the report still contains expected numbers instead of measured ones.</li>
+        <li>Do not start interface polish before the bundle regenerates from a clean run.</li>
+        <li>Do not implement Phase 8 while any report figure is still hand-written.</li>
         <li>Do not optimise for speed before the counters that explain where time goes exist.</li>
-        <li>Do not compare solvers that saw different distance matrices or different constraint semantics — the matrix hash makes this checkable.</li>
+        <li>Do not compare solvers that saw different matrices — the matrix hash makes this checkable.</li>
+        <li>Do not accept any measured gap above 100% as a result; treat it as a data fault (§05).</li>
       </ul>
     </section>
 
     <!-- 12 -->
     <section id="done">
       <div class="sec-head"><span class="sec-num">12</span><h2>Definition of done</h2><span class="rev rvsd">revised</span></div>
-      <p class="sec-sub">Every item verifiable by someone else, on their machine, from your repository.</p>
+      <p class="sec-sub">Every item verifiable by someone else, on their machine, from the repository.</p>
 
       <div class="tbl-wrap">
         <table>
           <thead><tr><th>Area</th><th>Acceptance test</th></tr></thead>
           <tbody>
-            <tr><td>Exact correctness</td><td>Every exact solver agrees with brute force across a large seeded small-instance corpus; unsupported cases explicitly excluded.</td></tr>
-            <tr><td>Validation continuity</td><td>No problem-size band is unchecked: brute force, mutual agreement, and TSPLIB overlap at their boundaries.</td></tr>
-            <tr><td>Bound validity</td><td>The LB ≤ optimum invariant passes for every bound on 1,000 random instances.</td></tr>
-            <tr><td>Published validation</td><td>At least five named TSPLIB instances scored under the correct distance convention and compared to published optima.</td></tr>
-            <tr><td>B&amp;B evidence</td><td>At least two lower bounds compared on nodes explored, nodes pruned, bound cost, runtime, and peak frontier.</td></tr>
+            <tr><td>Exact correctness</td><td>Every exact solver agrees with brute force across a large seeded corpus; unsupported cases explicitly excluded.</td></tr>
+            <tr><td>Validation continuity</td><td>No size band unchecked: brute force, mutual agreement, and TSPLIB overlap at their boundaries.</td></tr>
+            <tr><td>Bound validity</td><td>LB ≤ optimum passes for every bound on 1,000 random instances.</td></tr>
+            <tr><td>Data integrity</td><td>Every input file loads from disk against a recorded checksum; no numeric instance data appears in source.</td></tr>
+            <tr><td>Published validation</td><td>At least five named TSPLIB instances scored under the correct convention against published optima.</td></tr>
+            <tr><td>B&amp;B evidence</td><td>At least two bounds compared on nodes explored, pruned, bound cost, runtime, and peak frontier.</td></tr>
             <tr><td>Crossover result</td><td>The practical exact-method size wall reported as measured, on named hardware, under a stated budget.</td></tr>
-            <tr><td>Heuristic evidence</td><td>Gap-versus-n from repeated instances with uncertainty bars.</td></tr>
-            <tr><td>Anytime evidence</td><td>One metaheuristic produces a quality-versus-time curve on a large instance.</td></tr>
-            <tr><td>Asymmetry handling</td><td>The road-matrix experiment is reported, and 2-opt's symmetry guard is demonstrated to trigger.</td></tr>
+            <tr><td>Heuristic evidence</td><td>Gap-vs-n from ≥30 seeded instances per size with bootstrap intervals.</td></tr>
+            <tr><td>Metaheuristic honesty</td><td>SA reports non-zero accepted-worsening moves and a monotone best-cost trace.</td></tr>
+            <tr><td>Asymmetry handling</td><td>Road-matrix experiment reported; 2-opt's symmetry guard demonstrated to trigger.</td></tr>
             <tr><td>Real roads</td><td>At least one full run on a self-hosted OSRM asymmetric matrix with real route geometry.</td></tr>
-            <tr><td>CVRPTW feasibility</td><td>A realistic fleet instance passes the independent checker; status is "feasible", never "optimal".</td></tr>
-            <tr><td>Reproducibility</td><td>One command regenerates raw data, tables, and plots from pinned inputs, seeds, and configuration.</td></tr>
+            <tr><td>CVRPTW feasibility</td><td>Realistic fleet instance passes the independent checker; status "feasible", never "optimal".</td></tr>
+            <tr><td>Reproducibility</td><td>One command regenerates the bundle, tables, and plots from pinned inputs and seeds.</td></tr>
+            <tr><td>Report integrity</td><td><strong>No numeric literal in <code>report/</code> or <code>web/</code>.</strong> Every figure renders from the bundle.</td></tr>
             <tr><td>Claim discipline</td><td>Every displayed gap names its comparator; every "optimal" traces to a valid proof.</td></tr>
-            <tr><td>Report quality</td><td>The findings include at least one result that contradicted an initial expectation, and explain why.</td></tr>
+            <tr><td>Report quality</td><td>Findings include at least one result that contradicted an initial expectation, and explain why.</td></tr>
           </tbody>
         </table>
       </div>
     </section>
 
     <!-- 13 -->
-    <section id="narrative">
-      <div class="sec-head"><span class="sec-num">13</span><h2>The report as an argument</h2><span class="rev new">new</span></div>
+    <section id="nonclaims">
+      <div class="sec-head"><span class="sec-num">13</span><h2>What this project will not claim</h2><span class="rev new">new</span></div>
 
-      <p>Do not structure the write-up as "here are six algorithms." Structure it as a claim supported by experiments:</p>
+      <p class="lede">Naming the limits in advance is what makes the remaining claims credible. Every line below is a sentence that will not appear, however tempting it becomes near a deadline.</p>
 
+      <ul>
+        <li><strong>Not "our solver is fast."</strong> A Python implementation is not competitive with LKH or OR-Tools and will not pretend to be. It is instrumented, validated, and explainable — different goals, honestly stated.</li>
+        <li><strong>Not "the fleet plan is optimal."</strong> No CVRPTW result is ever proven optimal here. Those plans are feasible, and their quality is stated relative to a named comparator.</li>
+        <li><strong>Not "X% better" without naming the baseline</strong>, the instance, the budget, and the hardware.</li>
+        <li><strong>Not "real-time."</strong> Nothing is deployed, load-tested, or run against live traffic. The routing data is a pinned extract.</li>
+        <li><strong>Not "production-ready."</strong> It is a measured study with a working system around it.</li>
+        <li><strong>Not a result that was not measured on this machine.</strong> Literature values may motivate an experiment; they never fill a blank.</li>
+      </ul>
+
+      <h3>The report as an argument</h3>
       <ol>
-        <li><strong>Problem mismatch.</strong> TSP is the assignment's kernel; courier routing requires partitioning, capacity, time, and asymmetry.</li>
-        <li><strong>Truth source.</strong> Exact methods establish what "best" means at sizes where proof is computationally possible — and here is the unbroken chain showing no size went unchecked.</li>
+        <li><strong>Problem mismatch.</strong> TSP is the kernel; courier routing needs partitioning, capacity, time, and asymmetry.</li>
+        <li><strong>Truth source.</strong> Exact methods establish what "best" means where proof is possible — with an unbroken chain showing no size went unchecked.</li>
         <li><strong>The crossover.</strong> Exact methods become impractical; here is exactly where, on this hardware, under this budget.</li>
-        <li><strong>The quality ladder.</strong> Constructive heuristics are nearly free; local search buys most of the remaining quality; metaheuristics trade increasing time for shrinking gains.</li>
-        <li><strong>Bound engineering.</strong> Tighter lower bounds eliminate orders of magnitude of search — but their own computation cost is part of the trade.</li>
-        <li><strong>Reality check.</strong> Real asymmetric road matrices change what a valid route is, and invalidate a textbook operator. Here is the measurement.</li>
-        <li><strong>Reproducibility.</strong> Every number is rerunnable and every claim is labelled with its proof or reference status.</li>
+        <li><strong>The quality ladder.</strong> Constructive heuristics are nearly free; local search buys most of the remaining quality; metaheuristics trade rising time for shrinking gains.</li>
+        <li><strong>Bound engineering.</strong> Tighter bounds eliminate orders of magnitude of search — and their own cost is part of the trade.</li>
+        <li><strong>Reality check.</strong> Real asymmetric matrices change what a valid route is and invalidate a textbook operator. Here is the measurement.</li>
+        <li><strong>Reproducibility.</strong> Every number is rerunnable and every claim carries its proof or reference status.</li>
       </ol>
 
       <div class="note key">
@@ -1679,7 +1545,7 @@ pre.tree s { color: var(--teal); text-decoration: none; font-weight: 600; }
         <p>The strongest version of this project is not the one with the most algorithms or the prettiest map. It is the one where a sceptical examiner can pick any number in the report, ask "how do you know that," and receive an answer that ends in a command they can run.</p>
       </div>
 
-      <p class="end">Waybill — architecture and build plan, revision 2 · Incorporates the architecture review; departures from it are marked and argued in §05 and §07 · Suggested project name; rename freely.</p>
+      <p class="end">Waybill — architecture and build plan, revision 3 · Phases 0–1 built and gated; §02 reports measurements, not expectations · Suggested project name; rename freely.</p>
     </section>
 
   </main>

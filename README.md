@@ -177,8 +177,15 @@ All 10 coordinate pairs differ by direction under real road data; the largest ga
 invalidates textbook 2-opt, and Phase 4 has to handle it.
 
 The full architecture and build plan is in [`docs/architecture-plan.pdf`](docs/architecture-plan.pdf)
-(24 pages). Revision 1 is kept in `docs/archive/` for reference; the current document opens
-with a changelog of what changed between them and why.
+(revision 3, 22 pages). Earlier revisions are in `docs/archive/`; the current document opens
+with a changelog of what changed and why.
+
+Revision 3 adds the **evidence bundle**: `bench/` emits a single `evidence.json` carrying every
+measured result plus its manifest, and both the report and the demo render from that file and
+nothing else. Neither can state a number the engine did not produce. A build step fails on any
+numeric literal in `report/` or `web/`. It also adds §05 data-integrity rules — no numeric
+instance data may be typed into source, every input file is checksummed — and §13, a named list
+of claims this project will not make.
 
 ### Regenerating the plan PDF
 
