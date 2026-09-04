@@ -21,7 +21,13 @@ from bench.tsplib.known_optima import PUBLISHED_OPTIMA
 from bench.tsplib.parser import parse_problem, parse_tour
 from core.eval.feasibility import check
 from core.eval.objective import closed_tour_cost
+from core.construct.nearest_neighbour import NearestNeighbourSolver
+from core.construct.savings import ClarkeWrightSolver
+from core.exact.bounds.reduction import completion_bound
+from core.exact.branch_and_bound import BranchAndBoundSolver
 from core.exact.brute_force import BruteForceSolver
+from core.exact.held_karp import HeldKarpSolver
+from bench.tsplib.parser import parse_tour as _parse_tour
 from core.model.geometry import Coord
 from core.model.units import Unit
 
@@ -128,6 +134,71 @@ def gate_distance_adapters() -> bool:
     return True
 
 
+EXPLICIT_OPTIMA = {"gr24": 1272, "bayg29": 1610, "bays29": 2020}
+
+
+def gate_explicit() -> bool:
+    """Phase 2: matrix-defined instances parse correctly."""
+    print("\nEXPLICIT instances reproduce published optima")
+    ok = True
+    for name, published in sorted(EXPLICIT_OPTIMA.items()):
+        problem = parse_problem(DATA / f"{name}.tsp")
+        instance = problem.to_instance()
+        tour = _parse_tour(DATA / f"{name}.opt.tour")
+        got = closed_tour_cost(instance.matrix, tour)
+        match = got == published
+        ok &= match and problem.coords == ()
+        print(f"  {name:<9} {problem.edge_weight_format.value:<15} "
+              f"{got:>7} vs {published:<7} {'YES' if match else 'NO':<4} "
+              f"geometry-coords={len(problem.coords)}")
+    return ok
+
+
+def gate_exact_agreement() -> bool:
+    """Phase 2 exit gate: three independent exact solvers must agree."""
+    print("\nExact solvers agree (brute force / Held-Karp / Branch & Bound)")
+    bf, hk, bb = BruteForceSolver(), HeldKarpSolver(), BranchAndBoundSolver()
+    ok = True
+    for label, factory in (("symmetric", random_euclidean_tsp),
+                           ("asymmetric", random_asymmetric_tsp)):
+        mismatches = 0
+        count = 0
+        for n in range(3, 9):
+            for seed in range(6):
+                inst = factory(n, seed)
+                a = bf.solve(inst)[1].objective_value
+                b = hk.solve(inst)[1].objective_value
+                c = bb.solve(inst)[1].objective_value
+                count += 1
+                if not (a == b == c):
+                    mismatches += 1
+        ok &= mismatches == 0
+        print(f"  {label:<11} {count} instances, {mismatches} mismatch(es)")
+
+    violations = 0
+    checks = 0
+    for n in range(4, 9):
+        for seed in range(12):
+            inst = random_euclidean_tsp(n, seed)
+            opt = bf.solve(inst)[1].objective_value
+            lb = completion_bound(inst.matrix, inst.depot_index,
+                                  set(inst.customer_indices), inst.depot_index)
+            checks += 1
+            if lb > opt:
+                violations += 1
+    ok &= violations == 0
+    print(f"  bound validity: {checks} checks, {violations} violation(s) "
+          f"(LB must never exceed the optimum)")
+
+    inst = parse_problem(DATA / "gr17.tsp").to_instance()
+    rep = hk.solve(inst)[1]
+    match = rep.objective_value == 2085
+    ok &= match
+    print(f"  gr17 (EXPLICIT, n=17): Held-Karp {rep.objective_value} vs "
+          f"published 2085  {'YES' if match else 'NO'}")
+    return ok
+
+
 def main() -> int:
     print("Waybill exit gates\n" + "=" * 52)
     print("Phase 0 -- contracts and truth")
@@ -135,6 +206,10 @@ def main() -> int:
     print("\n" + "-" * 52)
     print("Phase 1 -- distance contract and adapters")
     results.append(gate_distance_adapters())
+    print("\n" + "-" * 52)
+    print("Phase 2 -- assignment-complete solver core")
+    results.append(gate_explicit())
+    results.append(gate_exact_agreement())
     print("\n" + "=" * 52)
     if all(results):
         print("ALL GATES PASSED")

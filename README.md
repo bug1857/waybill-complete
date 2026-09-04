@@ -126,55 +126,77 @@ Phases 0–2 satisfy the assignment's stated requirements in full.
 
 ## Status
 
-**Phases 0 and 1 complete — both exit gates passed.** Phase 2 (assignment-complete
-solver core) is next.
+**Phases 0, 1 and 2 complete — all exit gates passed.** Phase 3 (the Branch &
+Bound bound-quality experiment) is next.
+
+**The assignment's three named techniques — TSP, Greedy, and Branch & Bound — are
+implemented and validated as of Phase 2.**
 
 ```
 make setup          # create .venv, install dev deps
-make test           # 186 tests (179 without Docker)
+make test           # 262 tests
 make gate           # verify every exit gate reached so far
-make osrm-prepare   # one-off: preprocess the OSM extract (~1 min for Monaco)
+make crosscheck     # Python and TypeScript engines must agree
+make web-dev        # run the interface
+make osrm-prepare   # one-off: preprocess the OSM extract
 make osrm-up        # start the local routing server
 ```
 
 ### Phase 0 — contracts and truth
 
-The pure model layer (`Instance`, `Solution`, `Stop`, `TimeWindow`, `Vehicle`,
-`DistanceMatrix`), TSPLIB distance conventions, the independent feasibility checker,
-the `SolveStatus`/`SolveReport` contract, the `Solver` protocol, brute-force
-enumeration, and the core purity checker.
-
-Our own distance implementation scoring the published optimal tours:
-
-| Instance | n | Computed | Published | Match |
-|---|---:|---:|---:|:--:|
-| eil51    |  51 |    426 |    426 | ✓ |
-| berlin52 |  52 |   7542 |   7542 | ✓ |
-| st70     |  70 |    675 |    675 | ✓ |
-| pr76     |  76 | 108159 | 108159 | ✓ |
-| kroA100  | 100 |  21282 |  21282 | ✓ |
-
-Brute force also agrees with unreduced permutation enumeration on 60 random instances
-(30 symmetric, 30 asymmetric), and `tools/check_purity.py` fails the build on a planted
-`import requests` inside `core/`.
+Model layer, TSPLIB conventions, the independent feasibility checker, the
+`SolveStatus`/`SolveReport` contract, the `Solver` protocol, brute-force
+enumeration, and the core purity checker. Five coordinate instances score their
+published optima exactly (eil51 426, berlin52 7542, st70 675, pr76 108159,
+kroA100 21282).
 
 ### Phase 1 — distance contract and adapters
 
-`DistanceProvider` implementations live in `adapters/`, never in `core/`: Haversine for
-offline and hermetic tests, a self-hosted OSRM client for real road data, and a SQLite
-cache that wraps either. `infra/` carries the Docker pipeline and a pinned OSM extract,
-so matrices are reproducible rather than dependent on a public server's current data.
-
-Same five Monaco stops, two providers:
+Haversine, a self-hosted OSRM client, and a SQLite cache — all in `adapters/`,
+never in `core/`. On five real Monaco stops, **all 10 coordinate pairs differ by
+direction**, largest gap 130 s (296 s one way, 426 s back).
 
 | Provider | Symmetric | Matrix hash |
 |---|:--:|---|
-| `haversine` | **true** | `587a429c5c88b7d6` |
+| `haversine` | true | `587a429c5c88b7d6` |
 | `osrm` | **false** | `b04816a09b5f83ce` |
 
-All 10 coordinate pairs differ by direction under real road data; the largest gap is
-**130 s** (296 s one way, 426 s back). That asymmetry is not a curiosity — it is what
-invalidates textbook 2-opt, and Phase 4 has to handle it.
+### Phase 2 — assignment-complete solver core
+
+Nearest neighbour, Clarke–Wright savings, Held–Karp DP, and Branch & Bound with
+the reduced-cost bound, plus TSPLIB `EXPLICIT` matrix parsing.
+
+**Three independent exact solvers agree** across 72 seeded instances, symmetric
+and asymmetric, and the lower bound never exceeded a true optimum in 60 checks.
+
+`EXPLICIT` instances are matrix-defined; their coordinates are `DISPLAY_DATA` and
+are never used as geometry. All three row formats verified against published
+optima:
+
+| Instance | Format | Computed | Published |
+|---|---|---:|---:|
+| bayg29 | `UPPER_ROW` | 1610 | 1610 |
+| bays29 | `FULL_MATRIX` | 2020 | 2020 |
+| gr24 | `LOWER_DIAG_ROW` | 1272 | 1272 |
+
+`gr17` (n=17, `LOWER_DIAG_ROW`) is solved to **2085 — the published optimum —
+proven optimal by Held–Karp in about 1 s**, validating the explicit parser and
+the dynamic program against one external number simultaneously.
+
+#### Measured crossover, arm64 / Python 3.14, seed 1
+
+| n | optimum | brute force | Held–Karp | B&B | B&B explored | B&B pruned |
+|---:|---:|---:|---:|---:|---:|---:|
+| 10 | 3449 | 220 ms | 3 ms | 8 ms | 257 | 942 |
+| 11 | 3487 | 2.32 s | 8 ms | 13 ms | 253 | 1,133 |
+| 12 | 3627 | refused | 16 ms | 34 ms | 570 | 2,825 |
+| 14 | 3801 | refused | 81 ms | 478 ms | 6,321 | 36,548 |
+
+Brute force becomes unusable at n≈11. **Held–Karp is faster than Branch & Bound
+throughout this range** — B&B's advantage is memory, not speed, and Held–Karp
+dies on its table (about 800 MB at n=21) rather than on time. Single-seed gap
+figures move around by more than ten points between adjacent sizes, which is why
+Phase 4 requires ≥30 seeds with bootstrap intervals rather than a single run.
 
 The full architecture and build plan is in [`docs/architecture-plan.pdf`](docs/architecture-plan.pdf)
 (revision 3, 22 pages). Earlier revisions are in `docs/archive/`; the current document opens

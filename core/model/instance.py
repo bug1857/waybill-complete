@@ -78,8 +78,13 @@ class Instance:
 
     @property
     def has_time_constraints(self) -> bool:
+        """Whether any constraint in this instance is expressed in time.
+
+        Capacity is not. A CVRP with loads but no windows and no shift limits
+        never needs a travel-time matrix, and demanding one would reject it.
+        """
         return any(s.is_constrained_in_time for s in self.stops) or any(
-            not v.is_unconstrained for v in self.vehicles
+            v.has_time_limits for v in self.vehicles
         )
 
     @property
