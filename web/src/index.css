@@ -1,0 +1,47 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #F7F3F0;
+    color: #1A1A1A;
+  }
+  
+  h1, h2, h3, .font-serif, .editorial-heading {
+    font-family: 'Newsreader', Georgia, 'Times New Roman', serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'Fira Code', ui-monospace, SFMono-Regular, monospace;
+  }
+}
+
+/* Editorial paper subtle grid background pattern */
+.bg-editorial-grid {
+  background-size: 24px 24px;
+  background-image: 
+    linear-gradient(to right, rgba(26, 26, 26, 0.05) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(26, 26, 26, 0.05) 1px, transparent 1px);
+}
+
+.bg-editorial-dots {
+  background-size: 16px 16px;
+  background-image: radial-gradient(circle, rgba(26, 26, 26, 0.15) 1px, transparent 1px);
+}
+
+/* Custom subtle scrollbar in editorial ink tones */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #EBE7E4;
+}
+::-webkit-scrollbar-thumb {
+  background: #B8B0A8;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #1A1A1A;
+}
+

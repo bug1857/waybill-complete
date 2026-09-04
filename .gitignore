@@ -35,3 +35,9 @@ docs/plan/*.log
 # --- OSRM preprocessing artefacts (regenerate with infra/prepare-osrm.sh) ---
 data/osm/*.osrm*
 data/osm/*.timestamp
+.crosscheck-tours.json
+
+# --- web ---
+web/node_modules/
+web/dist/
+web/.vite/
