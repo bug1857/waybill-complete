@@ -23,6 +23,7 @@ Two endpoints carry the system:
 """
 
 import json
+import math
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -50,6 +51,7 @@ class RouteGeometry:
     polyline: str
     distance_m: int
     duration_s: int
+    leg_polylines: tuple[tuple[str, ...], ...] = ()
 
 
 class OsrmProvider:
@@ -67,13 +69,32 @@ class OsrmProvider:
         unit: Unit = Unit.SECONDS,
         profile: str = "driving",
         timeout_s: float = 30.0,
+        dataset_id: str | None = None,
     ) -> None:
+        if not isinstance(unit, Unit):
+            raise TypeError("unit must be a Unit")
         if unit is Unit.TSPLIB:
             raise ValueError("OSRM produces physical units, not TSPLIB units")
+        if not isinstance(base_url, str) or not base_url.rstrip("/"):
+            raise ValueError("base_url must be non-empty")
+        if not isinstance(profile, str) or not profile:
+            raise ValueError("profile must be non-empty")
+        if (
+            not isinstance(timeout_s, (int, float))
+            or isinstance(timeout_s, bool)
+            or not math.isfinite(timeout_s)
+            or timeout_s <= 0
+        ):
+            raise ValueError("timeout_s must be a positive number")
+        if dataset_id is not None and (
+            not isinstance(dataset_id, str) or not dataset_id.strip()
+        ):
+            raise ValueError("dataset_id must be non-empty when supplied")
         self._base_url = base_url.rstrip("/")
         self._unit = unit
         self._profile = profile
         self._timeout = timeout_s
+        self._dataset_id = dataset_id
 
     @property
     def name(self) -> str:
@@ -86,6 +107,29 @@ class OsrmProvider:
     @property
     def base_url(self) -> str:
         return self._base_url
+
+    @property
+    def dataset_id(self) -> str | None:
+        """Caller-supplied identity of the routed OSM extract/profile build."""
+        return self._dataset_id
+
+    @property
+    def cache_fingerprint(self) -> str:
+        """Identity of the server and dataset used to produce matrix values.
+
+        A URL alone cannot detect that a server was rebuilt with new road data.
+        Production callers should therefore pass the extract checksum or image
+        digest as ``dataset_id``; the explicit ``unversioned`` marker keeps the
+        risk visible when they do not.
+        """
+        dataset = self._dataset_id or "unversioned"
+        return (
+            "osrm-v1"
+            f"|base_url={self._base_url}"
+            f"|profile={self._profile}"
+            f"|unit={self._unit.value}"
+            f"|dataset_id={dataset}"
+        )
 
     # -- HTTP -------------------------------------------------------------
 
@@ -189,7 +233,7 @@ class OsrmProvider:
             raise ValueError("a route needs at least two coordinates")
         url = (
             f"{self._base_url}/route/v1/{self._profile}/"
-            f"{self._coord_string(coords)}?overview=full&geometries=polyline"
+            f"{self._coord_string(coords)}?overview=full&geometries=polyline&steps=true"
         )
         payload = self._get(url)
         routes = payload.get("routes") or []
@@ -200,4 +244,6 @@ class OsrmProvider:
             polyline=route["geometry"],
             distance_m=int(route["distance"] + 0.5),
             duration_s=int(route["duration"] + 0.5),
+            leg_polylines=tuple(tuple(step["geometry"] for step in leg.get("steps", [])
+                                     if step.get("geometry")) for leg in route.get("legs", [])),
         )

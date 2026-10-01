@@ -20,6 +20,8 @@ from core.model.solution import Route, Solution
 
 class ViolationKind(StrEnum):
     UNVISITED_CUSTOMER = "unvisited_customer"
+    UNSERVED_CUSTOMER = "unserved_customer"
+    INVALID_UNSERVED_NODE = "invalid_unserved_node"
     DUPLICATE_VISIT = "duplicate_visit"
     DEPOT_IN_ROUTE = "depot_in_route"
     UNKNOWN_NODE = "unknown_node"
@@ -152,12 +154,40 @@ def check(instance: Instance, solution: Solution) -> FeasibilityReport:
                 )
             )
 
+    for node in solution.unserved:
+        if node == depot:
+            violations.append(
+                Violation(
+                    ViolationKind.INVALID_UNSERVED_NODE,
+                    "the depot cannot be declared unserved",
+                    node=node,
+                )
+            )
+        elif node >= n:
+            violations.append(
+                Violation(
+                    ViolationKind.INVALID_UNSERVED_NODE,
+                    f"node {node} is outside 0..{n - 1}",
+                    node=node,
+                )
+            )
+
     for node in instance.customer_indices:
-        if visit_counts.get(node, 0) == 0 and node not in solution.unserved:
+        if visit_counts.get(node, 0) != 0:
+            continue
+        if node in solution.unserved:
+            violations.append(
+                Violation(
+                    ViolationKind.UNSERVED_CUSTOMER,
+                    "declared unserved; complete solutions must serve every customer",
+                    node=node,
+                )
+            )
+        else:
             violations.append(
                 Violation(
                     ViolationKind.UNVISITED_CUSTOMER,
-                    "not in any route and not declared unserved",
+                    "not in any route",
                     node=node,
                 )
             )

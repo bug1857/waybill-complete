@@ -27,7 +27,12 @@ class TimeWindow:
     latest: int
 
     def __post_init__(self) -> None:
-        if not isinstance(self.earliest, int) or not isinstance(self.latest, int):
+        if (
+            not isinstance(self.earliest, int)
+            or isinstance(self.earliest, bool)
+            or not isinstance(self.latest, int)
+            or isinstance(self.latest, bool)
+        ):
             raise TypeError("time window bounds must be integer seconds")
         if self.earliest < 0:
             raise ValueError(f"earliest must be non-negative, got {self.earliest}")
@@ -64,6 +69,12 @@ class Stop:
     service_time: int = 0
 
     def __post_init__(self) -> None:
+        for name in ("id", "demand", "service_time"):
+            value = getattr(self, name)
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise TypeError(f"stop {name} must be an integer")
+        if self.id < 0:
+            raise ValueError(f"stop id must be non-negative, got {self.id}")
         if self.demand < 0:
             raise ValueError(f"stop {self.id}: demand must be non-negative")
         if self.service_time < 0:

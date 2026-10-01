@@ -18,6 +18,10 @@ def closed_tour_cost(matrix: DistanceMatrix, tour: Sequence[int]) -> int:
     This is the function that scores a published TSPLIB optimal tour, so it is
     the first thing the validation chain exercises.
     """
+    # Validate even a zero-edge singleton tour. Without this, ``(-1,)`` would
+    # score as zero through Python's negative indexing instead of being rejected.
+    for node in tour:
+        matrix.cost(node, node)
     if len(tour) < 2:
         return 0
     total = 0

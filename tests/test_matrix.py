@@ -5,6 +5,7 @@ import pytest
 from bench.generators import random_asymmetric_tsp, random_euclidean_tsp
 from core.distance.conventions import euc_2d
 from core.distance.matrix import DistanceMatrix
+from core.eval.objective import closed_tour_cost
 from core.model.geometry import Coord
 from core.model.units import Unit
 
@@ -39,6 +40,25 @@ def test_rejects_float_entries():
 def test_rejects_wrong_length():
     with pytest.raises(ValueError, match="expected 9 entries"):
         DistanceMatrix([0, 1, 1, 0], 3, Unit.METRES)
+
+
+@pytest.mark.parametrize("indices", [(-1, 0), (0, -1), (2, 0), (0, 2)])
+def test_cost_rejects_negative_and_out_of_range_indices(indices):
+    m = DistanceMatrix([0, 5, 5, 0], 2, Unit.METRES)
+    with pytest.raises(IndexError, match="out of range"):
+        m.cost(*indices)
+
+
+def test_cost_rejects_boolean_indices():
+    m = DistanceMatrix([0, 5, 5, 0], 2, Unit.METRES)
+    with pytest.raises(TypeError, match="matrix index"):
+        m.cost(False, 1)
+
+
+def test_singleton_tour_still_validates_its_node_index():
+    m = DistanceMatrix([0, 5, 5, 0], 2, Unit.METRES)
+    with pytest.raises(IndexError, match="out of range"):
+        closed_tour_cost(m, (-1,))
 
 
 def test_from_coords_builds_symmetric_euclidean():

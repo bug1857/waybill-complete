@@ -16,5 +16,6 @@ markers = [
   "integration: needs a live OSRM server (make osrm-up)",
 ]
 
-[tool.setuptools]
-packages = ["core", "bench", "tools"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["core*", "bench*", "adapters*", "tools*", "api*"]

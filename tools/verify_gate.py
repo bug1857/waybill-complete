@@ -10,22 +10,35 @@ Prints evidence rather than a bare pass/fail, because the point of the gate is
 that someone else can read the numbers and check them against TSPLIB themselves.
 """
 
+import argparse
+import json
 import sys
 from itertools import permutations
 from pathlib import Path
 
 from adapters.distance.haversine import HaversineProvider
 from adapters.distance.osrm import OsrmProvider
-from bench.generators import random_asymmetric_tsp, random_euclidean_tsp
+from bench.evidence.bundle import EvidenceBundle
+from bench.evidence.report import verify_markdown_report
+from bench.generators import (
+    clustered_cvrptw_150,
+    random_asymmetric_tsp,
+    random_euclidean_tsp,
+)
 from bench.tsplib.known_optima import PUBLISHED_OPTIMA
 from bench.tsplib.parser import parse_problem, parse_tour
 from core.eval.feasibility import check
 from core.eval.objective import closed_tour_cost
+from core.construct import ClarkeWrightSolver
+from core.exact.branch_and_bound import BranchAndBoundSolver
 from core.exact.brute_force import BruteForceSolver
+from core.exact.held_karp import HeldKarpSolver
 from core.model.geometry import Coord
+from core.reporting.status import SolveStatus
 from core.model.units import Unit
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "tsplib"
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def _exhaustive(instance) -> int:
@@ -128,13 +141,89 @@ def gate_distance_adapters() -> bool:
     return True
 
 
+def gate_exact_core() -> bool:
+    """Phase 2: three independent exact implementations agree."""
+    print("\nPhase 2 -- exact solver agreement")
+    instance = random_euclidean_tsp(10, 17, name="gate-exact-n10-s17")
+    reports = [
+        solver.solve(instance)[1]
+        for solver in (BruteForceSolver(), HeldKarpSolver(), BranchAndBoundSolver())
+    ]
+    objectives = {report.objective_value for report in reports}
+    valid = all(
+        report.status is SolveStatus.PROVEN_OPTIMAL_TSP
+        and report.best_lower_bound == report.objective_value
+        for report in reports
+    )
+    print(f"  objectives: {[report.objective_value for report in reports]}")
+    print(f"  proof statuses: {'YES' if valid else 'NO'}")
+    return len(objectives) == 1 and valid
+
+
+def gate_cvrptw() -> bool:
+    """Phase 5: named 150-customer/6-vehicle construction is complete."""
+    print("\nPhase 5 -- CVRPTW fleet feasibility")
+    instance = clustered_cvrptw_150()
+    solution, report = ClarkeWrightSolver().solve(instance)
+    feasibility = check(instance, solution)
+    served = set(solution.served) == set(instance.customer_indices)
+    valid = (
+        feasibility.is_feasible
+        and instance.n == 151
+        and solution.used_vehicle_count == 6
+        and served
+        and report.status is SolveStatus.HEURISTIC_FEASIBLE_CVRPTW
+    )
+    print(
+        f"  stops={instance.n - 1} vehicles={solution.used_vehicle_count} "
+        f"served={len(solution.served)} status={report.status.value}"
+    )
+    return valid
+
+
+def gate_evidence_and_demo() -> bool:
+    """Phase 6/7: generated report and offline UI share one valid bundle."""
+    print("\nPhase 6/7 -- evidence bundle and static demo")
+    bundle_path = ROOT / "artifacts" / "evidence.json"
+    report_path = ROOT / "report" / "results.md"
+    payload_path = ROOT / "web" / "evidence.js"
+    index_path = ROOT / "web" / "index.html"
+    app_path = ROOT / "web" / "app.js"
+    try:
+        bundle = EvidenceBundle.read(bundle_path)
+        verify_markdown_report(bundle, report_path.read_text(encoding="utf-8"))
+        payload = payload_path.read_text(encoding="utf-8")
+        embedded = json.loads(
+            payload.removeprefix("window.WAYBILL_EVIDENCE = ").rstrip(";\n")
+        )
+        embedded_bundle = EvidenceBundle.from_dict(embedded)
+    except (OSError, ValueError) as exc:
+        print(f"  FAIL: {exc}")
+        return False
+    static_files = all(path.is_file() for path in (index_path, app_path))
+    same_bundle = embedded_bundle.content_hash == bundle.content_hash
+    no_live_fetch = "fetch(" not in app_path.read_text(encoding="utf-8")
+    print(f"  bundle={bundle.content_hash[:16]} records={len(bundle.records)}")
+    print(f"  embedded bundle match: {'YES' if same_bundle else 'NO'}")
+    return static_files and same_bundle and no_live_fetch
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Verify Waybill acceptance gates.")
+    parser.add_argument(
+        "--osrm",
+        action="store_true",
+        help="include the optional local OSRM adapter gate",
+    )
+    arguments = parser.parse_args()
     print("Waybill exit gates\n" + "=" * 52)
     print("Phase 0 -- contracts and truth")
     results = [gate_tsplib(), gate_brute_force()]
-    print("\n" + "-" * 52)
-    print("Phase 1 -- distance contract and adapters")
-    results.append(gate_distance_adapters())
+    results.extend([gate_exact_core(), gate_cvrptw(), gate_evidence_and_demo()])
+    if arguments.osrm:
+        print("\n" + "-" * 52)
+        print("Optional OSRM integration")
+        results.append(gate_distance_adapters())
     print("\n" + "=" * 52)
     if all(results):
         print("ALL GATES PASSED")

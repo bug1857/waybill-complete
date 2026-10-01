@@ -20,6 +20,15 @@ class Route:
     sequence: tuple[int, ...]
 
     def __post_init__(self) -> None:
+        if not isinstance(self.vehicle_id, int) or isinstance(self.vehicle_id, bool):
+            raise TypeError("route vehicle_id must be an integer")
+        if self.vehicle_id < 0:
+            raise ValueError("route vehicle_id must be non-negative")
+        for node in self.sequence:
+            if not isinstance(node, int) or isinstance(node, bool):
+                raise TypeError("route node indices must be integers")
+            if node < 0:
+                raise ValueError(f"route node index must be non-negative, got {node}")
         if len(set(self.sequence)) != len(self.sequence):
             raise ValueError(
                 f"vehicle {self.vehicle_id}: route visits a node more than once"
@@ -37,6 +46,19 @@ class Route:
 class Solution:
     routes: tuple[Route, ...]
     unserved: frozenset[int] = field(default_factory=frozenset)
+
+    def __post_init__(self) -> None:
+        for node in self.unserved:
+            if not isinstance(node, int) or isinstance(node, bool):
+                raise TypeError("unserved node indices must be integers")
+            if node < 0:
+                raise ValueError(
+                    f"unserved node index must be non-negative, got {node}"
+                )
+        overlap = set(self.served).intersection(self.unserved)
+        if overlap:
+            listed = ", ".join(str(node) for node in sorted(overlap))
+            raise ValueError(f"nodes cannot be both served and unserved: {listed}")
 
     @property
     def served(self) -> tuple[int, ...]:

@@ -1,194 +1,98 @@
 # Waybill
 
-A courier delivery route optimization engine — and an experiment measuring when exact
-optimization stops being worth its cost.
+Project topic: **Courier Delivery Route Optimization System** (High level).
+Required DAA concepts: **TSP, Greedy, Branch & Bound**.
 
-**Course:** Design & Analysis of Algorithms · Project 4 (TSP, Greedy, Branch & Bound)
+Waybill's primary demo solves a single courier's closed TSP tour and compares
+Greedy nearest neighbour with admissible-bound Branch & Bound on the same input
+and matrix. It shows measured distance, runtime, explored/pruned nodes, lower
+bound, feasibility, and stop reason. Optimality is claimed only for a completed
+proof. Held–Karp is an optional comparison cross-check; constrained CVRPTW fleet
+routing is an extension. The canonical Python engine is the source of truth;
+the static UI renders generated evidence and contains no routing logic.
 
----
+## What is implemented
 
-## The thesis
+- Exact TSP: brute force, Held–Karp, and admissible-bound Branch & Bound.
+- Heuristic TSP: deterministic nearest neighbour, symmetry-guarded 2-opt,
+  asymmetric-safe Or-opt, and seeded simulated annealing.
+- CVRPTW: directed Clarke–Wright construction with hard capacity, service,
+  time-window, shift, return, and one-route-per-vehicle checks.
+- Reproducible evidence: signed-input manifests, content-hashed evidence JSON,
+  generated Markdown report, and a static evidence viewer.
 
-The assignment asks for TSP. **Couriers do not solve TSP.**
+Claims are typed. A heuristic plan is feasible, not optimal; a partial run is
+not an infeasibility proof; and a reference comparison is not an optimality
+certificate.
 
-TSP is one vehicle, unlimited capacity, no clock, symmetric distances. A real fleet has
-multiple vans with capacity limits, customers with delivery time windows, service time at
-each door, driver shift limits, and asymmetric road distances — because one-way streets
-mean `d(A,B) ≠ d(B,A)`.
+## Run it
 
-The correct problem is **CVRPTW** (Capacitated Vehicle Routing with Time Windows). TSP is
-the kernel inside it.
-
-So this project does both: it satisfies the assignment exactly — TSP with Greedy and
-Branch & Bound — then extends to the real formulation and measures the difference.
-
-## What makes it more than an implementation
-
-Implementing algorithms is not a result. **Measuring them against a proven optimum is.**
-
-- Exact solvers (brute force, Held–Karp, Branch & Bound) establish ground truth where
-  proof is computationally possible.
-- Heuristics (nearest neighbour, Clarke–Wright savings, Or-opt/2-opt, simulated
-  annealing) scale indefinitely with unknown quality.
-- The experiment measures the gap between them, and locates the crossover where exact
-  methods stop being practical.
-
-**Primary research question:** at what problem size and compute budget does exact
-optimization stop being worth its cost, and how much solution quality is given up by
-switching to scalable heuristics?
-
-## Claim discipline
-
-Every solve returns a typed status, and no part of the system may word a result more
-strongly than its status permits:
-
-| Status | Permitted wording |
-|---|---|
-| `PROVEN_OPTIMAL_TSP` | "Optimal" — for that TSP instance only |
-| `EXACT_TIMEOUT_WITH_INCUMBENT` | Report incumbent **and** lower bound. Never "optimal" |
-| `HEURISTIC_FEASIBLE_CVRPTW` | "Feasible." Quality only relative to a named comparator |
-| `HEURISTIC_INFEASIBLE` | Reject. Never surface as a route |
-| `REFERENCE_GAP_ONLY` | "Gap to reference" — never "optimality gap" |
-
-"Optimality gap" is only meaningful when the denominator is a proven optimum or a valid
-bound. Against TSPLIB published optima it is legitimate; against OR-Tools it is not.
-
-## Architecture
-
-One rule governs the layout: **`core/` imports nothing that touches a socket, a disk, or
-a database.** It holds the algorithms and the protocols; every I/O implementation lives in
-`adapters/`. A test walks `core/`'s import graph and fails the build if that rule is
-broken, so it cannot drift.
-
-```
-core/        pure algorithms + protocols (stdlib only, enforced by test)
-adapters/    OSRM client, distance cache, persistence — all real I/O
-bench/       experiment runner, manifests, plots, OR-Tools reference
-api/         thin FastAPI orchestration — no algorithm logic
-web/         React + MapLibre
-infra/       docker compose: OSRM, Postgres, Redis
-report/      generated tables, figures, written analysis
+```sh
+make setup
+make gate
+open web/index.html
 ```
 
-Because `bench/` and `api/` import the same solver code, a benchmark number is a claim
-about the deployed system — not about a separate "benchmark version."
+`make gate` is hermetic. It runs purity checks, regenerates the evidence bundle
+and report, validates exact-solver agreement, checks the named 150-customer /
+six-vehicle CVRPTW plan, and validates the generated report. Outputs are:
 
-## Validation chain
+- [`artifacts/evidence.json`](artifacts/evidence.json)
+- [`report/results.md`](report/results.md)
+- [`web/index.html`](web/index.html)
 
-No problem size goes unchecked, and the bands overlap at their boundaries:
+The bundle records the current Git revision and dirty state. Regenerate it from
+a clean commit for release evidence.
 
-| Range | Check |
-|---|---|
-| n ≤ 12 | Brute force — the root of trust |
-| 13 – 51 | Mutual agreement: brute force ≡ Held–Karp ≡ B&B, sharing no code path |
-| n ≥ 52 | TSPLIB published optima — external ground truth |
-| all sizes | Independent feasibility checker on every solution |
-| all bounds | **Lower bound ≤ true optimum** on every brute-force-verifiable instance |
+## Optional real-road integration
 
-That last invariant is the most important test in the project. An invalid lower bound does
-not crash — it silently prunes the optimum and reports `PROVEN_OPTIMAL`. It is the only
-thing standing between the solver and a confidently wrong answer.
+OSRM is deliberately separate from the hermetic gate:
 
-## Build phases
-
-Each phase has an exit gate — a falsifiable condition, not a description of intent.
-
-| Phase | Focus | Exit gate |
-|---|---|---|
-| 0 | Contracts and truth | TSPLIB tour scores to its published cost; purity test catches a planted import |
-| 1 | Distance contract + adapters | Same instance runs offline and on OSRM; both log a matrix hash |
-| 2 | Assignment-complete solver core | All three exact solvers agree across a seeded suite |
-| 3 | The B&B experiment | Bound-comparison plot generates from raw data; validity invariant passes |
-| 4 | Heuristic quality ladder | Gap-vs-n and anytime curves reproduce from one command |
-| 5 | CVRPTW constraints | 150 stops / 6 vehicles passes the independent checker |
-| 6 | Evidence freeze | Every report number regenerates in a clean environment |
-| 7 | API + map | Demo reads real `SolveReport` fields; no duplicated algorithm logic |
-| 8 | Stretch | Attempted only if Phase 6 is complete and stable |
-
-**Effort split:** 70% core and benchmark evidence · 20% real-road and CVRPTW integration ·
-10% API and interface. A polished interface cannot compensate for an unvalidated exact
-solver.
-
-Phases 0–2 satisfy the assignment's stated requirements in full.
-
-## Ground rules
-
-- **Integer seconds and integer metres internally.** Float comparison in feasibility
-  checks produces bugs you will not find.
-- **OR-Tools is a ruler, never an engine.** It lives in `bench/` as a reference baseline
-  and never inside a submitted solver.
-- **Textbook 2-opt is invalid on asymmetric matrices.** The segment reversal that makes
-  its `O(1)` delta work depends on `d(x,y) = d(y,x)`. Under real road data it optimizes a
-  quantity that is not the tour length — without erroring. Or-opt and relocate are the
-  asymmetry-safe operators; 2-opt carries a symmetry guard.
-- **No number goes in the report before it is measured.** The write-up template has blanks,
-  not placeholders borrowed from the literature.
-
-## Status
-
-**Phases 0 and 1 complete — both exit gates passed.** Phase 2 (assignment-complete
-solver core) is next.
-
-```
-make setup          # create .venv, install dev deps
-make test           # 186 tests (179 without Docker)
-make gate           # verify every exit gate reached so far
-make osrm-prepare   # one-off: preprocess the OSM extract (~1 min for Monaco)
-make osrm-up        # start the local routing server
+```sh
+make osrm-prepare
+make osrm-up
+make osrm-gate
 ```
 
-### Phase 0 — contracts and truth
+This verifies the Haversine and local OSRM adapters on the same stops. The
+static demo remains usable without Docker or a running service.
 
-The pure model layer (`Instance`, `Solution`, `Stop`, `TimeWindow`, `Vehicle`,
-`DistanceMatrix`), TSPLIB distance conventions, the independent feasibility checker,
-the `SolveStatus`/`SolveReport` contract, the `Solver` protocol, brute-force
-enumeration, and the core purity checker.
+## Live API and route map
 
-Our own distance implementation scoring the published optimal tours:
+Run `make live`, then open `http://127.0.0.1:8000/`. The integrated workbench
+includes dispatch, solver comparison, directed-matrix analysis, generated
+evidence, runtime invariants, import/export, and printable reports. The map draws
+OSRM road geometry and schedules use the same travel-time matrix as the solver.
+An offline distance estimate is also available.
+The Route planner opens in TSP mode. Use **Compare Greedy vs Branch & Bound**
+to run the required topic comparison, then view either returned tour without
+re-solving it. The Project & report tab explains the formulation and algorithms
+and includes the measured comparison when it belongs to the active result.
+To use the current alternate local port: `.venv/bin/python -m api.server --port 8001`.
 
-| Instance | n | Computed | Published | Match |
-|---|---:|---:|---:|:--:|
-| eil51    |  51 |    426 |    426 | ✓ |
-| berlin52 |  52 |   7542 |   7542 | ✓ |
-| st70     |  70 |    675 |    675 | ✓ |
-| pr76     |  76 | 108159 | 108159 | ✓ |
-| kroA100  | 100 |  21282 |  21282 | ✓ |
+The route explorer replays the returned tour with play/pause, next-stop, speed,
+and scrub controls. OSRM playback uses per-leg road geometry; offline playback
+is explicitly a straight-line estimate. This is illustrative replay, not live
+GPS or an ETA simulation. Inputs over 30 nodes default to a focused current-leg
+view with fewer labels; full routes, stop inspection, zoom/pan and the underlying
+schedules remain available. Reduced-motion users can step or scrub without
+continuous animation. Playback pauses off-screen and on tab changes.
+Run `node tests/test_route_motion.cjs` for the display-geometry regression check.
 
-Brute force also agrees with unreduced permutation enumeration on 60 random instances
-(30 symmetric, 30 asymmetric), and `tools/check_purity.py` fails the build on a planted
-`import requests` inside `core/`.
+The local API accepts `POST /api/solve` and returns the canonical `SolveReport`,
+independent feasibility results, route geometry, schedules, and input/matrix
+hashes. It allows up to 100 nodes, six vehicles, and a two-second solver budget.
+Held–Karp is limited to 17 nodes. The service binds to loopback and serves one
+request at a time. Road matrix and geometry requests have separate network
+timeouts; the solver budget does not include their elapsed time.
 
-### Phase 1 — distance contract and adapters
+For dataset provenance, run `python -m api.server --dataset-id <extract/build-identity>`.
+Without this argument, the OSRM dataset is explicitly labelled unversioned.
 
-`DistanceProvider` implementations live in `adapters/`, never in `core/`: Haversine for
-offline and hermetic tests, a self-hosted OSRM client for real road data, and a SQLite
-cache that wraps either. `infra/` carries the Docker pipeline and a pinned OSM extract,
-so matrices are reproducible rather than dependent on a public server's current data.
+## Scope
 
-Same five Monaco stops, two providers:
-
-| Provider | Symmetric | Matrix hash |
-|---|:--:|---|
-| `haversine` | **true** | `587a429c5c88b7d6` |
-| `osrm` | **false** | `b04816a09b5f83ce` |
-
-All 10 coordinate pairs differ by direction under real road data; the largest gap is
-**130 s** (296 s one way, 426 s back). That asymmetry is not a curiosity — it is what
-invalidates textbook 2-opt, and Phase 4 has to handle it.
-
-The full architecture and build plan is in [`docs/architecture-plan.pdf`](docs/architecture-plan.pdf)
-(revision 3, 22 pages). Earlier revisions are in `docs/archive/`; the current document opens
-with a changelog of what changed and why.
-
-Revision 3 adds the **evidence bundle**: `bench/` emits a single `evidence.json` carrying every
-measured result plus its manifest, and both the report and the demo render from that file and
-nothing else. Neither can state a number the engine did not produce. A build step fails on any
-numeric literal in `report/` or `web/`. It also adds §05 data-integrity rules — no numeric
-instance data may be typed into source, every input file is checksummed — and §13, a named list
-of claims this project will not make.
-
-### Regenerating the plan PDF
-
-`docs/plan/waybill.html` is the source of truth. Rendering it to PDF needs a
-Chromium-family browser and Python 3; see the plan document itself for the print setup.
-The published web version is theme-aware and carries the same content.
+The named fleet scenario is a reproducible synthetic integration fixture, not
+a claim about live traffic or production dispatch. The Google AI Studio
+prototype informed the visual hierarchy only; no prototype solver, data, or
+metric is used. See
+[`docs/decisions/0001-canonical-engine-and-ui-boundary.md`](docs/decisions/0001-canonical-engine-and-ui-boundary.md).

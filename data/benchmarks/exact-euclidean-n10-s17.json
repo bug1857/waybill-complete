@@ -1,0 +1,7 @@
+{
+  "family": "random_euclidean_tsp",
+  "name": "exact-euclidean-n10-s17",
+  "nodes": 10,
+  "seed": 17,
+  "span": 1000
+}

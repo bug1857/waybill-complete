@@ -1,13 +1,17 @@
 PY := ./.venv/bin/python
 OSRM_PORT ?= 5001
 
-.PHONY: help setup test purity gate clean osrm-prepare osrm-up osrm-down osrm-status
+.PHONY: help setup test purity data gate osrm-gate evidence live clean osrm-prepare osrm-up osrm-down osrm-status
 
 help:
 	@echo "make setup   - create .venv and install dev dependencies"
 	@echo "make test    - run the full test suite"
 	@echo "make purity  - check that core/ touches no network, disk, or database"
+	@echo "make data    - verify all benchmark-input SHA-256 manifests"
 	@echo "make gate    - verify the current phase's exit gate"
+	@echo "make osrm-gate - also verify the optional local OSRM integration"
+	@echo "make evidence - regenerate the validated bundle, report, and static demo data"
+	@echo "make live    - serve the live API and route map on 127.0.0.1:8000"
 	@echo ""
 	@echo "make osrm-prepare - preprocess the OSM extract (once, ~1 min for Monaco)"
 	@echo "make osrm-up      - start the local routing server on :$(OSRM_PORT)"
@@ -25,9 +29,22 @@ test:
 purity:
 	$(PY) -m tools.check_purity
 
-gate: purity
+data:
+	$(PY) -m tools.verify_data_manifest
+
+gate: purity data evidence
 	@echo
 	$(PY) -m tools.verify_gate
+
+osrm-gate: purity data evidence
+	@echo
+	$(PY) -m tools.verify_gate --osrm
+
+evidence:
+	$(PY) -m tools.generate_evidence
+
+live:
+	$(PY) -m api.server
 
 clean:
 	rm -rf .pytest_cache **/__pycache__ .venv

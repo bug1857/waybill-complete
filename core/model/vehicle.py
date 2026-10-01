@@ -19,8 +19,21 @@ class Vehicle:
     max_route_duration: int | None = None
 
     def __post_init__(self) -> None:
+        for name in ("id", "capacity", "shift_start", "shift_end"):
+            value = getattr(self, name)
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise TypeError(f"vehicle {name} must be an integer")
+        if self.max_route_duration is not None and (
+            not isinstance(self.max_route_duration, int)
+            or isinstance(self.max_route_duration, bool)
+        ):
+            raise TypeError("vehicle max_route_duration must be an integer when set")
+        if self.id < 0:
+            raise ValueError(f"vehicle id must be non-negative, got {self.id}")
         if self.capacity < 0:
             raise ValueError(f"vehicle {self.id}: capacity must be non-negative")
+        if self.shift_start < 0:
+            raise ValueError(f"vehicle {self.id}: shift_start must be non-negative")
         if self.shift_end < self.shift_start:
             raise ValueError(f"vehicle {self.id}: shift ends before it starts")
         if self.max_route_duration is not None and self.max_route_duration < 0:
@@ -33,4 +46,13 @@ class Vehicle:
             and self.shift_start == 0
             and self.shift_end >= HORIZON_END
             and self.max_route_duration is None
+        )
+
+    @property
+    def has_time_constraints(self) -> bool:
+        """Whether feasibility depends on a clock, independent of capacity."""
+        return (
+            self.shift_start != 0
+            or self.shift_end < HORIZON_END
+            or self.max_route_duration is not None
         )

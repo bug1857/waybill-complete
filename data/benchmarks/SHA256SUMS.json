@@ -1,0 +1,16 @@
+{
+  "algorithm": "sha256",
+  "files": [
+    {
+      "path": "clustered-cvrptw-150-v6-s240519.json",
+      "sha256": "45f8cc35a2ab2a780aa78bb0d38cd4e574baa5f5556dc11b7135652e24ac944e",
+      "size_bytes": 233
+    },
+    {
+      "path": "exact-euclidean-n10-s17.json",
+      "sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
+      "size_bytes": 121
+    }
+  ],
+  "schema_version": "1.0.0"
+}

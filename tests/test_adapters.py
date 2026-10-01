@@ -7,11 +7,13 @@ without Docker still gets a meaningful suite.
 """
 
 import json
+import sqlite3
 from pathlib import Path
 
 import pytest
 
 from adapters.distance.cache import CachedProvider
+import adapters.distance.cache as cache_module
 from adapters.distance.haversine import (
     DEFAULT_ROAD_FACTOR,
     HaversineProvider,
@@ -133,6 +135,21 @@ def test_trivial_sizes_need_no_request():
     assert provider.build([MONACO[0]]).n == 1
 
 
+def test_route_geometry_keeps_osrm_leg_boundaries(monkeypatch):
+    provider = OsrmProvider()
+    requests = []
+    def recorded(url):
+        requests.append(url)
+        return {"routes": [{"geometry": "full", "distance": 12.4, "duration": 3.4,
+                            "legs": [{"steps": [{"geometry": "first"}, {"geometry": "arrival"}]},
+                                     {"steps": [{"geometry": "return"}]}]}]}
+    monkeypatch.setattr(provider, "_get", recorded)
+    geometry = provider.route_geometry(MONACO)
+    assert "steps=true" in requests[0]
+    assert geometry.leg_polylines == (("first", "arrival"), ("return",))
+    assert geometry.polyline == "full" and geometry.distance_m == 12
+
+
 # --- Cache -----------------------------------------------------------------
 
 class CountingProvider:
@@ -208,3 +225,51 @@ def test_clear_empties_the_cache(tmp_path):
     cached.clear()
     cached.build(MONACO)
     assert inner.calls == 2
+
+
+def test_haversine_speed_is_part_of_the_cache_identity(tmp_path):
+    db = tmp_path / "c.sqlite"
+    slow = CachedProvider(
+        HaversineProvider(unit=Unit.SECONDS, speed_kmh=30.0), db
+    )
+    fast = CachedProvider(
+        HaversineProvider(unit=Unit.SECONDS, speed_kmh=60.0), db
+    )
+    slow_matrix = slow.build(MONACO)
+    fast_matrix = fast.build(MONACO)
+    assert fast.misses == 1
+    assert fast_matrix.cost(0, 1) < slow_matrix.cost(0, 1)
+
+
+def test_osrm_cache_identity_includes_server_and_dataset():
+    original = OsrmProvider(
+        base_url="http://router-a:5000", dataset_id="monaco-2026-08"
+    )
+    other_server = OsrmProvider(
+        base_url="http://router-b:5000", dataset_id="monaco-2026-08"
+    )
+    other_dataset = OsrmProvider(
+        base_url="http://router-a:5000", dataset_id="monaco-2026-09"
+    )
+    assert original.cache_fingerprint != other_server.cache_fingerprint
+    assert original.cache_fingerprint != other_dataset.cache_fingerprint
+
+
+def test_cache_closes_every_sqlite_connection(tmp_path, monkeypatch):
+    real_connect = sqlite3.connect
+    opened = []
+
+    def tracking_connect(*args, **kwargs):
+        conn = real_connect(*args, **kwargs)
+        opened.append(conn)
+        return conn
+
+    monkeypatch.setattr(cache_module.sqlite3, "connect", tracking_connect)
+    cached = CachedProvider(CountingProvider(), tmp_path / "c.sqlite")
+    cached.build(MONACO)
+    cached.clear()
+
+    assert opened
+    for conn in opened:
+        with pytest.raises(sqlite3.ProgrammingError, match="closed database"):
+            conn.execute("SELECT 1")

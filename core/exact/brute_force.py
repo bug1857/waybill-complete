@@ -38,6 +38,10 @@ class BruteForceSolver:
     """Enumerates every distinct tour and returns the cheapest."""
 
     def __init__(self, max_customers: int = MAX_SUPPORTED_CUSTOMERS) -> None:
+        if not isinstance(max_customers, int) or isinstance(max_customers, bool):
+            raise TypeError("max_customers must be an integer")
+        if max_customers < 0:
+            raise ValueError("max_customers must be non-negative")
         self._max_customers = max_customers
 
     @property
@@ -60,6 +64,11 @@ class BruteForceSolver:
                 f"the brute-force limit of {self._max_customers}. This solver is "
                 f"ground truth for small instances, not a general method."
             )
+        if budget.max_memory_mb is not None:
+            raise NotImplementedError(
+                "BruteForceSolver cannot enforce max_memory_mb; use wall_time_ms "
+                "or max_nodes for a bounded exhaustive run"
+            )
 
         matrix = instance.matrix
         depot = instance.depot_index
@@ -69,9 +78,15 @@ class BruteForceSolver:
         best_sequence: tuple[int, ...] = ()
         best_cost = -1
         explored = 0
+        interrupted_by: StopReason | None = None
 
         start = time.perf_counter()
         cpu_start = time.process_time()
+
+        # Every Hamiltonian cycle uses exactly one incoming and one outgoing edge
+        # at each node. The larger of these two sums is therefore a valid global
+        # lower bound for both symmetric and asymmetric non-negative matrices.
+        lower_bound = _minimum_edge_bound(matrix)
 
         if not customers:
             best_cost = 0
@@ -79,6 +94,25 @@ class BruteForceSolver:
             for perm in permutations(customers):
                 if skip_reversals and perm[0] > perm[-1]:
                     continue
+
+                # A tour evaluation is the smallest atomic unit of this solver.
+                # Always evaluate one so a bounded run can return a feasible
+                # incumbent, then stop before beginning work that would exceed a
+                # node or wall-clock budget.
+                if explored:
+                    if (
+                        budget.max_nodes is not None
+                        and explored >= budget.max_nodes
+                    ):
+                        interrupted_by = StopReason.NODE_CAP
+                        break
+                    if (
+                        budget.wall_time_ms is not None
+                        and (time.perf_counter() - start) * 1000.0
+                        >= budget.wall_time_ms
+                    ):
+                        interrupted_by = StopReason.TIMEOUT
+                        break
                 explored += 1
                 cost = matrix.cost(depot, perm[0])
                 for a, b in zip(perm, perm[1:]):
@@ -87,20 +121,32 @@ class BruteForceSolver:
                 if best_cost < 0 or cost < best_cost:
                     best_cost, best_sequence = cost, perm
 
+                # In a bounded run the relaxation itself proves optimality when
+                # it meets the incumbent. Unlimited runs retain exhaustive node
+                # counts because they are the baseline for reduction tests.
+                if not budget.is_unlimited and best_cost == lower_bound:
+                    interrupted_by = None
+                    break
+
         wall_ms = (time.perf_counter() - start) * 1000.0
         cpu_ms = (time.process_time() - cpu_start) * 1000.0
 
+        proven = interrupted_by is None
         solution = Solution.single_tour(
             best_sequence, vehicle_id=instance.vehicles[0].id
         )
         report = SolveReport(
             solver_name=self.name,
             problem_type=ProblemType.TSP,
-            status=SolveStatus.PROVEN_OPTIMAL_TSP,
-            stop_reason=StopReason.OPTIMAL,
+            status=(
+                SolveStatus.PROVEN_OPTIMAL_TSP
+                if proven
+                else SolveStatus.EXACT_TIMEOUT_WITH_INCUMBENT
+            ),
+            stop_reason=StopReason.OPTIMAL if proven else interrupted_by,
             objective_value=best_cost,
             objective_units=matrix.unit,
-            best_lower_bound=best_cost,
+            best_lower_bound=best_cost if proven else lower_bound,
             wall_time_ms=wall_ms,
             cpu_time_ms=cpu_ms,
             nodes_explored=explored,
@@ -109,3 +155,18 @@ class BruteForceSolver:
             solver_config_hash=budget.config_hash(),
         )
         return solution, report
+
+
+def _minimum_edge_bound(matrix) -> int:
+    """Cheap directed-TSP lower bound from mandatory incoming/outgoing edges."""
+    if matrix.n <= 1:
+        return 0
+    outgoing = sum(
+        min(matrix.cost(i, j) for j in range(matrix.n) if j != i)
+        for i in range(matrix.n)
+    )
+    incoming = sum(
+        min(matrix.cost(i, j) for i in range(matrix.n) if i != j)
+        for j in range(matrix.n)
+    )
+    return max(outgoing, incoming)

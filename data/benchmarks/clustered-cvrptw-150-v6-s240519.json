@@ -1,0 +1,8 @@
+{
+  "family": "clustered_cvrptw_150",
+  "name": "clustered-cvrptw-c150-v6-s240519",
+  "customers": 150,
+  "seed": 240519,
+  "vehicles": 6,
+  "note": "Synthetic reproducible integration fixture; not live-road or live-traffic data."
+}
