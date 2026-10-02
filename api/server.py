@@ -267,6 +267,7 @@ class Handler(SimpleHTTPRequestHandler):
         except PlacesBusy as exc:
             self.send_json({"error": str(exc)}, 429)
         except PlacesError as exc:
+            self.log_error("places fetch failed: %r", exc.__cause__ or exc)
             self.send_json({"error": str(exc)}, 503)
         except Exception:
             self.log_error("unexpected solve failure")
