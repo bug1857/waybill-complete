@@ -40,12 +40,17 @@ class Vehicle:
             raise ValueError(f"vehicle {self.id}: max_route_duration must be >= 0")
 
     @property
-    def is_unconstrained(self) -> bool:
+    def has_time_limits(self) -> bool:
+        """Whether this vehicle constrains *time* specifically.
+
+        Capacity is deliberately excluded. A capacitated van with an open-ended
+        shift needs no clock, and requiring a travel-time matrix for one would
+        reject a perfectly well-formed CVRP instance.
+        """
         return (
-            self.capacity >= UNLIMITED_CAPACITY
-            and self.shift_start == 0
-            and self.shift_end >= HORIZON_END
-            and self.max_route_duration is None
+            self.shift_start != 0
+            or self.shift_end < HORIZON_END
+            or self.max_route_duration is not None
         )
 
     @property

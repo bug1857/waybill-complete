@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.distance.conventions import EdgeWeightType, distance_function
+from core.distance.explicit import EdgeWeightFormat, build_matrix_data
 from core.distance.matrix import DistanceMatrix
 from core.model.geometry import Coord
 from core.model.instance import Instance
@@ -192,8 +193,8 @@ def parse_problem(path: Path | str) -> TsplibProblem:
         line = raw.strip()
         if not line:
             continue
-
         upper = line.upper()
+
         if upper.startswith("NODE_COORD_SECTION"):
             section = "NODE_COORD_SECTION"
             continue
@@ -206,9 +207,20 @@ def parse_problem(path: Path | str) -> TsplibProblem:
 
         if section == "NODE_COORD_SECTION":
             parts = line.split()
-            if len(parts) < 3:
-                continue
-            coords.append(Coord(float(parts[1]), float(parts[2])))
+            if len(parts) >= 3:
+                coords.append(Coord(float(parts[1]), float(parts[2])))
+            continue
+        if section == "display":
+            parts = line.split()
+            if len(parts) >= 3:
+                display_coords.append(Coord(float(parts[1]), float(parts[2])))
+            continue
+        if section == "weights":
+            for token in line.split():
+                try:
+                    weights.append(int(float(token)))
+                except ValueError:
+                    continue
             continue
 
         if section == "EDGE_WEIGHT_SECTION":
@@ -244,8 +256,14 @@ def parse_problem(path: Path | str) -> TsplibProblem:
             try:
                 ewt = EdgeWeightType(value.upper())
             except ValueError:
+                raise ValueError(f"{path}: unsupported EDGE_WEIGHT_TYPE {value!r}") from None
+        elif key == "EDGE_WEIGHT_FORMAT":
+            try:
+                ewf = EdgeWeightFormat(value.upper())
+            except ValueError:
                 raise ValueError(
-                    f"{path}: unsupported EDGE_WEIGHT_TYPE {value!r}"
+                    f"{path}: unsupported EDGE_WEIGHT_FORMAT {value!r}. "
+                    f"Row-wise layouts are supported; column-wise are not."
                 ) from None
         elif key == "EDGE_WEIGHT_FORMAT":
             weight_format = value.upper()
@@ -258,6 +276,7 @@ def parse_problem(path: Path | str) -> TsplibProblem:
 
     if ewt is None:
         raise ValueError(f"{path}: missing EDGE_WEIGHT_TYPE")
+
     if ewt is EdgeWeightType.EXPLICIT:
         if dimension is None:
             raise ValueError(f"{path}: EXPLICIT problems require DIMENSION")
