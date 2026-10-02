@@ -19,3 +19,19 @@ for (const [x,y] of [[258,92],[582,421]]) assert.ok(x >= fitted[0] && x <= fitte
 assert.ok(fitView([[5,5],[5,5]], 1)[2] > 0);
 assert.deepEqual(fitView([], 1), [0,0,900,550]);
 console.log('Route motion: geometry decoding, per-leg interpolation, visit boundaries and zero-length legs passed.');
+
+// A comparison renders the planner while hidden. Zero width must not enlarge markers.
+const source = require('node:fs').readFileSync(require('node:path').join(__dirname, '../web/live.js'), 'utf8');
+const mapViewCode = source.slice(source.indexOf('  function setMapView('), source.indexOf('  function fitMap('));
+let width = 0, writes = [];
+const marker = {dataset:{node:'1'},setAttribute:(name,value)=>writes.push([name,value])};
+const map = {getBoundingClientRect:()=>({width}), setAttribute:(name,value)=>writes.push([name,value]),
+  querySelectorAll:selector=>selector==='.map-node' ? [marker] : []};
+const context = {byId:()=>map, playback:null};
+require('node:vm').runInNewContext(mapViewCode+'setMapView([0,0,900,550]);', context);
+assert.deepEqual(writes, []);
+width = 450;
+require('node:vm').runInNewContext(mapViewCode+'setMapView([0,0,900,550]);', context);
+assert.deepEqual(writes.at(-1), ['r',8]);
+assert.ok(source.includes('new ResizeObserver('));
+console.log('Hidden-panel map scale: deferred at zero width, correctly fitted when visible.');

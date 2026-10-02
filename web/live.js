@@ -95,8 +95,10 @@
   }
 
   function setMapView(view) {
-    const map = byId("route-map"); mapView = view; map.setAttribute("viewBox", view.join(" "));
-    const unit = view[2] / Math.max(1, map.getBoundingClientRect().width);
+    const map = byId("route-map"), width = map.getBoundingClientRect().width;
+    if (!width) return; // Hidden tabs have no display scale; resize observation fits them on reveal.
+    mapView = view; map.setAttribute("viewBox", view.join(" "));
+    const unit = view[2] / width;
     map.querySelectorAll(".map-node").forEach((node) => node.setAttribute("r", (Number(node.dataset.node) ? 4 : 9) * unit));
     map.querySelectorAll(".map-node-label").forEach((label) => label.setAttribute("font-size", 13 * unit));
     if (playback) { playback.vehicle.dataset.scale = unit; paintPlayback(); }
@@ -495,6 +497,7 @@
     else if (event.key.startsWith("Arrow")) { const shift = mapView[2] / 10; setMapView([mapView[0] + (event.key === "ArrowRight" ? shift : event.key === "ArrowLeft" ? -shift : 0), mapView[1] + (event.key === "ArrowDown" ? shift : event.key === "ArrowUp" ? -shift : 0), mapView[2], mapView[3]]); }
   });
   new IntersectionObserver(([entry]) => { if (!entry.isIntersecting) pausePlayback(); }).observe(map);
+  new ResizeObserver(([entry]) => { if (entry.contentRect.width && currentResult) fitMap(currentResult.stops.length > 30); }).observe(map);
   document.addEventListener("visibilitychange", () => { if (document.hidden) pausePlayback(); });
   reducedMotion.addEventListener("change", () => { pausePlayback(); byId("play-route").disabled = !playback || reducedMotion.matches; });
   form.addEventListener("input", inputEdited);
