@@ -82,12 +82,19 @@ Run `node tests/test_route_motion.cjs` for the display-geometry regression check
 The local API accepts `POST /api/solve` and returns the canonical `SolveReport`,
 independent feasibility results, route geometry, schedules, and input/matrix
 hashes. It allows up to 100 nodes, six vehicles, and a two-second solver budget.
-Held–Karp is limited to 17 nodes. The service binds to loopback and serves one
-request at a time. Road matrix and geometry requests have separate network
+Held–Karp is limited to 17 nodes. The service binds to loopback by default and
+allows one bounded solve at a time. Road matrix and geometry requests have separate network
 timeouts; the solver budget does not include their elapsed time.
 
 For dataset provenance, run `python -m api.server --dataset-id <extract/build-identity>`.
 Without this argument, the OSRM dataset is explicitly labelled unversioned.
+
+## Hosted release
+
+The [free deployment guide](docs/deployment.md) describes the complete Docker
+workbench with its own pinned Monaco road router and clean-source release evidence.
+The preserved Google UI prototype is in `reference/google-ui`; it is not the
+deployed computation path.
 
 ## Scope
 

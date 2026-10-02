@@ -1,17 +1,21 @@
-"""Loopback-only live demo. Run with ``python -m api.server``."""
+"""Courier workbench; loopback by default, with an explicit hosted origin."""
 
 import argparse
 import hashlib
 import json
 import math
+import os
+import re
 import time
 from dataclasses import asdict
-from http.server import HTTPServer, SimpleHTTPRequestHandler
+from http.server import ThreadingHTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
+from threading import Lock
+from urllib.parse import urlsplit
 
 from adapters.distance.haversine import HaversineProvider
 from adapters.distance.osrm import OsrmError, OsrmProvider
-from bench.evidence.provenance import capture_git_state
+from bench.evidence.provenance import GitState, ProvenanceError, capture_git_state
 from core.construct import ClarkeWrightSolver, NearestNeighborSolver
 from core.eval.feasibility import check, schedule
 from core.eval.objective import route_cost
@@ -106,7 +110,7 @@ def solve_request(payload, *, osrm_url="http://127.0.0.1:5001", dataset_id=None)
         for i in range(vehicle_count)
     )
     instance = Instance("live-request", tuple(stops), vehicles, cost_matrix, time_matrix=time_matrix)
-    # ponytail: bounded serial local demo; use a bounded worker pool for multi-user serving.
+    # ponytail: one bounded solve at a time; add worker processes for sustained multi-user load.
     budget = Budget(wall_time_ms=wall_time, max_nodes=10000, max_memory_mb=64)
     solution, report = SOLVERS[solver_name]().solve(instance, budget)
     feasibility = check(instance, solution)
@@ -133,7 +137,14 @@ def solve_request(payload, *, osrm_url="http://127.0.0.1:5001", dataset_id=None)
             "schedule": asdict(schedule(instance, route, vehicles[route.vehicle_id])),
             "geometry": geometry,
         })
-    git = capture_git_state(ROOT)
+    try:
+        git = capture_git_state(ROOT)
+    except ProvenanceError:
+        # Render supplies the checked-out commit to containers without .git.
+        revision = os.environ.get("RENDER_GIT_COMMIT", "")
+        if (ROOT / ".git").exists() or not re.fullmatch(r"[0-9a-f]{40}", revision):
+            raise
+        git = GitState(revision=revision, dirty=False)
     return {
         "report": asdict(report),
         "headline": report.headline(),
@@ -176,7 +187,12 @@ class Handler(SimpleHTTPRequestHandler):
         port = self.server.server_port
         hosts = {f"127.0.0.1:{port}", f"localhost:{port}"}
         origin = self.headers.get("Origin")
-        return self.headers.get("Host") in hosts and (origin is None or origin in {f"http://{host}" for host in hosts})
+        origins = {f"http://{host}" for host in hosts}
+        public_origin = getattr(self.server, "public_origin", None)
+        if public_origin:
+            hosts.add(urlsplit(public_origin).netloc)
+            origins.add(public_origin)
+        return self.headers.get("Host") in hosts and (origin is None or origin in origins)
 
     def send_json(self, value, status=200):
         content = json.dumps(value, allow_nan=False).encode()
@@ -202,7 +218,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_GET(self):
         if not self.allowed_request():
-            self.send_json({"error": "request must use the local demo origin"}, 403)
+            self.send_json({"error": "request must use the configured application origin"}, 403)
         elif self.path == "/api/health":
             available = OsrmProvider(base_url=self.server.osrm_url, timeout_s=2).is_available()
             self.send_json({"osrm_available": available, "dataset_id": self.server.dataset_id or "unversioned"})
@@ -219,7 +235,7 @@ class Handler(SimpleHTTPRequestHandler):
 
     def do_POST(self):
         if not self.allowed_request():
-            self.send_json({"error": "request must use the local demo origin"}, 403)
+            self.send_json({"error": "request must use the configured application origin"}, 403)
             return
         if self.path != "/api/solve":
             self.send_json({"error": "not found"}, 404)
@@ -227,12 +243,19 @@ class Handler(SimpleHTTPRequestHandler):
         if self.headers.get_content_type() != "application/json":
             self.send_json({"error": "Content-Type must be application/json"}, 415)
             return
+        acquired = False
+        solve_lock = getattr(self.server, "solve_lock", None)
         try:
             size = int(self.headers.get("Content-Length", "0"))
             if not 0 < size <= MAX_BODY_BYTES or self.headers.get("Transfer-Encoding"):
                 self.send_json({"error": "request body must be 1–65536 bytes"}, 413)
                 return
             payload = json.loads(self.rfile.read(size))
+            if solve_lock is not None:
+                acquired = solve_lock.acquire(blocking=False)
+                if not acquired:
+                    self.send_json({"error": "Another route is being calculated. Retry shortly."}, 429)
+                    return
             response = solve_request(payload, osrm_url=self.server.osrm_url, dataset_id=self.server.dataset_id)
         except (ValueError, TypeError) as exc:
             self.send_json({"error": str(exc)}, 400)
@@ -243,15 +266,29 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"error": "the solve failed; check the server terminal"}, 500)
         else:
             self.send_json(response)
+        finally:
+            if acquired:
+                solve_lock.release()
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--host", choices=("127.0.0.1", "0.0.0.0"), default="127.0.0.1")
+    parser.add_argument("--public-origin", default=os.environ.get("RENDER_EXTERNAL_URL"))
     parser.add_argument("--osrm-url", default="http://127.0.0.1:5001")
     parser.add_argument("--dataset-id", default=None)
     args = parser.parse_args()
-    server = HTTPServer(("127.0.0.1", args.port), Handler)
+    if args.public_origin:
+        parsed = urlsplit(args.public_origin)
+        if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password or parsed.path not in ("", "/") or parsed.query or parsed.fragment:
+            parser.error("public origin must be a single HTTPS application origin")
+        args.public_origin = args.public_origin.rstrip("/")
+    if args.host == "0.0.0.0" and not args.public_origin:
+        parser.error("public serving requires --public-origin or RENDER_EXTERNAL_URL")
+    server = ThreadingHTTPServer((args.host, args.port), Handler)
+    server.public_origin = args.public_origin
+    server.solve_lock = Lock()
     server.osrm_url = args.osrm_url
     server.dataset_id = args.dataset_id
     print(f"Waybill live demo: http://127.0.0.1:{args.port}/live.html", flush=True)

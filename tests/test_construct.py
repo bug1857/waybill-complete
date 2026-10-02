@@ -9,12 +9,12 @@ from core.distance.matrix import DistanceMatrix
 from core.eval.feasibility import check
 from core.exact.brute_force import BruteForceSolver
 from core.model.instance import Instance
-from core.model.stop import Stop
+from core.model.stop import ANYTIME, Stop, TimeWindow
 from core.model.units import Unit
 from core.model.vehicle import Vehicle
 from core.reporting.status import SolveStatus
 
-HEURISTICS = [NearestNeighbourSolver(), ClarkeWrightSolver()]
+HEURISTICS = [NearestNeighbourSolver()]
 
 
 @pytest.mark.parametrize("solver", HEURISTICS, ids=lambda s: s.name)
@@ -76,12 +76,14 @@ def test_clarke_wright_respects_capacity():
             if i != j:
                 data[i * n + j] = 10 + abs(i - j)
     matrix = DistanceMatrix(data, n, Unit.METRES)
-    stops = tuple(Stop(id=i, demand=0 if i == 0 else 3) for i in range(n))
+    stops = tuple(Stop(id=i, demand=0 if i == 0 else 3,
+                       time_window=ANYTIME if i == 0 else TimeWindow(0, 1000)) for i in range(n))
     instance = Instance(
         name="cap",
         stops=stops,
         vehicles=tuple(Vehicle(id=v, capacity=6) for v in range(4)),
         matrix=matrix,
+        time_matrix=DistanceMatrix(data, n, Unit.SECONDS),
     )
     solution, _ = ClarkeWrightSolver().solve(instance)
     for route in solution.routes:
@@ -91,8 +93,8 @@ def test_clarke_wright_respects_capacity():
 
 def test_clarke_wright_builds_one_route_when_capacity_is_unlimited():
     instance = random_euclidean_tsp(12, seed=4)
-    solution, _ = ClarkeWrightSolver().solve(instance)
-    assert len([r for r in solution.routes if not r.is_empty]) == 1
+    with pytest.raises(ValueError, match="CVRPTW"):
+        ClarkeWrightSolver().solve(instance)
 
 
 def test_clarke_wright_flags_infeasible_when_it_needs_more_vans_than_exist():
@@ -103,12 +105,14 @@ def test_clarke_wright_flags_infeasible_when_it_needs_more_vans_than_exist():
             if i != j:
                 data[i * n + j] = 10
     matrix = DistanceMatrix(data, n, Unit.METRES)
-    stops = tuple(Stop(id=i, demand=0 if i == 0 else 5) for i in range(n))
+    stops = tuple(Stop(id=i, demand=0 if i == 0 else 5,
+                       time_window=ANYTIME if i == 0 else TimeWindow(0, 1000)) for i in range(n))
     instance = Instance(
         name="tight",
         stops=stops,
         vehicles=(Vehicle(id=0, capacity=5),),   # one van, four full loads
         matrix=matrix,
+        time_matrix=DistanceMatrix(data, n, Unit.SECONDS),
     )
     _, report = ClarkeWrightSolver().solve(instance)
     assert report.status is SolveStatus.HEURISTIC_INFEASIBLE

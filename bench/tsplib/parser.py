@@ -14,7 +14,6 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from core.distance.conventions import EdgeWeightType, distance_function
-from core.distance.explicit import EdgeWeightFormat, build_matrix_data
 from core.distance.matrix import DistanceMatrix
 from core.model.geometry import Coord
 from core.model.instance import Instance
@@ -32,6 +31,11 @@ class TsplibProblem:
     problem_type: str = "TSP"
     edge_weight_format: str | None = None
     explicit_weights: tuple[int, ...] | None = None
+    display_coords: tuple[Coord, ...] = ()
+
+    @property
+    def is_explicit(self) -> bool:
+        return self.edge_weight_type is EdgeWeightType.EXPLICIT
 
     def to_instance(self) -> Instance:
         """Build a single-vehicle TSP instance using this file's own convention."""
@@ -47,7 +51,7 @@ class TsplibProblem:
             fn = distance_function(self.edge_weight_type)
             matrix = DistanceMatrix.from_coords(self.coords, fn, Unit.TSPLIB)
         stops = tuple(
-            Stop(id=i, coord=self.coords[i] if self.coords else None)
+            Stop(id=i, coord=(self.coords or self.display_coords)[i] if self.coords or self.display_coords else None)
             for i in range(self.dimension)
         )
         return Instance.single_vehicle_tsp(
@@ -186,6 +190,7 @@ def parse_problem(path: Path | str) -> TsplibProblem:
     ewt: EdgeWeightType | None = None
     weight_format: str | None = None
     coords: list[Coord] = []
+    display_coords: list[Coord] = []
     edge_weights: list[int] = []
     section: str | None = None
 
@@ -201,7 +206,10 @@ def parse_problem(path: Path | str) -> TsplibProblem:
         if upper.startswith("EDGE_WEIGHT_SECTION"):
             section = "EDGE_WEIGHT_SECTION"
             continue
-        if upper.startswith(("EOF", "DISPLAY_DATA_SECTION", "TOUR_SECTION")):
+        if upper.startswith("DISPLAY_DATA_SECTION"):
+            section = "DISPLAY_DATA_SECTION"
+            continue
+        if upper.startswith(("EOF", "TOUR_SECTION")):
             section = None
             continue
 
@@ -210,17 +218,10 @@ def parse_problem(path: Path | str) -> TsplibProblem:
             if len(parts) >= 3:
                 coords.append(Coord(float(parts[1]), float(parts[2])))
             continue
-        if section == "display":
+        if section == "DISPLAY_DATA_SECTION":
             parts = line.split()
             if len(parts) >= 3:
                 display_coords.append(Coord(float(parts[1]), float(parts[2])))
-            continue
-        if section == "weights":
-            for token in line.split():
-                try:
-                    weights.append(int(float(token)))
-                except ValueError:
-                    continue
             continue
 
         if section == "EDGE_WEIGHT_SECTION":
@@ -257,14 +258,6 @@ def parse_problem(path: Path | str) -> TsplibProblem:
                 ewt = EdgeWeightType(value.upper())
             except ValueError:
                 raise ValueError(f"{path}: unsupported EDGE_WEIGHT_TYPE {value!r}") from None
-        elif key == "EDGE_WEIGHT_FORMAT":
-            try:
-                ewf = EdgeWeightFormat(value.upper())
-            except ValueError:
-                raise ValueError(
-                    f"{path}: unsupported EDGE_WEIGHT_FORMAT {value!r}. "
-                    f"Row-wise layouts are supported; column-wise are not."
-                ) from None
         elif key == "EDGE_WEIGHT_FORMAT":
             weight_format = value.upper()
         elif key == "TYPE":
@@ -306,6 +299,8 @@ def parse_problem(path: Path | str) -> TsplibProblem:
             )
         dimension = len(coords)
 
+    if display_coords and len(display_coords) != dimension:
+        raise ValueError(f"{path}: display coordinate count disagrees with DIMENSION")
     return TsplibProblem(
         name=name or Path(path).stem,
         dimension=dimension,
@@ -315,6 +310,7 @@ def parse_problem(path: Path | str) -> TsplibProblem:
         problem_type=problem_type,
         edge_weight_format=weight_format,
         explicit_weights=explicit_weights,
+        display_coords=tuple(display_coords),
     )
 
 

@@ -4,7 +4,7 @@ import json
 from http.client import HTTPConnection
 from http.server import HTTPServer
 from itertools import permutations
-from threading import Thread
+from threading import Lock, Thread
 
 import pytest
 
@@ -91,6 +91,8 @@ def test_live_rejects_bad_inputs_before_network():
 def test_live_http_boundary():
     server = HTTPServer(("127.0.0.1", 0), Handler)
     server.osrm_url, server.dataset_id = "http://127.0.0.1:1", None
+    server.public_origin = "https://waybill.test"
+    server.solve_lock = Lock()
     worker = Thread(target=server.serve_forever, daemon=True)
     worker.start()
     client = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
@@ -99,6 +101,26 @@ def test_live_http_boundary():
         response = client.getresponse()
         assert response.status == 200
         stops = json.loads(response.read())["stops"]
+        client.request("GET", "/api/example", headers={"Host": "waybill.test", "Origin": server.public_origin})
+        response = client.getresponse()
+        assert response.status == 200
+        response.read()
+        client.request("GET", "/api/example", headers={"Host": "waybill.test", "Origin": "https://waybill.test.evil"})
+        response = client.getresponse()
+        assert response.status == 403
+        response.read()
+        server.solve_lock.acquire()
+        try:
+            client.request("POST", "/api/solve", "{}", {"Content-Type": "application/json"})
+            response = client.getresponse()
+            assert response.status == 429
+            response.read()
+            client.request("HEAD", "/live.html")
+            response = client.getresponse()
+            assert response.status == 200
+            response.read()
+        finally:
+            server.solve_lock.release()
         client.request("POST", "/api/solve", json.dumps({"stops": stops, "provider": "haversine"}),
                        {"Content-Type": "application/json"})
         response = client.getresponse()
@@ -136,3 +158,22 @@ def test_live_osrm_geometry():
     matrix = OsrmProvider(unit=Unit.METRES).build([Coord(s["lat"], s["lon"]) for s in stops])
     assert result["report"]["distance_matrix_hash"] == matrix.content_hash
     assert result["report"]["objective_value"] == sum(matrix[a, b] for r in result["routes"] for a, b in zip(r["nodes"], r["nodes"][1:]))
+
+
+def test_hosted_commit_identity_requires_no_git_and_valid_commit(monkeypatch, tmp_path):
+    import api.server as api
+    from bench.evidence.provenance import ProvenanceError
+
+    stops = json.loads((ROOT / "data/live/monaco.json").read_text())["stops"]
+    monkeypatch.setattr(api, "ROOT", tmp_path)
+    def unavailable(_):
+        raise ProvenanceError("no git checkout")
+    monkeypatch.setattr(api, "capture_git_state", unavailable)
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "a" * 40)
+    payload = {"stops": stops, "provider": "haversine"}
+    result = solve_request(payload)
+    assert result["provenance"]["git_revision"] == "a" * 40
+    assert not result["provenance"]["git_dirty"]
+    monkeypatch.setenv("RENDER_GIT_COMMIT", "unknown")
+    with pytest.raises(ProvenanceError):
+        solve_request(payload)

@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import argparse
 from dataclasses import replace
 from pathlib import Path
 
 from bench.evidence import EvidenceRunner, write_markdown_report
+from bench.evidence.provenance import capture_git_state
 from bench.generators import clustered_cvrptw_150, random_euclidean_tsp
 from bench.tsplib.known_optima import PUBLISHED_OPTIMA
 from bench.tsplib.parser import parse_problem
@@ -38,6 +40,11 @@ def _register(runner: EvidenceRunner, report, input_path: Path, *, config: dict[
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--release", action="store_true", help="require a clean committed source tree")
+    args = parser.parse_args()
+    if args.release and capture_git_state(ROOT).dirty:
+        parser.error("release evidence requires a clean committed source tree")
     exact_path = DATA / "benchmarks" / "exact-euclidean-n10-s17.json"
     fleet_path = DATA / "benchmarks" / "clustered-cvrptw-150-v6-s240519.json"
     exact_config = _config(exact_path)
@@ -55,7 +62,7 @@ def main() -> int:
     runner = EvidenceRunner(
         ROOT,
         metadata={
-            "purpose": "release evidence and static demo",
+            "purpose": "release evidence and static demo" if args.release else "development evidence and static demo",
             "scope": "exact validation, heuristic reference, and CVRPTW feasibility",
         },
     )
@@ -80,6 +87,8 @@ def main() -> int:
     _, report = ClarkeWrightSolver().solve(fleet)
     _register(runner, report, fleet_path, config={"instance_config": fleet_config})
 
+    if args.release and capture_git_state(ROOT).dirty:
+        parser.error("source tree changed during release evidence generation")
     ARTIFACTS.mkdir(exist_ok=True)
     bundle = runner.write(ARTIFACTS / "evidence.json")
     write_markdown_report(bundle, ROOT / "report" / "results.md")

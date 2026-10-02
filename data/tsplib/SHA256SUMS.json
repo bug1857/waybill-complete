@@ -2,6 +2,26 @@
   "algorithm": "sha256",
   "files": [
     {
+      "path": "bayg29.opt.tour",
+      "sha256": "92707b5d19124c1cf6848a852622ab90aa258d3f8c8b8983fe27a6d4869aab06",
+      "size_bytes": 186
+    },
+    {
+      "path": "bayg29.tsp",
+      "sha256": "6b6a501a2a4933e9b6614f905b79e1d3f9e5093a56ef0d3deaf8fbf440a17a3b",
+      "size_bytes": 2546
+    },
+    {
+      "path": "bays29.opt.tour",
+      "sha256": "617e9eb79fa92e8d877fa6cca9b152014576b3cb618d62a6f99c7e97aff69b25",
+      "size_bytes": 185
+    },
+    {
+      "path": "bays29.tsp",
+      "sha256": "385c381b3bf28ed9f1065cb1672d02d1909b0eb66eab111d7c9887f9a796dc8f",
+      "size_bytes": 4311
+    },
+    {
       "path": "berlin52.opt.tour",
       "sha256": "8f3915f397dcdbf9f07bd570fc41faa7e9b3d27391537f048164b2f937d1ccc9",
       "size_bytes": 219
@@ -20,6 +40,26 @@
       "path": "eil51.tsp",
       "sha256": "66c05ad077ffd64d5778e358bbd16be049f8c8ae880cbd24f034487331d1ccce",
       "size_bytes": 579
+    },
+    {
+      "path": "gr17.tsp",
+      "sha256": "b18d6060189534ec7c6ea3b50b6ba793d1a3bd22b38e99bf9f422338ffa203fa",
+      "size_bytes": 730
+    },
+    {
+      "path": "gr21.tsp",
+      "sha256": "3ff0ab452689b2e9ffb7aa206a7dcee4e6053dbb915afa99e66005f84e8b54b4",
+      "size_bytes": 1912
+    },
+    {
+      "path": "gr24.opt.tour",
+      "sha256": "52f723f07391b6e8d58125355fcf6b768c5b742ac47abc045a3ff54eeeb147ba",
+      "size_bytes": 174
+    },
+    {
+      "path": "gr24.tsp",
+      "sha256": "7fcf61204842785f06c58e7098a3e1eb2786831179e115645083ce500c065779",
+      "size_bytes": 1250
     },
     {
       "path": "kroA100.opt.tour",

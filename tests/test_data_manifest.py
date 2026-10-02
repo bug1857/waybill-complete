@@ -24,12 +24,13 @@ BENCHMARK_CHECKSUMS = BENCHMARKS / "SHA256SUMS.json"
 
 def test_committed_tsplib_inputs_match_checksum_manifest():
     manifest = verify_manifest(CHECKSUMS)
-    assert len(manifest.files) == 10
+    assert len(manifest.files) == 18
     assert {entry.path for entry in manifest.files} == {
         f"{name}{suffix}"
         for name in ("berlin52", "eil51", "kroA100", "pr76", "st70")
         for suffix in (".tsp", ".opt.tour")
-    }
+    } | {"bayg29.tsp", "bayg29.opt.tour", "bays29.tsp", "bays29.opt.tour",
+         "gr17.tsp", "gr21.tsp", "gr24.tsp", "gr24.opt.tour"}
 
 
 def test_committed_synthetic_benchmark_configs_match_checksum_manifest():

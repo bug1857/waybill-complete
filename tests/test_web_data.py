@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
-GENERATED = ROOT / "web" / "src" / "data" / "instances.generated.ts"
+GENERATED = ROOT / "reference" / "google-ui" / "src" / "data" / "instances.generated.ts"
 
 
 @pytest.mark.skipif(not GENERATED.exists(), reason="web app not present")
@@ -47,7 +47,7 @@ def test_generated_file_declares_itself_generated():
 def test_no_coordinates_are_hand_written_in_web_source():
     """No file under web/src may carry a TSPLIB coordinate table except the
     generated one."""
-    web_src = ROOT / "web" / "src"
+    web_src = ROOT / "reference" / "google-ui" / "src"
     offenders = []
     for path in web_src.rglob("*.ts*"):
         if path == GENERATED:

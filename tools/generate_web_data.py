@@ -24,7 +24,7 @@ from core.eval.objective import closed_tour_cost
 
 ROOT = Path(__file__).resolve().parent.parent
 DATA = ROOT / "data" / "tsplib"
-OUT = ROOT / "web" / "src" / "data" / "instances.generated.ts"
+OUT = ROOT / "reference" / "google-ui" / "src" / "data" / "instances.generated.ts"
 
 #: Only coordinate-based instances are exported for now. EXPLICIT instances
 #: (bayg29, gr17, ...) carry a matrix rather than geometry and are added once
