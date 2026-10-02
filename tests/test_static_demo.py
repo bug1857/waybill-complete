@@ -26,7 +26,7 @@ def test_static_demo_embeds_the_validated_evidence_bundle() -> None:
 def test_live_workbench_exposes_each_connected_surface() -> None:
     html = (ROOT / "web" / "live.html").read_text(encoding="utf-8")
     script = (ROOT / "web" / "live.js").read_text(encoding="utf-8")
-    for panel in ("dispatch", "sandbox", "asymmetry", "evidence", "invariants", "report"):
+    for panel in ("dispatch", "real-data", "sandbox", "asymmetry", "evidence", "invariants", "report"):
         assert f'id="{panel}"' in html
     assert 'src="evidence.js"' in html
     assert 'request("/api/solve"' in script
@@ -37,6 +37,7 @@ def test_live_workbench_exposes_each_connected_surface() -> None:
     assert "renderFleet(data, payload)" in script
     assert "renderTimeline()" in script
     assert "function solveHeldKarp" not in script
-    assert 'src="route-motion.js?v=2"' in html
+    assert 'src="route-motion.js?v=3"' in html
+    assert 'src="real-data.js?v=2"' in html
     for control in ("play-route", "step-route", "reset-route", "route-progress", "map-overview", "map-labels", "map-stop"):
         assert f'id="{control}"' in html

@@ -10,11 +10,14 @@
   let sampleInput = "";
   let importedInput = "";
   let importedName = "";
+  let datasetMeta = null;
+  let importedMeta = null;
   const motion = window.WaybillMotion;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let playback = null;
   let selectedStop = 0;
   let mapView = [0, 0, 900, 550];
+  let mapScale = 0;
   let mapPositions = new Map();
   const solverLabel = (name) => ({ nearest_neighbor: "Greedy · nearest neighbour", branch_and_bound_min_in_out: "Branch & Bound", held_karp: "Held–Karp", clarke_wright_savings: "Clarke–Wright" }[name] || name);
 
@@ -94,14 +97,17 @@
     byId("play-route").textContent = "Play route";
   }
 
-  function setMapView(view) {
+  function setMapView(view, repaint = true) {
     const map = byId("route-map"), width = map.getBoundingClientRect().width;
     if (!width) return; // Hidden tabs have no display scale; resize observation fits them on reveal.
     mapView = view; map.setAttribute("viewBox", view.join(" "));
     const unit = view[2] / width;
-    map.querySelectorAll(".map-node").forEach((node) => node.setAttribute("r", (Number(node.dataset.node) ? 4 : 9) * unit));
-    map.querySelectorAll(".map-node-label").forEach((label) => label.setAttribute("font-size", 13 * unit));
-    if (playback) { playback.vehicle.dataset.scale = unit; paintPlayback(); }
+    if (unit !== mapScale) {
+      map.querySelectorAll(".map-node").forEach((node) => node.setAttribute("r", (Number(node.dataset.node) ? 4 : 9) * unit));
+      map.querySelectorAll(".map-node-label").forEach((label) => label.setAttribute("font-size", 13 * unit));
+      mapScale = unit;
+    }
+    if (playback) { playback.vehicle.dataset.scale = unit; if (repaint) paintPlayback(); }
   }
 
   function fitMap(stopsOnly = false) {
@@ -121,17 +127,28 @@
     if (!currentResult) return;
     const owner = currentResult.routes.find((route) => route.sequence.includes(node)), i = owner?.sequence.indexOf(node);
     const point = currentResult.stops[node];
-    byId("stop-detail").textContent = `${node ? `Stop ${node}` : "Depot"} · ${point.lat.toFixed(5)}, ${point.lon.toFixed(5)}${owner ? ` · Vehicle ${owner.vehicle_id}, visit ${i + 1} of ${owner.sequence.length} · arrival ${clock(owner.schedule.arrival[i])} elapsed` : node ? " · Unserved" : " · Start and return point"}.`;
+    byId("stop-detail").textContent = `${stopName(node)} · ${point.lat.toFixed(5)}, ${point.lon.toFixed(5)}${owner ? ` · Vehicle ${owner.vehicle_id}, visit ${i + 1} of ${owner.sequence.length} · arrival ${clock(owner.schedule.arrival[i])} elapsed` : node ? " · Unserved" : " · Start and return point"}.`;
   }
 
-  function paintPlayback(follow = false) {
+  function activeDatasetMeta() { return currentPayload && datasetMeta && JSON.stringify(currentPayload.stops) === JSON.stringify(datasetMeta.stops) ? datasetMeta : null; }
+  function stopName(node) { return activeDatasetMeta()?.places[node]?.name || (node ? `Stop ${node}` : "Depot"); }
+
+  function paintPlayback(follow = false, elapsed = 16) {
     if (!playback?.track.length) return;
     const p = playback, position = motion.position(p.track, p.progress), done = position.completed;
-    if (follow && (position.x < mapView[0] + 24 || position.x > mapView[0] + mapView[2] - 24 || position.y < mapView[1] + 24 || position.y > mapView[1] + mapView[3] - 24)) zoomMap(1, [position.x, position.y]);
+    if (follow && !drag) {
+      const margin = Math.min(mapView[2], mapView[3]) * .2;
+      const dx = position.x < mapView[0] + margin ? position.x - mapView[0] - margin : Math.max(0, position.x - mapView[0] - mapView[2] + margin);
+      const dy = position.y < mapView[1] + margin ? position.y - mapView[1] - margin : Math.max(0, position.y - mapView[1] - mapView[3] + margin);
+      if (dx || dy) { const ease = 1 - Math.exp(-elapsed / 160); setMapView([mapView[0] + dx * ease, mapView[1] + dy * ease, mapView[2], mapView[3]], false); }
+    }
+    const target = motion.heading(p.track, p.progress);
+    p.heading = follow && p.heading !== undefined ? motion.turnAngle(p.heading, target, elapsed) : target;
     p.vehicle.style.transform = `translate(${position.x}px, ${position.y}px)`;
-    p.vehicle.firstChild.style.transform = `rotate(${position.angle}deg) scale(${p.vehicle.dataset.scale || 1})`;
+    p.vehicle.firstChild.style.transform = `rotate(${p.heading}deg) scale(${p.vehicle.dataset.scale || 1})`;
+    if (currentResult.provenance.geometry_kind === "road") p.legs[position.leg].style.strokeDashoffset = 100 * (done >= p.track.length ? 0 : 1 - (p.progress - position.leg));
     if (p.painted !== done) {
-      p.legs.forEach((line, i) => { line.style.opacity = i === position.leg ? "1" : i < done && i >= done - 3 ? ".3" : "0"; });
+      p.legs.forEach((line, i) => { line.style.opacity = i === position.leg ? "1" : i < done && i >= done - 3 ? ".3" : "0"; if (i < done) line.style.strokeDashoffset = 0; });
       const visited = new Set(p.route.sequence.slice(0, done));
       p.markers.forEach(({ node, marker, label }) => {
         marker.classList.toggle("visited", visited.has(node));
@@ -143,6 +160,7 @@
       const count = Math.min(done, p.route.sequence.length);
       byId("playback-count").textContent = `${count} / ${p.route.sequence.length} stops visited`;
       byId("playback-status").textContent = done >= p.track.length ? `Vehicle ${p.route.vehicle_id} returned to depot` : `Vehicle ${p.route.vehicle_id} · ${p.route.nodes[done] || "Depot"} → ${p.route.nodes[done + 1] || "Depot"}`;
+      document.querySelectorAll(".timeline-stop[data-node]").forEach((stop) => stop.classList.toggle("active-stop", Number(stop.dataset.node) === p.route.nodes[Math.min(done + 1, p.route.nodes.length - 1)]));
       p.painted = done;
     }
     byId("route-progress").value = p.progress;
@@ -152,8 +170,9 @@
   function playFrame(now) {
     const p = playback;
     if (!p || document.hidden || byId("dispatch").hidden) { pausePlayback(); return; }
-    if (p.last !== null) p.progress = Math.min(p.track.length, p.progress + Math.min(100, now - p.last) * Number(byId("playback-speed").value) / 700);
-    p.last = now; paintPlayback(true);
+    const elapsed = p.last === null ? 0 : Math.min(100, now - p.last);
+    p.progress = motion.progressAtDistance(p.track, motion.distanceAtProgress(p.track, p.progress) + elapsed * Number(byId("playback-speed").value) * .055);
+    p.last = now; paintPlayback(true, elapsed);
     if (p.progress >= p.track.length) pausePlayback();
     else p.frame = requestAnimationFrame(playFrame);
   }
@@ -174,6 +193,7 @@
     const scale = Math.min(780 / Math.max(maxX - minX, .00001), 430 / Math.max(maxY - minY, .00001));
     const project = (p) => [450 + (p.lon * lonScale - (minX + maxX) / 2) * scale, 275 + (-p.lat - (minY + maxY) / 2) * scale];
     const map = byId("route-map"); map.replaceChildren();
+    mapScale = 0;
     map.classList.toggle("dense-map", data.stops.length > 30);
     map.closest(".dispatch-dashboard").classList.toggle("dense-dashboard", data.stops.length > 30);
     const route = visible[0], colour = routeColours[(route?.vehicle_id || 0) % routeColours.length];
@@ -182,7 +202,7 @@
     if (route && data.provenance.geometry_kind === "straight_line_estimate") paths = route.nodes.slice(1).map((node, i) => [project(data.stops[route.nodes[i]]), project(data.stops[node])]);
     else if (route?.geometry?.leg_polylines?.length === route.nodes.length - 1) paths = route.geometry.leg_polylines.map((steps) => steps.flatMap((line) => motion.decodePolyline(line)).map(project));
     if (paths.some((path) => !path.length)) paths = [];
-    const legs = paths.map((path) => svgElement("polyline", { points: path.map((p) => p.join(",")).join(" "), class: "route-leg", fill: "none", stroke: colour, "stroke-width": 3.5, "stroke-linecap": "round", "stroke-linejoin": "round", "stroke-dasharray": data.provenance.geometry_kind === "road" ? "none" : "7 5", opacity: 0 }));
+    const legs = paths.map((path) => svgElement("polyline", { points: path.map((p) => p.join(",")).join(" "), class: "route-leg", fill: "none", stroke: colour, "stroke-width": 3.5, "stroke-linecap": "round", "stroke-linejoin": "round", ...(data.provenance.geometry_kind === "road" ? { pathLength: 100, "stroke-dasharray": "100 100", "stroke-dashoffset": 100 } : { "stroke-dasharray": "7 5" }), opacity: 0 }));
     legs.forEach((line) => map.append(line));
     mapPositions = new Map(data.stops.map((point, node) => [node, project(point)]));
     if (paths.length) { mapPositions.set(0, paths[0][0]); paths.forEach((path, i) => mapPositions.set(route.nodes[i + 1], path.at(-1))); }
@@ -198,7 +218,7 @@
       map.append(marker, label); markers.push({ node: index, marker, label });
     });
     const vehicle = svgElement("g", { class: "map-vehicle", "aria-hidden": "true" });
-    const body = svgElement("g", {}); body.append(svgElement("rect", { x: -16, y: -10, width: 21, height: 19, rx: 3, fill: colour, stroke: "#fff", "stroke-width": 2 }), svgElement("path", { d: "M5 -7H12L18 0V9H5Z", fill: colour, stroke: "#fff", "stroke-width": 2 }), svgElement("path", { d: "M9 -5H11L15 0H9Z", fill: "#d9edf7" }), svgElement("circle", { cx: -10, cy: 10, r: 4, fill: "#193c50" }), svgElement("circle", { cx: 11, cy: 10, r: 4, fill: "#193c50" })); vehicle.append(body);
+    const body = svgElement("g", {}); body.append(svgElement("rect", { x: -17, y: -10, width: 34, height: 20, rx: 6, fill: colour, stroke: "#fff", "stroke-width": 2.5 }), svgElement("rect", { x: 6, y: -7, width: 5, height: 14, rx: 2, fill: "#d9edf7" }), svgElement("path", { d: "M-10 -5H1V5H-10Z", fill: "#fff", opacity: .25 }), svgElement("path", { d: "M17 -5V5", stroke: "#193c50", "stroke-width": 2 })); vehicle.append(body);
     playback = paths.length ? { route, track: motion.buildTrack(paths), progress: old?.route.vehicle_id === route.vehicle_id ? old.progress : 0, legs, markers, vehicle, frame: null, last: null, painted: null } : null;
     byId("route-progress").max = paths.length || 1;
     if (playback) { map.append(vehicle); paintPlayback(); }
@@ -211,7 +231,7 @@
     byId("play-route").disabled = !playback || reducedMotion.matches;
     byId("play-route").title = reducedMotion.matches ? "Reduced motion is enabled. Use Next stop or the progress slider." : "Play the calculated route";
     const stops = byId("map-stop"); stops.replaceChildren();
-    data.stops.forEach((_, node) => { if (filter === "all" || visibleNodes.has(node)) { const option = element("option", node ? `Stop ${node}${data.unserved.includes(node) ? " · unserved" : ""}` : "Depot"); option.value = node; stops.append(option); } });
+    data.stops.forEach((_, node) => { if (filter === "all" || visibleNodes.has(node)) { const option = element("option", `${node ? `${node} · ` : "D · "}${stopName(node)}${data.unserved.includes(node) ? " · unserved" : ""}`); option.value = node; stops.append(option); } });
     if (![...stops.options].some((option) => Number(option.value) === selectedStop)) selectedStop = 0;
     stops.value = selectedStop; stops.disabled = !data.stops.length; describeStop(selectedStop);
     if (!preserve) fitMap(data.stops.length > 30);
@@ -269,7 +289,8 @@
     const depot = element("article", undefined, "timeline-stop"); depot.append(element("strong", "D · Depot"), element("time", "00:00:00")); target.append(depot);
     route.sequence.forEach((node, index) => {
       const stop = element("article", undefined, "timeline-stop");
-      stop.append(element("strong", `${node} · Stop ${node}`), element("time", clock(route.schedule.arrival[index])), element("small", `${currentResult.stops[node].lat.toFixed(5)}, ${currentResult.stops[node].lon.toFixed(5)} · depart ${clock(route.schedule.departure[index])}`)); target.append(stop);
+      stop.dataset.node = node;
+      stop.append(element("strong", `${node} · ${stopName(node)}`), element("time", clock(route.schedule.arrival[index])), element("small", `${currentResult.stops[node].lat.toFixed(5)}, ${currentResult.stops[node].lon.toFixed(5)} · depart ${clock(route.schedule.departure[index])}`)); target.append(stop);
     });
     const returned = element("article", undefined, "timeline-stop"); returned.append(element("strong", "D · Return to depot"), element("time", clock(route.schedule.return_to_depot))); target.append(returned);
   }
@@ -309,7 +330,10 @@
   }
 
   function download(name, value, type) {
-    const link = document.createElement("a"), url = URL.createObjectURL(new Blob([value], { type })); link.href = url; link.download = name; link.click(); URL.revokeObjectURL(url);
+    const link = document.createElement("a"), url = URL.createObjectURL(new Blob([value], { type }));
+    link.href = url; link.download = name; link.hidden = true; document.body.append(link); link.click();
+    // WebKit can begin the download after the click handler returns.
+    setTimeout(() => { URL.revokeObjectURL(url); link.remove(); }, 1000);
   }
 
   function reportMarkdown() {
@@ -321,7 +345,9 @@
       comparison.results.forEach(({ report: r }) => lines.push(`| ${solverLabel(r.solver_name)} | ${r.status} | ${r.objective_value} | ${r.nodes_explored} | ${r.nodes_pruned} | ${r.best_lower_bound ?? "—"} | ${r.wall_time_ms.toFixed(3)} | ${r.stop_reason} |`));
       lines.push("", "Runtimes are measurements of this run, not a general performance ranking. Optimality applies only when the returned status is PROVEN_OPTIMAL_TSP.");
     }
-    lines.push("", "## Reproducibility", "", `- Solver: ${d.report.solver_name}`, `- Stop reason: ${d.report.stop_reason}`, `- Provider: ${d.provenance.provider_fingerprint}`, `- Git revision: ${d.provenance.git_revision}${d.provenance.git_dirty ? " (dirty)" : ""}`); return lines.join("\n");
+    lines.push("", "## Reproducibility", "", `- Solver: ${d.report.solver_name}`, `- Stop reason: ${d.report.stop_reason}`, `- Provider: ${d.provenance.provider_fingerprint}`, `- Git revision: ${d.provenance.git_revision}${d.provenance.git_dirty ? " (dirty)" : ""}`);
+    if (activeDatasetMeta()) lines.push("", "## Location source (separate from solver evidence)", "", "```json", JSON.stringify(activeDatasetMeta().provenance, null, 2), "```", "", "Locations are mapped public places, not actual customer orders. Fleet constraints are user-defined assumptions.");
+    return lines.join("\n");
   }
 
   function comparisonForResult() {
@@ -348,6 +374,7 @@
     body.append(metric("Status", d.report.status.replaceAll("_", " "), `Stopped: ${d.report.stop_reason}`), metric("Objective", `${d.report.objective_value.toLocaleString()} ${d.report.objective_units}`, `${d.routes.length} used vehicles`), metric("Feasibility", d.feasible ? "passed" : "failed", d.feasible ? "Independent checker found no violation." : d.violations.join("; ")));
     body.append(element("h3", "Routes"), table(["Vehicle", "Sequence", "Load", "Cost", "Depot return"], d.routes.map((r) => [r.vehicle_id, `D → ${r.sequence.join(" → ")} → D`, r.load, r.cost, clock(r.schedule.return_to_depot)])), element("h3", "Provenance"));
     const pre = element("pre", JSON.stringify({ input_sha256: d.provenance.input_sha256, matrix_sha256: d.matrix_metadata.sha256, provider: d.provenance.provider_fingerprint, git_revision: d.provenance.git_revision, git_dirty: d.provenance.git_dirty, budget: d.provenance.budget }, null, 2)); body.append(pre);
+    if (activeDatasetMeta()) body.append(element("h3", "Location source · user-built dataset"), element("p", "Public mapped places, not actual customer orders. Fleet constraints are user-defined assumptions.", "metric-copy"), element("pre", JSON.stringify(activeDatasetMeta().provenance, null, 2)));
     if (comparisonForResult()) body.append(element("h3", "Same-input algorithm comparison"), comparisonTable(comparison.results));
   }
 
@@ -424,12 +451,17 @@
   function activateTab(name, focus) {
     if (name !== "dispatch") pausePlayback();
     document.querySelectorAll(".app-panel").forEach((panel) => { panel.hidden = panel.id !== name; });
-    document.querySelectorAll(".nav-tab[data-tab]").forEach((button) => { const active = button.dataset.tab === name; button.setAttribute("aria-selected", active); if (active) { button.scrollIntoView({ block: "nearest", inline: "nearest" }); if (focus) button.focus(); } });
+    document.querySelectorAll(".nav-tab[data-tab]").forEach((button) => { const active = button.dataset.tab === name; button.setAttribute("aria-selected", active); button.tabIndex = active ? 0 : -1; if (active) { button.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" }); if (focus) button.focus(); } });
     history.replaceState(null, "", `#${name}`);
   }
 
   function inputEdited() {
+    form.dataset.edited = "true";
     pausePlayback();
+    try { byId("instance-stops").textContent = parseStops().length; } catch (_) { byId("instance-stops").textContent = "—"; }
+    byId("instance-vehicles").textContent = byId("problem").value === "TSP" ? 1 : byId("vehicles").value;
+    byId("instance-matrix").textContent = "Pending solve";
+    byId("result-status").textContent = "Inputs changed · solve to update"; byId("result-status").className = "status neutral";
     comparison = null;
     byId("comparison-summary").replaceChildren(); byId("comparison-routes").replaceChildren(); byId("comparison-conclusion").textContent = "";
     byId("comparison-table").className = "empty"; byId("comparison-table").textContent = "Inputs changed. Run comparison for the updated input.";
@@ -439,18 +471,35 @@
 
   async function importFile(file) {
     if (!file) return; if (file.size > 65536) throw new Error("Import must be 64 KB or smaller.");
-    const text = await file.text(); let stops;
-    if (file.name.toLowerCase().endsWith(".json")) { const value = JSON.parse(text); stops = Array.isArray(value) ? value : value.stops; if (!Array.isArray(stops)) throw new Error("JSON must be a stop array or contain a stops array."); }
+    const text = await file.text(); let stops, settings = null;
+    if (file.name.toLowerCase().endsWith(".json")) { const value = JSON.parse(text); stops = Array.isArray(value) ? value : value.stops; settings = Array.isArray(value) ? null : value; if (!Array.isArray(stops)) throw new Error("JSON must be a stop array or contain a stops array."); }
     else {
       const lines = text.trim().split(/\n+/), rows = lines.map((line) => line.split(",").map((v) => v.trim()));
       if (rows[0] && !Number.isFinite(Number(rows[0][0]))) rows.shift();
       stops = rows.map((r) => { if (![2, 6].includes(r.length) || r.some((v) => !Number.isFinite(Number(v)))) throw new Error("CSV rows need 2 or 6 numeric columns."); const v = r.map(Number), s = { lat: v[0], lon: v[1] }; if (v.length === 6) [s.demand, s.earliest, s.latest, s.service_time] = v.slice(2); return s; });
     }
     if (stops.length < 2 || stops.length > 100) throw new Error("Import needs 2–100 stops.");
+    byId("problem").value = settings?.problem === "CVRPTW" || stops.some((s) => s.demand !== undefined) ? "CVRPTW" : "TSP"; chooseModel();
+    if (["osrm", "haversine"].includes(settings?.provider)) byId("provider").value = settings.provider;
+    for (const [field, key, scale] of [["vehicles", "vehicles", 1], ["capacity", "capacity", 1], ["shift", "shift_end", 60]]) if (Number.isInteger(settings?.[key])) byId(field).value = settings[key] / scale;
     byId("stops").value = stops.map((s) => [s.lat, s.lon, ...(s.demand === undefined ? [] : [s.demand, s.earliest, s.latest, s.service_time])].join(", ")).join("\n");
     datasetName = file.name; const custom = byId("dataset-selector").querySelector('[value="custom"]'); custom.disabled = false; custom.textContent = file.name; byId("dataset-selector").value = "custom"; byId("import-error").textContent = "";
-    importedInput = byId("stops").value; importedName = file.name; inputEdited(); activateTab("dispatch");
+    const meta = settings?.dataset || settings;
+    importedMeta = meta && Array.isArray(meta.places) && meta.places.length === stops.length ? { stops, places: meta.places, provenance: meta.provenance } : null;
+    datasetMeta = importedMeta; importedInput = byId("stops").value; importedName = file.name; inputEdited(); activateTab("dispatch");
   }
+
+  document.addEventListener("waybill:dataset", ({ detail: data }) => {
+    byId("problem").value = data.problem; chooseModel(); byId("solver").value = data.solver; byId("provider").value = data.provider;
+    byId("vehicles").value = data.vehicles; byId("capacity").value = data.capacity; byId("shift").value = data.shift_end / 60;
+    byId("stops").value = data.stops.map((s) => [s.lat, s.lon, ...(s.demand === undefined ? [] : [s.demand, s.earliest, s.latest, s.service_time])].join(", ")).join("\n");
+    datasetMeta = data; importedMeta = data; importedInput = byId("stops").value; datasetName = data.name; importedName = data.name;
+    const custom = byId("dataset-selector").querySelector('[value="custom"]'); custom.disabled = false; custom.textContent = data.name; byId("dataset-selector").value = "custom";
+    byId("hero-title").textContent = data.name; byId("hero-description").textContent = "Dataset ready. Solve to calculate a route from these fetched places.";
+    byId("instance-stops").textContent = data.stops.length; byId("import-error").textContent = ""; inputEdited(); activateTab("dispatch");
+    byId("solve-button").focus({ preventScroll: true });
+  });
+  document.addEventListener("waybill:download", ({ detail }) => download(detail.name, detail.value, "application/json"));
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault(); const button = byId("solve-button"), normal = byId("problem").value === "CVRPTW" ? "Dispatch fleet" : "Solve tour"; byId("solve-error").textContent = ""; setBusy(button, true, "Calculating…", normal);
@@ -462,6 +511,7 @@
     if (playback.frame !== null) { pausePlayback(); return; }
     if (playback.progress >= playback.track.length) playback.progress = 0;
     playback.last = null; byId("play-route").textContent = "Pause route";
+    byId("route-map").scrollIntoView({ block: "center", behavior: "instant" });
     playback.frame = requestAnimationFrame(playFrame);
   });
   byId("step-route").addEventListener("click", () => { pausePlayback(); if (playback) { playback.progress = Math.min(playback.track.length, Math.floor(playback.progress) + 1); paintPlayback(true); } });
@@ -498,22 +548,25 @@
   });
   new IntersectionObserver(([entry]) => { if (!entry.isIntersecting) pausePlayback(); }).observe(map);
   new ResizeObserver(([entry]) => { if (entry.contentRect.width && currentResult) fitMap(currentResult.stops.length > 30); }).observe(map);
+  new ResizeObserver(([entry]) => document.documentElement.style.setProperty("--shell-height", `${entry.contentRect.height}px`)).observe(document.querySelector(".site-header"));
   document.addEventListener("visibilitychange", () => { if (document.hidden) pausePlayback(); });
   reducedMotion.addEventListener("change", () => { pausePlayback(); byId("play-route").disabled = !playback || reducedMotion.matches; });
   form.addEventListener("input", inputEdited);
   byId("dataset-selector").addEventListener("change", () => {
     const custom = byId("dataset-selector").value === "custom";
     byId("stops").value = custom ? importedInput : sampleInput;
+    datasetMeta = custom ? importedMeta : null;
     datasetName = custom ? importedName : byId("dataset-selector").firstElementChild.textContent.split(" · ")[0]; inputEdited();
   });
   byId("compare-topic").addEventListener("click", () => { activateTab("sandbox"); runComparison(); });
   byId("compare-solvers").addEventListener("click", runComparison); byId("audit-asymmetry").addEventListener("click", auditAsymmetry); byId("run-invariants").addEventListener("click", runInvariants);
   byId("import-file").addEventListener("change", (event) => importFile(event.target.files[0]).catch((e) => { byId("import-error").textContent = e.message; }));
-  byId("download-input").addEventListener("click", () => { try { download("waybill-input.json", JSON.stringify({ stops: parseStops() }, null, 2), "application/json"); } catch (e) { byId("import-error").textContent = e.message; } });
+  byId("download-input").addEventListener("click", () => { try { const payload = payloadFromForm(); const meta = datasetMeta && JSON.stringify(payload.stops) === JSON.stringify(datasetMeta.stops) ? { dataset: datasetMeta } : {}; download("waybill-input.json", JSON.stringify({ ...payload, ...meta }, null, 2), "application/json"); } catch (e) { byId("import-error").textContent = e.message; } });
   byId("download-result").addEventListener("click", () => { if (currentResult) download("waybill-result.json", JSON.stringify(currentResult, null, 2), "application/json"); });
   byId("download-report").addEventListener("click", () => { try { download("waybill-report.md", reportMarkdown(), "text/markdown"); } catch (e) { byId("report-body").replaceChildren(element("p", e.message, "error")); } });
   byId("print-report").addEventListener("click", () => window.print());
   byId("open-import").addEventListener("click", () => byId("import-file").click());
+  byId("start-real-data").addEventListener("click", () => activateTab("real-data", true));
   byId("inspect-report").addEventListener("click", () => byId("solve-report-dialog").showModal());
   byId("close-report").addEventListener("click", () => byId("solve-report-dialog").close());
   document.querySelector(".brand").addEventListener("click", (event) => { event.preventDefault(); activateTab("dispatch"); });
@@ -523,9 +576,10 @@
   chooseModel(); renderEvidence(); activateTab(location.hash.slice(1) && byId(location.hash.slice(1)) ? location.hash.slice(1) : "dispatch");
   if (location.protocol === "file:") { byId("engine-state").textContent = "Start `make live` and open the HTTP URL."; byId("solve-button").disabled = true; return; }
   Promise.all([request("/api/example"), request("/api/health")]).then(async ([example, health]) => {
-    datasetName = example.name || "Monaco harbour deliveries"; byId("stops").value = example.stops.map((stop) => `${stop.lat}, ${stop.lon}`).join("\n"); byId("dataset-selector").firstElementChild.textContent = `${datasetName} · canonical live example`;
-    sampleInput = byId("stops").value;
+    sampleInput = example.stops.map((stop) => `${stop.lat}, ${stop.lon}`).join("\n"); byId("dataset-selector").firstElementChild.textContent = `${example.name || "Monaco harbour deliveries"} · canonical live example`;
     byId("engine-state").textContent = health.osrm_available ? "Engine ready · OSRM connected" : "Engine ready · offline distances";
+    if (form.dataset.edited) return;
+    datasetName = example.name || "Monaco harbour deliveries"; byId("stops").value = sampleInput;
     if (!health.osrm_available) byId("provider").value = "haversine";
     const payload = payloadFromForm(); showResult(await solve(payload), payload);
   }).catch((e) => { byId("engine-state").textContent = "Engine unavailable"; byId("solve-error").textContent = e.message; });

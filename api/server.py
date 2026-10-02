@@ -15,6 +15,7 @@ from urllib.parse import urlsplit
 
 from adapters.distance.haversine import HaversineProvider
 from adapters.distance.osrm import OsrmError, OsrmProvider
+from adapters.places import PlacesBusy, PlacesError, fetch_places, places_options
 from bench.evidence.provenance import GitState, ProvenanceError, capture_git_state
 from core.construct import ClarkeWrightSolver, NearestNeighborSolver
 from core.eval.feasibility import check, schedule
@@ -211,7 +212,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "/live.html")
             self.end_headers()
-        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/route-motion.js", "/evidence.js"}:
+        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/route-motion.js", "/real-data.js", "/evidence.js"}:
             super().do_HEAD()
         else:
             self.send_error(404)
@@ -224,11 +225,13 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json({"osrm_available": available, "dataset_id": self.server.dataset_id or "unversioned"})
         elif self.path == "/api/example":
             self.send_json(json.loads((ROOT / "data" / "live" / "monaco.json").read_text()))
+        elif self.path == "/api/places/options":
+            self.send_json(places_options())
         elif self.path == "/":
             self.send_response(302)
             self.send_header("Location", "/live.html")
             self.end_headers()
-        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/route-motion.js", "/evidence.js"}:
+        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/route-motion.js", "/real-data.js", "/evidence.js"}:
             super().do_GET()
         else:
             self.send_json({"error": "not found"}, 404)
@@ -237,7 +240,7 @@ class Handler(SimpleHTTPRequestHandler):
         if not self.allowed_request():
             self.send_json({"error": "request must use the configured application origin"}, 403)
             return
-        if self.path != "/api/solve":
+        if self.path not in ("/api/solve", "/api/places"):
             self.send_json({"error": "not found"}, 404)
             return
         if self.headers.get_content_type() != "application/json":
@@ -251,15 +254,19 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "request body must be 1–65536 bytes"}, 413)
                 return
             payload = json.loads(self.rfile.read(size))
-            if solve_lock is not None:
+            if self.path == "/api/solve" and solve_lock is not None:
                 acquired = solve_lock.acquire(blocking=False)
                 if not acquired:
                     self.send_json({"error": "Another route is being calculated. Retry shortly."}, 429)
                     return
-            response = solve_request(payload, osrm_url=self.server.osrm_url, dataset_id=self.server.dataset_id)
+            response = fetch_places(payload) if self.path == "/api/places" else solve_request(payload, osrm_url=self.server.osrm_url, dataset_id=self.server.dataset_id)
         except (ValueError, TypeError) as exc:
             self.send_json({"error": str(exc)}, 400)
         except OsrmError as exc:
+            self.send_json({"error": str(exc)}, 503)
+        except PlacesBusy as exc:
+            self.send_json({"error": str(exc)}, 429)
+        except PlacesError as exc:
             self.send_json({"error": str(exc)}, 503)
         except Exception:
             self.log_error("unexpected solve failure")

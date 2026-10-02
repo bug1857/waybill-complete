@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Courier Delivery Route Optimization System: TSP with Greedy nearest neighbour and Branch & Bound, measured on the same input.">
   <title>Waybill — Courier Delivery Route Optimization System</title>
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="stylesheet" href="styles.css?v=8">
 </head>
 <body class="live-app">
   <header class="site-header">
@@ -21,6 +21,7 @@
     </div>
     <nav class="app-nav" aria-label="Application sections" role="tablist">
       <button class="nav-tab" role="tab" aria-selected="true" aria-controls="dispatch" data-tab="dispatch">Route planner</button>
+      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="real-data" data-tab="real-data">Real data <span class="nav-new">NEW</span></button>
       <button class="nav-tab" role="tab" aria-selected="false" aria-controls="sandbox" data-tab="sandbox">Algorithm comparison</button>
       <button class="nav-tab" role="tab" aria-selected="false" aria-controls="asymmetry" data-tab="asymmetry">Asymmetry trap</button>
       <button class="nav-tab" role="tab" aria-selected="false" aria-controls="evidence" data-tab="evidence">Evidence lab</button>
@@ -49,8 +50,8 @@
   <main class="page workbench">
     <section id="dispatch" class="app-panel" role="tabpanel">
       <div class="topic-banner">
-        <div><p class="eyebrow">Courier Delivery Route Optimization System</p><h1>Every stop.<br><span>One smart route.</span></h1><p>Drop in your stops, find a tour, and watch it roll. Put Greedy and Branch &amp; Bound to the test on the same distance matrix.</p></div>
-        <div class="route-sticker" aria-hidden="true"><svg viewBox="0 0 140 90" fill="none"><path d="M18 69C18 14 119 87 119 30C119 6 49 11 49 41" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-dasharray="7 8"/><circle cx="18" cy="69" r="8" fill="currentColor"/><path d="m49 50-10-15h20Z" fill="currentColor"/></svg><span>LET’S ROLL ↗</span></div>
+        <div><p class="eyebrow">Waybill / Routing studio</p><h1>Every stop.<br><span>Considered.</span></h1><p>Real places. Measured routes. A clear view of every delivery—from the first stop to the return home.</p><button type="button" class="secondary small-button" id="start-real-data">Build with real places ↗</button></div>
+        <div class="route-sticker" aria-hidden="true"><svg viewBox="0 0 140 90" fill="none"><path d="M18 69C18 14 119 87 119 30C119 6 49 11 49 41" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 6"/><circle cx="18" cy="69" r="5" fill="currentColor"/><path d="m49 48-7-12h14Z" fill="currentColor"/></svg><span>THE WAY FORWARD</span></div>
       </div>
       <section class="dispatch-hero">
         <div>
@@ -72,11 +73,11 @@
           <div class="card-heading"><div><p class="eyebrow">Route explorer</p><h2>Follow the delivery.</h2></div><div class="route-filter-wrap"><label for="route-filter">Visible vehicle</label><select id="route-filter" disabled><option value="all">All vehicles</option></select></div></div>
           <p id="map-caption" class="metric-copy">Calculate a plan to see its route. Depot is D.</p>
           <div class="map-options"><label class="inline-check"><input type="checkbox" id="map-overview" checked> Full route</label><label class="inline-check"><input type="checkbox" id="map-labels" checked> All stop labels</label><div class="zoom-controls" role="group" aria-label="Map zoom"><button type="button" class="secondary small-button" id="map-zoom-in" aria-label="Zoom in">+</button><button type="button" class="secondary small-button" id="map-zoom-out" aria-label="Zoom out">−</button><button type="button" class="secondary small-button" id="map-fit">Fit route</button></div></div>
-          <svg id="route-map" viewBox="0 0 900 550" role="img" tabindex="0" aria-label="Delivery route map. Drag to pan; arrow keys pan, plus and minus zoom, Escape fits route." aria-describedby="map-help"><text x="450" y="275" text-anchor="middle" fill="#686660">Solve a tour to explore its route</text></svg>
           <div class="playback-controls" role="group" aria-label="Route playback"><button type="button" id="play-route" class="small-button" disabled>Play route</button><button type="button" id="step-route" class="secondary small-button" disabled>Next stop</button><button type="button" id="reset-route" class="secondary small-button" disabled>Restart</button><label for="playback-speed">Speed<select id="playback-speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label></div>
+          <svg id="route-map" viewBox="0 0 900 550" role="img" tabindex="0" aria-label="Delivery route map. Drag to pan; arrow keys pan, plus and minus zoom, Escape fits route." aria-describedby="map-help"><text x="450" y="275" text-anchor="middle" fill="#686660">Solve a tour to explore its route</text></svg>
           <label class="visually-hidden" for="route-progress">Route playback progress</label><input type="range" id="route-progress" min="0" max="1" step="0.01" value="0" disabled>
           <div class="playback-info"><strong id="playback-status" role="status">Calculate a route to enable playback.</strong><span id="playback-count">0 stops visited</span></div>
-          <p id="map-help" class="metric-copy">Illustrative replay, not live GPS or an ETA simulation. Dense views zoom to the stops; playback keeps the vehicle in view. Drag to pan, or use Fit route for the whole street path.</p>
+          <p id="map-help" class="metric-copy">Illustrative route replay—not live GPS or simulated ETA. Distance-paced movement follows the calculated geometry. Drag to pan; Fit route shows the whole journey.</p>
           <div class="stop-inspector"><div><label for="map-stop">Inspect stop</label><select id="map-stop" disabled><option value="0">Depot</option></select></div><p id="stop-detail" class="metric-copy">Select a stop to inspect its place in the calculated tour.</p></div>
           <div id="result-summary" class="result-summary" aria-live="polite"></div>
         </section>
@@ -86,7 +87,7 @@
         </aside>
       </div>
 
-      <details class="card input-drawer" open>
+      <details class="card input-drawer">
         <summary>Input, constraints &amp; travel model</summary>
         <form id="solve-form">
           <div class="form-grid">
@@ -101,6 +102,37 @@
       </details>
 
       <section id="schedule-section" class="card" hidden><div class="card-heading"><h2>Vehicle schedules</h2><button type="button" class="secondary small-button" id="download-result">Export canonical result</button></div><details><summary>Expand calculated stop schedules</summary><div id="schedules"></div></details></section>
+    </section>
+
+    <section id="real-data" class="app-panel" role="tabpanel" hidden>
+      <div class="section-heading data-heading"><div><p class="eyebrow">01 / Real-world inputs</p><h1>A route begins<br>with real places.</h1><p class="lede">Choose a neighbourhood and the places you want to visit. Fetch live OpenStreetMap records, choose your depot, and build a transparent routing dataset.</p></div><span class="source-pill">OpenStreetMap · public data</span></div>
+      <div class="data-workspace">
+        <form id="places-form" class="card data-form">
+          <div class="question-heading"><span>01</span><div><h2>Where are we delivering?</h2><p class="metric-copy">Small city-centre areas keep queries fast and fair.</p></div></div>
+          <div class="question-grid"><div><label for="real-region">City / area</label><select id="real-region" required disabled><option>Loading areas…</option></select></div><div><label for="real-category">Which places?</label><select id="real-category" required disabled><option>Loading categories…</option></select></div></div>
+          <p id="real-coverage" class="coverage-note"></p>
+          <button id="fetch-places" type="submit" disabled>Fetch real places ↗</button>
+          <p id="places-error" class="error" role="alert"></p>
+          <p class="data-disclosure">Only the selected public area and category are sent to the <a href="https://dev.overpass-api.de/overpass-doc/en/preface/commons.html">Overpass service</a>. No GPS access, API key or customer information. Cached results retain their original retrieval time.</p>
+          <fieldset id="real-build-fields" disabled>
+            <div class="question-heading"><span>02</span><div><h2>Shape your delivery run.</h2><p class="metric-copy">The depot is a place you choose, not an inferred warehouse.</p></div></div>
+            <label for="real-depot">Which fetched place is the depot?</label><select id="real-depot"><option>Fetch places first</option></select>
+            <div class="question-grid"><div><label for="real-count">Customer stops</label><select id="real-count"><option value="5">5 stops</option><option value="10" selected>10 stops</option><option value="20">20 stops</option><option value="50">50 stops</option><option value="99">99 stops</option></select></div><div><label for="real-model">What are you planning?</label><select id="real-model"><option value="TSP">One vehicle · TSP tour</option><option value="CVRPTW">Fleet · capacity &amp; shift</option></select></div></div>
+            <div id="real-fleet-fields" class="question-grid" hidden><div><label for="real-vehicles">Vehicles available</label><select id="real-vehicles"><option value="2">2 vehicles</option><option value="3">3 vehicles</option><option value="4">4 vehicles</option><option value="6">6 vehicles</option></select></div><div><label for="real-capacity">Capacity per vehicle</label><select id="real-capacity"><option value="10">10 parcels</option><option value="25" selected>25 parcels</option><option value="50">50 parcels</option></select></div><div><label for="real-demand">Parcels per customer</label><select id="real-demand"><option value="1">1 parcel</option><option value="2">2 parcels</option><option value="5">5 parcels</option></select></div><div><label for="real-service">Service time per stop</label><select id="real-service"><option value="60">1 minute</option><option value="120" selected>2 minutes</option><option value="300">5 minutes</option></select></div><div><label for="real-shift">Delivery shift</label><select id="real-shift"><option value="14400">4 hours</option><option value="28800" selected>8 hours</option><option value="43200">12 hours</option></select></div></div>
+            <p class="data-disclosure">Customers are selected by geographic proximity to your chosen depot. Locations are fetched; parcel counts, service time and shift-wide windows are your planning assumptions—not actual orders or opening hours.</p>
+            <p id="real-plan-summary" class="coverage-note" role="status"></p>
+            <div class="drawer-actions"><button id="download-real-data" type="button" class="secondary">Export dataset</button><button id="use-real-data" type="button">Use in route planner ↗</button></div>
+            <p id="dataset-error" class="error" role="alert"></p>
+          </fieldset>
+        </form>
+        <aside class="card data-preview" aria-labelledby="preview-title">
+          <div class="card-heading"><div><p class="eyebrow">Dataset preview</p><h2 id="preview-title">Your next journey.</h2></div><span id="places-count" class="source-pill">No places yet</span></div>
+          <p id="places-status" class="metric-copy" role="status">Choose an area and category, then fetch real places.</p>
+          <div id="places-loading" class="places-loading" hidden aria-label="Fetching OpenStreetMap data"><div></div><div></div><div></div></div>
+          <div id="places-preview" class="places-preview empty"><p>Real names. Real coordinates.<br>Your dataset will appear here.</p><span class="metric-copy">Start with the questions on the left.</span></div>
+          <details id="places-provenance" hidden><summary>Source &amp; retrieval details</summary><pre id="places-source"></pre></details>
+        </aside>
+      </div>
     </section>
 
     <section id="sandbox" class="app-panel" role="tabpanel" hidden>
@@ -135,6 +167,6 @@
 
   <dialog id="solve-report-dialog" class="report-dialog"><div class="card-heading"><div><p class="eyebrow">Canonical response</p><h2>SolveReport &amp; provenance</h2></div><button id="close-report" type="button" class="secondary small-button">Close</button></div><pre id="result-json">No run yet.</pre></dialog>
   <footer class="site-footer"><span>Waybill · canonical Python engine</span><a href="https://www.openstreetmap.org/copyright">Road data © OpenStreetMap contributors</a><a href="index.html">Offline evidence viewer</a></footer>
-  <script src="evidence.js"></script><script src="route-motion.js?v=2"></script><script src="live.js?v=5"></script>
+  <script src="evidence.js"></script><script src="route-motion.js?v=3"></script><script src="real-data.js?v=2"></script><script src="live.js?v=7"></script>
 </body>
 </html>
