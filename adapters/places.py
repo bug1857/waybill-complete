@@ -10,7 +10,8 @@ from urllib.error import URLError
 from urllib.parse import urlencode
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
-ENDPOINT = "https://overpass-api.de/api/interpreter"
+# Listed public OSM instance; the main endpoint was unreachable from our host.
+ENDPOINT = "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
 MAX_RESPONSE_BYTES = 512 * 1024
 CACHE_SECONDS = 6 * 3600
 REGIONS = {

@@ -20,13 +20,15 @@ Fleet parcel demand, service times and shift-wide windows are user assumptions.
 
 Monaco can use the hosted OSRM road extract. Indian areas use the explicitly
 labelled geographic distance estimate; they do not have road/traffic coverage.
-The fixed HTTPS Overpass endpoint rejects redirects. Queries have a 20-second
+The fixed HTTPS VK Maps Overpass endpoint rejects redirects. The main
+Overpass endpoint was unreachable from the Render host; this documented public
+instance is the selected provider, not an automatic retry/failover pool. Queries have a 20-second
 upstream timeout, 200-feature cap and 512-KB response limit. Each process caches
 results for six hours and allows at most 20 new queries/day, separated by at
 least 60 seconds. Cached fetches keep the original timestamp. Upstream errors
 never silently produce synthetic places. This is manual academic use, not an
 unlimited public business-directory backend; see the
-[provider's fair-use guidance](https://dev.overpass-api.de/overpass-doc/en/preface/commons.html).
+[public-instance usage policy](https://wiki.openstreetmap.org/wiki/Overpass_API#Public_Overpass_API_instances).
 
 Route replay uses cumulative display distance (not one fixed time per stop),
 time-based shortest-angle smoothing and a progressive road trace. Its speed
