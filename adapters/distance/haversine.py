@@ -55,12 +55,24 @@ class HaversineProvider:
         unit: Unit = Unit.METRES,
         speed_kmh: float = DEFAULT_SPEED_KMH,
     ) -> None:
-        if road_factor <= 0:
-            raise ValueError("road_factor must be positive")
+        if not isinstance(unit, Unit):
+            raise TypeError("unit must be a Unit")
+        if (
+            not isinstance(road_factor, (int, float))
+            or isinstance(road_factor, bool)
+            or not math.isfinite(road_factor)
+            or road_factor <= 0
+        ):
+            raise ValueError("road_factor must be a finite positive number")
         if unit is Unit.TSPLIB:
             raise ValueError("HaversineProvider produces physical units")
-        if speed_kmh <= 0:
-            raise ValueError("speed_kmh must be positive")
+        if (
+            not isinstance(speed_kmh, (int, float))
+            or isinstance(speed_kmh, bool)
+            or not math.isfinite(speed_kmh)
+            or speed_kmh <= 0
+        ):
+            raise ValueError("speed_kmh must be a finite positive number")
         self._road_factor = road_factor
         self._unit = unit
         self._speed_kmh = speed_kmh
@@ -72,6 +84,16 @@ class HaversineProvider:
     @property
     def unit(self) -> Unit:
         return self._unit
+
+    @property
+    def cache_fingerprint(self) -> str:
+        """Identity of every parameter capable of changing matrix values."""
+        return (
+            "haversine-v1"
+            f"|road_factor={self._road_factor!r}"
+            f"|unit={self._unit.value}"
+            f"|speed_kmh={self._speed_kmh!r}"
+        )
 
     def build(self, coords: Sequence[Coord]) -> DistanceMatrix:
         n = len(coords)

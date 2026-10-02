@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Courier Delivery Route Optimization System: TSP with Greedy nearest neighbour and Branch & Bound, measured on the same input.">
+  <title>Waybill — Courier Delivery Route Optimization System</title>
+  <link rel="stylesheet" href="styles.css?v=6">
+</head>
+<body class="live-app">
+  <header class="site-header">
+    <div class="publication"><span>Design &amp; Analysis of Algorithms · Project</span><span>TSP · Greedy · Branch &amp; Bound</span></div>
+    <div class="header-main product-header">
+      <a class="brand" href="#dispatch" aria-label="Waybill home"><span class="brand-mark" aria-hidden="true">W</span><span><strong>Waybill</strong><small>Courier delivery route optimization</small></span></a>
+      <div class="integrity-strip" aria-label="Current matrix integrity">
+        <span><b>Matrix</b> <code id="header-matrix">awaiting run</code></span>
+        <span><b>Symmetry</b> <strong id="header-symmetry">—</strong></span>
+        <span id="result-status" class="status neutral">No run</span>
+      </div>
+      <p id="engine-state" class="engine-state" role="status">Connecting…</p>
+    </div>
+    <nav class="app-nav" aria-label="Application sections" role="tablist">
+      <button class="nav-tab" role="tab" aria-selected="true" aria-controls="dispatch" data-tab="dispatch">Route planner</button>
+      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="sandbox" data-tab="sandbox">Algorithm comparison</button>
+      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="asymmetry" data-tab="asymmetry">Asymmetry trap</button>
+      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="evidence" data-tab="evidence">Evidence lab</button>
+      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="invariants" data-tab="invariants">Invariant chain</button>
+      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="report" data-tab="report">Project &amp; report</button>
+      <button class="nav-tab import-tab" type="button" id="open-import">Import data</button>
+    </nav>
+  </header>
+
+  <section class="instance-bar" aria-label="Active problem instance">
+    <div class="instance-inner">
+      <label for="dataset-selector">Active problem instance</label>
+      <select id="dataset-selector"><option value="sample">Monaco harbour deliveries · canonical live example</option><option value="custom" disabled>Imported dataset</option></select>
+      <label class="file-button small-button" for="import-file">Import new file</label>
+      <input id="import-file" class="visually-hidden" type="file" accept=".csv,.json,text/csv,application/json">
+      <div class="instance-facts">
+        <span>Type: <strong id="instance-type">TSP</strong></span>
+        <span>Stops: <strong id="instance-stops">—</strong></span>
+        <span>Vehicles: <strong id="instance-vehicles">—</strong></span>
+        <span>Matrix: <strong id="instance-matrix">—</strong></span>
+      </div>
+      <p id="import-error" class="error toolbar-error" role="alert"></p>
+    </div>
+  </section>
+
+  <main class="page workbench">
+    <section id="dispatch" class="app-panel" role="tabpanel">
+      <div class="topic-banner">
+        <div><p class="eyebrow">Courier Delivery Route Optimization System</p><h1>Every stop.<br><span>One smart route.</span></h1><p>Drop in your stops, find a tour, and watch it roll. Put Greedy and Branch &amp; Bound to the test on the same distance matrix.</p></div>
+        <div class="route-sticker" aria-hidden="true"><svg viewBox="0 0 140 90" fill="none"><path d="M18 69C18 14 119 87 119 30C119 6 49 11 49 41" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-dasharray="7 8"/><circle cx="18" cy="69" r="8" fill="currentColor"/><path d="m49 50-10-15h20Z" fill="currentColor"/></svg><span>LET’S ROLL ↗</span></div>
+      </div>
+      <section class="dispatch-hero">
+        <div>
+          <p class="eyebrow"><span id="hero-type">TSP formulation</span> · <span id="hero-meta">awaiting response</span></p>
+          <h2 id="hero-title">Monaco harbour deliveries</h2>
+          <p id="hero-description" class="lede">Road matrix, schedules, capacity, feasibility, and provenance are computed by the canonical Python engine.</p>
+        </div>
+        <div class="hero-actions">
+          <label for="solver">Algorithm</label><select id="solver" form="solve-form"></select>
+          <button type="submit" form="solve-form" id="solve-button">Solve tour</button>
+          <button type="button" class="secondary" id="compare-topic">Compare Greedy vs Branch &amp; Bound</button>
+          <button type="button" class="secondary" id="inspect-report">Inspect SolveReport</button>
+          <p id="solve-error" class="error" role="alert"></p>
+        </div>
+      </section>
+
+      <div class="dispatch-dashboard">
+        <section class="card route-card">
+          <div class="card-heading"><div><p class="eyebrow">Route explorer</p><h2>Follow the delivery.</h2></div><div class="route-filter-wrap"><label for="route-filter">Visible vehicle</label><select id="route-filter" disabled><option value="all">All vehicles</option></select></div></div>
+          <p id="map-caption" class="metric-copy">Calculate a plan to see its route. Depot is D.</p>
+          <div class="map-options"><label class="inline-check"><input type="checkbox" id="map-overview" checked> Full route</label><label class="inline-check"><input type="checkbox" id="map-labels" checked> All stop labels</label><div class="zoom-controls" role="group" aria-label="Map zoom"><button type="button" class="secondary small-button" id="map-zoom-in" aria-label="Zoom in">+</button><button type="button" class="secondary small-button" id="map-zoom-out" aria-label="Zoom out">−</button><button type="button" class="secondary small-button" id="map-fit">Fit route</button></div></div>
+          <svg id="route-map" viewBox="0 0 900 550" role="img" tabindex="0" aria-label="Delivery route map. Drag to pan; arrow keys pan, plus and minus zoom, Escape fits route." aria-describedby="map-help"><text x="450" y="275" text-anchor="middle" fill="#686660">Solve a tour to explore its route</text></svg>
+          <div class="playback-controls" role="group" aria-label="Route playback"><button type="button" id="play-route" class="small-button" disabled>Play route</button><button type="button" id="step-route" class="secondary small-button" disabled>Next stop</button><button type="button" id="reset-route" class="secondary small-button" disabled>Restart</button><label for="playback-speed">Speed<select id="playback-speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label></div>
+          <label class="visually-hidden" for="route-progress">Route playback progress</label><input type="range" id="route-progress" min="0" max="1" step="0.01" value="0" disabled>
+          <div class="playback-info"><strong id="playback-status" role="status">Calculate a route to enable playback.</strong><span id="playback-count">0 stops visited</span></div>
+          <p id="map-help" class="metric-copy">Illustrative replay, not live GPS or an ETA simulation. Dense views zoom to the stops; playback keeps the vehicle in view. Drag to pan, or use Fit route for the whole street path.</p>
+          <div class="stop-inspector"><div><label for="map-stop">Inspect stop</label><select id="map-stop" disabled><option value="0">Depot</option></select></div><p id="stop-detail" class="metric-copy">Select a stop to inspect its place in the calculated tour.</p></div>
+          <div id="result-summary" class="result-summary" aria-live="polite"></div>
+        </section>
+        <aside class="dispatch-sidebar">
+          <section class="card side-panel"><div class="card-heading"><h2 id="route-details-title">Tour coverage</h2><span id="fleet-count" class="label">—</span></div><div id="fleet-utilization" class="fleet-list empty">Solve a tour to inspect visited customers.</div></section>
+          <section class="card side-panel"><div class="card-heading"><h2>Stop ETA timeline</h2><span id="timeline-label" class="label">—</span></div><div id="eta-timeline" class="timeline empty">Run dispatch to inspect the schedule.</div></section>
+        </aside>
+      </div>
+
+      <details class="card input-drawer" open>
+        <summary>Input, constraints &amp; travel model</summary>
+        <form id="solve-form">
+          <div class="form-grid">
+            <div><label for="problem">Planning model</label><select id="problem"><option value="TSP" selected>TSP · project topic</option><option value="CVRPTW">Optional fleet extension · capacity and time windows</option></select></div>
+            <div><label for="provider">Travel model</label><select id="provider"><option value="osrm">Local OSRM roads</option><option value="haversine">Offline distance estimate</option></select></div>
+            <div><label for="budget">Solver budget</label><select id="budget"><option value="1000">1 second</option><option value="2000">2 seconds</option><option value="250">250 milliseconds</option></select></div>
+            <div id="fleet-fields"><label for="vehicles">Available vehicles</label><input id="vehicles" type="number" min="1" max="6" value="2" required><label for="capacity">Parcels per vehicle</label><input id="capacity" type="number" min="1" max="100000" value="2" required><label for="shift">Shift duration (minutes)</label><input id="shift" type="number" min="1" max="1440" value="480" required></div>
+            <div class="stops-field"><label for="stops">Stops · depot first</label><textarea id="stops" rows="9" required spellcheck="false" aria-describedby="stop-help"></textarea><p id="stop-help" class="metric-copy">Latitude, longitude per line. Fleet rows may add demand, earliest, latest, and service seconds.</p></div>
+          </div>
+          <div class="drawer-actions"><button type="submit">Calculate canonical routes</button><button type="button" class="secondary" id="download-input">Export input</button></div>
+        </form>
+      </details>
+
+      <section id="schedule-section" class="card" hidden><div class="card-heading"><h2>Vehicle schedules</h2><button type="button" class="secondary small-button" id="download-result">Export canonical result</button></div><details><summary>Expand calculated stop schedules</summary><div id="schedules"></div></details></section>
+    </section>
+
+    <section id="sandbox" class="app-panel" role="tabpanel" hidden>
+      <div class="section-heading"><p class="eyebrow">TSP · Greedy · Branch &amp; Bound</p><h1>Compare delivery algorithms.</h1><p class="lede">Measured distance, search work, and runtime on the Route planner input. Each returned tour is independently checked.</p></div>
+      <section class="card action-card"><div><h2>Greedy vs Branch &amp; Bound</h2><p class="metric-copy">Greedy chooses the closest unvisited stop. Branch &amp; Bound starts with a feasible tour, explores partial tours by lower bound, and prunes branches that cannot improve it. A budget-limited result may remain unproven.</p><label class="inline-check"><input id="include-held-karp" type="checkbox"> Include Held–Karp cross-check (up to 17 nodes)</label><p id="comparison-scope" class="metric-copy"></p></div><button id="compare-solvers" type="button">Run comparison</button><p id="compare-error" class="error" role="alert"></p></section>
+      <div id="comparison-summary" class="grid metrics-row"></div><div id="comparison-table" class="empty">Run the comparison to populate the solver ledger.</div>
+      <p id="comparison-conclusion" class="comparison-conclusion" role="status"></p><div id="comparison-routes" class="report-actions"></div>
+      <p class="metric-copy">Greedy's explored counter counts next-stop selections; Branch &amp; Bound's counter counts search states. Solver runtime excludes obtaining road matrices and map geometry. Gap to best feasible is a comparison between these runs; it implies a gap to optimum only when an exact run proves it.</p>
+    </section>
+
+    <section id="asymmetry" class="app-panel" role="tabpanel" hidden>
+      <div class="section-heading"><p class="eyebrow">Asymmetry trap</p><h1>One-way roads change the problem.</h1><p class="lede">Measure d(A,B) against d(B,A) from the exact cost matrix used by the solver—no simulated OSRM values.</p></div>
+      <section class="card action-card"><div><h2>Direction audit</h2><p class="metric-copy">Uses the active provider and stop list from Dispatch.</p></div><button id="audit-asymmetry" type="button">Audit matrix</button><p id="asymmetry-error" class="error" role="alert"></p></section>
+      <div id="asymmetry-metrics" class="grid metrics-row"></div><div id="asymmetry-table" class="empty">Run the audit to inspect directed pairs.</div>
+    </section>
+
+    <section id="evidence" class="app-panel" role="tabpanel" hidden>
+      <div class="section-heading"><p class="eyebrow">Evidence laboratory</p><h1>Measured claims, one generated bundle.</h1><p class="lede">Release runs, source hashes, budgets, proof states, and comparator provenance—not hand-written performance claims.</p></div><div id="evidence-summary" class="grid metrics-row"></div><div id="evidence-ledger"></div>
+    </section>
+
+    <section id="invariants" class="app-panel" role="tabpanel" hidden>
+      <div class="section-heading"><p class="eyebrow">Invariant chain</p><h1>Trust, then verify independently.</h1><p class="lede">Re-run the active request and audit response shape, visit coverage, objective reconstruction, feasibility, and matrix identity.</p></div>
+      <section class="card action-card"><div><h2>Active-plan audit</h2><p class="metric-copy">Checks the visible run; the repository test suite remains the deeper regression gate.</p></div><button id="run-invariants" type="button">Run invariants</button><p id="invariant-error" class="error" role="alert"></p></section><div id="invariant-results" class="check-list empty">Calculate a plan or run the audit.</div>
+    </section>
+
+    <section id="report" class="app-panel" role="tabpanel" hidden>
+      <div class="section-heading"><p class="eyebrow">Project topic &amp; generated report</p><h1>Courier Delivery Route Optimization System</h1><p class="lede">Required DAA concepts: TSP, Greedy, and Branch &amp; Bound. The report below records the active solution and any comparison performed on the same input.</p></div>
+      <section class="card topic-explanation"><h2>Problem and algorithm design</h2><p>Input: a depot, customer locations, and a directed integer distance matrix. Output: a closed tour visiting every customer exactly once, its total distance, feasibility, and solve status. The objective is to minimize the sum of tour edges.</p><p><strong>Greedy nearest neighbour:</strong> scan the unvisited customers for the cheapest next edge, with node-index tie breaking. This implementation takes O(n²) selection work and O(n) extra storage. It produces a feasible tour without proving optimality.</p><p><strong>Branch &amp; Bound:</strong> keep partial tours in a lower-bound priority queue, branch to each remaining customer, and prune using an admissible minimum incoming/outgoing edge bound. Search can grow factorially in the worst case. A finished proof establishes optimality for this input matrix; a time, node, or memory limit preserves a feasible incumbent with its remaining lower bound.</p><p>Optional extensions: Held–Karp validation, road geometry from OSRM, and CVRPTW fleet constraints. Road and offline distance models are identified in each result.</p></section>
+      <div class="report-actions"><button id="print-report" type="button">Print report</button><button id="download-report" class="secondary" type="button">Download Markdown</button></div><article id="report-body" class="card report-sheet"><p class="empty">Calculate a route to generate the report.</p></article>
+    </section>
+  </main>
+
+  <dialog id="solve-report-dialog" class="report-dialog"><div class="card-heading"><div><p class="eyebrow">Canonical response</p><h2>SolveReport &amp; provenance</h2></div><button id="close-report" type="button" class="secondary small-button">Close</button></div><pre id="result-json">No run yet.</pre></dialog>
+  <footer class="site-footer"><span>Waybill · canonical Python engine</span><span>Prototype presentation, validated computation</span><a href="index.html">Offline evidence viewer</a></footer>
+  <script src="evidence.js"></script><script src="route-motion.js?v=2"></script><script src="live.js?v=5"></script>
+</body>
+</html>

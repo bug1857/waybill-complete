@@ -35,6 +35,10 @@ class DistanceMatrix:
     __slots__ = ("_data", "_n", "_unit", "_is_symmetric", "_hash")
 
     def __init__(self, data: Sequence[int], n: int, unit: Unit) -> None:
+        if not isinstance(n, int) or isinstance(n, bool):
+            raise TypeError(f"matrix size must be int, got {type(n).__name__}")
+        if not isinstance(unit, Unit):
+            raise TypeError("matrix unit must be a Unit")
         if n < 0:
             raise ValueError(f"matrix size must be non-negative, got {n}")
         if len(data) != n * n:
@@ -93,11 +97,23 @@ class DistanceMatrix:
         return self._is_symmetric
 
     def cost(self, i: int, j: int) -> int:
+        self._validate_index(i)
+        self._validate_index(j)
         return self._data[i * self._n + j]
 
     def __getitem__(self, key: tuple[int, int]) -> int:
         i, j = key
-        return self._data[i * self._n + j]
+        return self.cost(i, j)
+
+    def _validate_index(self, index: int) -> None:
+        if not isinstance(index, int) or isinstance(index, bool):
+            raise TypeError(
+                f"matrix index must be int, got {type(index).__name__}"
+            )
+        if not 0 <= index < self._n:
+            raise IndexError(
+                f"matrix index {index} out of range for {self._n}x{self._n} matrix"
+            )
 
     @property
     def content_hash(self) -> str:

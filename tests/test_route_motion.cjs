@@ -1,0 +1,21 @@
+/* Run: node tests/test_route_motion.cjs */
+const assert = require('node:assert/strict');
+const { decodePolyline, buildTrack, position, fitView } = require('../web/route-motion.js');
+assert.deepEqual(decodePolyline('_p~iF~ps|U_ulLnnqC_mqNvxq`@'), [{lat:38.5,lon:-120.2},{lat:40.7,lon:-120.95},{lat:43.252,lon:-126.453}]);
+assert.throws(() => decodePolyline('_'));
+const track = buildTrack([[[0,0],[3,0],[3,4]], [[3,4],[0,0]]]);
+const halfway = position(track, .5);
+assert.equal(halfway.x, 3); assert.equal(halfway.y, .5); assert.equal(halfway.completed, 0);
+assert.deepEqual(position(track, 1), {x:3,y:4,angle:Math.atan2(-4,-3)*180/Math.PI,leg:1,completed:1});
+assert.equal(position(track, 2).completed, 2); assert.equal(position(track, 2).x, 0);
+assert.equal(position(track, -1).completed, 0); assert.equal(position(track, 99).completed, 2);
+const duplicate = buildTrack([[[5,5],[5,5]], [[5,5]]]);
+assert.equal(position(duplicate, .5).x, 5); assert.equal(position(duplicate, 2).y, 5);
+assert.throws(() => buildTrack([[]]));
+const fitted = fitView([[258,92],[582,421]], 1.3, 32);
+assert.equal(fitted[2] / fitted[3], 1.3);
+assert.ok(fitted[2] < 900);
+for (const [x,y] of [[258,92],[582,421]]) assert.ok(x >= fitted[0] && x <= fitted[0]+fitted[2] && y >= fitted[1] && y <= fitted[1]+fitted[3]);
+assert.ok(fitView([[5,5],[5,5]], 1)[2] > 0);
+assert.deepEqual(fitView([], 1), [0,0,900,550]);
+console.log('Route motion: geometry decoding, per-leg interpolation, visit boundaries and zero-length legs passed.');

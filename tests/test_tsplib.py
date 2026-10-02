@@ -89,3 +89,21 @@ def test_distinct_instances_hash_differently():
     a = parse_problem(DATA / "berlin52.tsp").to_instance()
     b = parse_problem(DATA / "eil51.tsp").to_instance()
     assert a.matrix.content_hash != b.matrix.content_hash
+
+
+@pytest.mark.parametrize("bad_id", ["0", "-2"])
+def test_tour_parser_rejects_non_positive_node_ids(tmp_path, bad_id):
+    path = tmp_path / "bad.opt.tour"
+    path.write_text(f"TOUR_SECTION\n1\n{bad_id}\n-1\nEOF\n")
+    with pytest.raises(ValueError, match="node ids must be positive"):
+        parse_tour(path)
+
+
+def test_problem_parser_rejects_non_positive_dimension(tmp_path):
+    path = tmp_path / "bad.tsp"
+    path.write_text(
+        "NAME: bad\nTYPE: TSP\nDIMENSION: 0\n"
+        "EDGE_WEIGHT_TYPE: EUC_2D\nNODE_COORD_SECTION\nEOF\n"
+    )
+    with pytest.raises(ValueError, match="DIMENSION must be positive"):
+        parse_problem(path)
