@@ -1,5 +1,5 @@
 window.WAYBILL_EVIDENCE = {
-  "content_sha256": "217868b99065d76b03be2be001a8fa815ba864e956a975ddd6d39b20ac1c9eb9",
+  "content_sha256": "3121dee2b01cf215ffd132d1a587e8a58337f6f434da196a5b3a94ef79364134",
   "metadata": {
     "purpose": "release evidence and static demo",
     "scope": "exact validation, heuristic reference, and CVRPTW feasibility"
@@ -12,14 +12,14 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-01T05:33:26.719970Z",
-        "git_dirty": true,
-        "git_revision": "a3676cf99d833f9a5166aa44020ee4870db17c64",
+        "created_at_utc": "2026-10-02T04:49:51.346330Z",
+        "git_dirty": false,
+        "git_revision": "85b3a2a1b30f79b2a9cc6e5c960139311808eaf0",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
         "matrix_unit": "tsplib_units",
-        "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "python_version": "3.13.5",
         "schema_version": "1.0.0",
         "seed": null,
@@ -37,7 +37,7 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": 3232,
-        "cpu_time_ms": 603.5480000000001,
+        "cpu_time_ms": 604.153,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -56,7 +56,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": null,
         "status": "PROVEN_OPTIMAL_TSP",
         "stop_reason": "optimal",
-        "wall_time_ms": 603.9778750000551
+        "wall_time_ms": 605.2703329987708
       }
     },
     {
@@ -66,14 +66,14 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-01T05:33:26.754221Z",
-        "git_dirty": true,
-        "git_revision": "a3676cf99d833f9a5166aa44020ee4870db17c64",
+        "created_at_utc": "2026-10-02T04:49:51.384474Z",
+        "git_dirty": false,
+        "git_revision": "85b3a2a1b30f79b2a9cc6e5c960139311808eaf0",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
         "matrix_unit": "tsplib_units",
-        "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "python_version": "3.13.5",
         "schema_version": "1.0.0",
         "seed": null,
@@ -91,7 +91,7 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": 3232,
-        "cpu_time_ms": 5.37999999999994,
+        "cpu_time_ms": 5.111000000000088,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -118,7 +118,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": null,
         "status": "PROVEN_OPTIMAL_TSP",
         "stop_reason": "optimal",
-        "wall_time_ms": 5.391374999931031
+        "wall_time_ms": 5.110916001285659
       }
     },
     {
@@ -128,14 +128,14 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-01T05:33:26.783207Z",
-        "git_dirty": true,
-        "git_revision": "a3676cf99d833f9a5166aa44020ee4870db17c64",
+        "created_at_utc": "2026-10-02T04:49:51.415198Z",
+        "git_dirty": false,
+        "git_revision": "85b3a2a1b30f79b2a9cc6e5c960139311808eaf0",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
         "matrix_unit": "tsplib_units",
-        "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "python_version": "3.13.5",
         "schema_version": "1.0.0",
         "seed": null,
@@ -153,10 +153,10 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": 3232,
-        "cpu_time_ms": 12.727000000000043,
+        "cpu_time_ms": 12.657000000000028,
         "feasible": true,
         "metrics": {
-          "bound_time_ms": 11.950455998885445,
+          "bound_time_ms": 11.903496000741143,
           "nodes_created": 458,
           "nodes_explored": 77,
           "nodes_pruned": 380,
@@ -179,7 +179,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": null,
         "status": "PROVEN_OPTIMAL_TSP",
         "stop_reason": "optimal",
-        "wall_time_ms": 12.72712499996942
+        "wall_time_ms": 12.664957997913007
       }
     },
     {
@@ -189,14 +189,14 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-01T05:33:26.799401Z",
-        "git_dirty": true,
-        "git_revision": "a3676cf99d833f9a5166aa44020ee4870db17c64",
+        "created_at_utc": "2026-10-02T04:49:51.431428Z",
+        "git_dirty": false,
+        "git_revision": "85b3a2a1b30f79b2a9cc6e5c960139311808eaf0",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
         "matrix_unit": "tsplib_units",
-        "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "python_version": "3.13.5",
         "schema_version": "1.0.0",
         "seed": null,
@@ -214,7 +214,7 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": null,
-        "cpu_time_ms": 0.0820000000000265,
+        "cpu_time_ms": 0.07299999999998974,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -237,7 +237,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": null,
         "status": "HEURISTIC_FEASIBLE_TSP",
         "stop_reason": "completed",
-        "wall_time_ms": 0.08183299996744609
+        "wall_time_ms": 0.07370800085482188
       }
     },
     {
@@ -247,14 +247,14 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-01T05:33:26.816529Z",
-        "git_dirty": true,
-        "git_revision": "a3676cf99d833f9a5166aa44020ee4870db17c64",
+        "created_at_utc": "2026-10-02T04:49:51.448775Z",
+        "git_dirty": false,
+        "git_revision": "85b3a2a1b30f79b2a9cc6e5c960139311808eaf0",
         "input_name": "data/tsplib/eil51.tsp",
         "input_sha256": "66c05ad077ffd64d5778e358bbd16be049f8c8ae880cbd24f034487331d1ccce",
         "matrix_hash": "fc44db3d68b784409c051776f121425b5a337251c2fda66a3ebc17cb18c6ed85",
         "matrix_unit": "tsplib_units",
-        "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "python_version": "3.13.5",
         "schema_version": "1.0.0",
         "seed": null,
@@ -266,7 +266,7 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": null,
-        "cpu_time_ms": 0.5590000000000872,
+        "cpu_time_ms": 0.5439999999999889,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -289,7 +289,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": 426,
         "status": "HEURISTIC_FEASIBLE_TSP",
         "stop_reason": "completed",
-        "wall_time_ms": 0.5587919999925361
+        "wall_time_ms": 0.5458750019897707
       }
     },
     {
@@ -299,14 +299,14 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-01T05:33:26.876231Z",
-        "git_dirty": true,
-        "git_revision": "a3676cf99d833f9a5166aa44020ee4870db17c64",
+        "created_at_utc": "2026-10-02T04:49:51.506928Z",
+        "git_dirty": false,
+        "git_revision": "85b3a2a1b30f79b2a9cc6e5c960139311808eaf0",
         "input_name": "data/benchmarks/clustered-cvrptw-150-v6-s240519.json",
         "input_sha256": "45f8cc35a2ab2a780aa78bb0d38cd4e574baa5f5556dc11b7135652e24ac944e",
         "matrix_hash": "608925deea2c204b4affa1de8b963a33632bd466781bc898c43e5b3e676f707a",
         "matrix_unit": "metres",
-        "platform": "macOS-27.0-arm64-arm-64bit-Mach-O",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
         "python_version": "3.13.5",
         "schema_version": "1.0.0",
         "seed": null,
@@ -324,7 +324,7 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": null,
-        "cpu_time_ms": 40.71099999999994,
+        "cpu_time_ms": 38.79100000000002,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -354,7 +354,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": null,
         "status": "HEURISTIC_FEASIBLE_CVRPTW",
         "stop_reason": "completed",
-        "wall_time_ms": 41.457082999954764
+        "wall_time_ms": 38.81412500049919
       }
     }
   ],
