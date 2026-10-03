@@ -46,12 +46,12 @@
     byId("hero-type").textContent = fleet ? "CVRPTW formulation" : "TSP formulation";
     byId("instance-type").textContent = fleet ? "CVRPTW" : "TSP";
     byId("solve-button").textContent = fleet ? "Dispatch fleet" : "Solve tour";
-    byId("compare-topic").textContent = fleet ? "Inspect fleet solver" : "Compare Greedy vs Branch & Bound";
-    byId("comparison-scope").textContent = fleet ? "Fleet extension selected. Only Clarke–Wright applies; select TSP in Route planner for the project comparison." : "Primary comparison: Greedy and Branch & Bound. Held–Karp is an optional validation method.";
+    byId("compare-topic").textContent = fleet ? "Inspect fleet solver" : "Compare all algorithms & routes";
+    byId("comparison-scope").textContent = fleet ? "Fleet extension selected. Only Clarke–Wright applies; select TSP in Route planner to compare all three TSP algorithms." : "All three run automatically on up to 17 nodes including the depot. Larger inputs compare Greedy and Branch & Bound, with an explicit Held–Karp size-limit notice. Exact methods may stop at the shared time, 10,000-state or 64-MB budget without proving optimality.";
     const selected = byId("solver").value;
     byId("solver").replaceChildren();
     const options = fleet ? [["savings", "Clarke–Wright savings"]] : [
-      ["nearest_neighbor", "Greedy · nearest neighbour"], ["branch_and_bound", "Branch & Bound"], ["held_karp", "Held–Karp · optional cross-check"],
+      ["nearest_neighbor", "Greedy · nearest neighbour"], ["branch_and_bound", "Branch & Bound"], ["held_karp", "Held–Karp · dynamic programming"],
     ];
     for (const [value, label] of options) {
       const option = element("option", label); option.value = value; option.selected = value === selected; byId("solver").append(option);
@@ -312,6 +312,7 @@
   function showResult(data, payload) {
     pausePlayback(); selectedStop = 0;
     currentResult = data; currentPayload = payload;
+    byId("solver").value = payload.solver;
     const badge = byId("result-status"); badge.textContent = data.report.status.replaceAll("_", " "); badge.className = `status ${statusClass(data.report.status)}`;
     byId("result-summary").replaceChildren(element("p", data.headline, "result-headline"), element("p", `${solverLabel(data.report.solver_name)} · ${data.routes.length} used vehicles · ${data.unserved.length} unserved · solver ${data.report.wall_time_ms.toFixed(3)} ms`, "metric-copy"));
     [...data.violations, ...data.warnings].forEach((message) => byId("result-summary").append(element("p", message, "error")));
@@ -343,6 +344,9 @@
     if (comparisonForResult()) {
       lines.push("", "## Same-input algorithm comparison", "", "| Algorithm | Status | Distance | Explored | Pruned | Lower bound | Solver ms | Stop reason |", "| --- | --- | --- | --- | --- | --- | --- | --- |");
       comparison.results.forEach(({ report: r }) => lines.push(`| ${solverLabel(r.solver_name)} | ${r.status} | ${r.objective_value} | ${r.nodes_explored} | ${r.nodes_pruned} | ${r.best_lower_bound ?? "—"} | ${r.wall_time_ms.toFixed(3)} | ${r.stop_reason} |`));
+      comparison.skipped.forEach((s) => lines.push(`| ${solverLabel(s.solver)} | NOT RUN | — | — | — | — | — | ${s.reason} |`));
+      lines.push("", "### Compared visit orders", "");
+      comparison.results.forEach((r) => r.routes.forEach((route) => lines.push(`- ${solverLabel(r.report.solver_name)}, vehicle ${route.vehicle_id}: ${route.nodes.map((n) => n || "D").join(" → ")}`)));
       lines.push("", "Runtimes are measurements of this run, not a general performance ranking. Optimality applies only when the returned status is PROVEN_OPTIMAL_TSP.");
     }
     lines.push("", "## Reproducibility", "", `- Solver: ${d.report.solver_name}`, `- Stop reason: ${d.report.stop_reason}`, `- Provider: ${d.provenance.provider_fingerprint}`, `- Git revision: ${d.provenance.git_revision}${d.provenance.git_dirty ? " (dirty)" : ""}`);
@@ -357,14 +361,14 @@
     return JSON.stringify(input) === JSON.stringify(base) && comparison.results[0].matrix_metadata.sha256 === currentResult.matrix_metadata.sha256;
   }
 
-  function comparisonTable(results) {
+  function comparisonTable(results, skipped = []) {
     const costs = results.filter((r) => r.feasible).map((r) => r.report.objective_value);
     const best = costs.length ? Math.min(...costs) : null;
     return table(["Algorithm", "Status", "Distance", "Gap to best feasible", "Explored", "Pruned", "Lower bound", "Solver ms", "Stop reason"], results.map(({ report: r, feasible }) => [
       solverLabel(r.solver_name), r.status, `${r.objective_value} ${r.objective_units}`,
       !feasible || best === null ? "—" : best === 0 ? (r.objective_value === 0 ? "0.00%" : "undefined (zero baseline)") : `${((r.objective_value - best) / best * 100).toFixed(2)}%`,
       r.nodes_explored, r.nodes_pruned, r.best_lower_bound ?? "—", r.wall_time_ms.toFixed(3), r.stop_reason,
-    ]));
+    ]).concat(skipped.map((s) => [solverLabel(s.solver), "NOT RUN", "—", "—", "—", "—", "—", "—", s.reason])));
   }
 
   function renderReport() {
@@ -375,38 +379,32 @@
     body.append(element("h3", "Routes"), table(["Vehicle", "Sequence", "Load", "Cost", "Depot return"], d.routes.map((r) => [r.vehicle_id, `D → ${r.sequence.join(" → ")} → D`, r.load, r.cost, clock(r.schedule.return_to_depot)])), element("h3", "Provenance"));
     const pre = element("pre", JSON.stringify({ input_sha256: d.provenance.input_sha256, matrix_sha256: d.matrix_metadata.sha256, provider: d.provenance.provider_fingerprint, git_revision: d.provenance.git_revision, git_dirty: d.provenance.git_dirty, budget: d.provenance.budget }, null, 2)); body.append(pre);
     if (activeDatasetMeta()) body.append(element("h3", "Location source · user-built dataset"), element("p", "Public mapped places, not actual customer orders. Fleet constraints are user-defined assumptions.", "metric-copy"), element("pre", JSON.stringify(activeDatasetMeta().provenance, null, 2)));
-    if (comparisonForResult()) body.append(element("h3", "Same-input algorithm comparison"), comparisonTable(comparison.results));
+    if (comparisonForResult()) body.append(element("h3", "Same-input algorithm comparison"), comparisonTable(comparison.results, comparison.skipped));
   }
 
   async function runComparison() {
     const button = byId("compare-solvers"), error = byId("compare-error"); error.textContent = ""; setBusy(button, true, "Running…", "Run comparison");
+    byId("compare-topic").disabled = true;
     try {
       comparison = null;
       byId("comparison-summary").replaceChildren(); byId("comparison-routes").replaceChildren(); byId("comparison-conclusion").textContent = "";
       byId("comparison-table").replaceChildren(element("p", "Computing algorithms on the selected input…")); renderReport();
-      const base = payloadFromForm(), methods = base.problem === "CVRPTW" ? ["savings"] : ["nearest_neighbor", "branch_and_bound"];
-      if (base.problem === "TSP" && byId("include-held-karp").checked) {
-        if (base.stops.length > 17) throw new Error("Held–Karp cross-check is limited to 17 nodes. Uncheck it to compare Greedy with Branch & Bound.");
-        methods.push("held_karp");
-      }
-      const results = [];
-      for (const solver of methods) results.push(await solve({ ...base, solver }));
+      const base = payloadFromForm();
+      const { results, skipped } = await request("/api/compare", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(base) });
+      const methods = results.map((r) => ({ nearest_neighbor: "nearest_neighbor", branch_and_bound_min_in_out: "branch_and_bound", held_karp: "held_karp", clarke_wright_savings: "savings" }[r.report.solver_name]));
       if (new Set(results.map((r) => r.matrix_metadata.sha256)).size !== 1) throw new Error("Matrix identity changed between solver runs.");
       if (JSON.stringify(payloadFromForm()) !== JSON.stringify(base)) throw new Error("Inputs changed during comparison. Run it again for the updated input.");
-      comparison = { payload: base, results };
+      comparison = { payload: base, results, skipped };
       const costs = results.filter((r) => r.feasible).map((r) => r.report.objective_value), best = costs.length ? Math.min(...costs) : null;
       const proven = results.find((r) => r.report.status === "PROVEN_OPTIMAL_TSP");
       byId("comparison-summary").replaceChildren(metric("Algorithms", results.length, "Same input and matrix"), metric("Best feasible distance", best === null ? "None" : best.toLocaleString(), results[0].report.objective_units), metric("Proof", proven ? "Optimal" : "Unproven", proven ? `${solverLabel(proven.report.solver_name)} completed a proof` : "Best found is not an optimality certificate"));
-      byId("comparison-table").className = ""; byId("comparison-table").replaceChildren(comparisonTable(results));
+      byId("comparison-table").className = ""; byId("comparison-table").replaceChildren(comparisonTable(results, skipped));
       const greedy = results[0], exact = results[1];
-      byId("comparison-conclusion").textContent = exact && greedy.feasible && exact.feasible ? `Branch & Bound ${exact.report.status === "PROVEN_OPTIMAL_TSP" ? "proved an optimal tour" : "returned a feasible tour; optimality is unproven"}. Distance change from Greedy: ${(greedy.report.objective_value - exact.report.objective_value).toLocaleString()} ${exact.report.objective_units}. Runtimes are for these runs only. Matrix SHA-256: ${greedy.matrix_metadata.sha256}.` : "No Greedy / Branch & Bound conclusion is available for this model and feasibility state.";
-      results.forEach((result, index) => {
-        const view = element("button", `View ${solverLabel(result.report.solver_name)} tour`, "secondary"); view.type = "button";
-        view.addEventListener("click", () => { showResult(result, { ...base, solver: methods[index] }); activateTab("dispatch"); }); byId("comparison-routes").append(view);
-      });
+      byId("comparison-conclusion").textContent = exact && greedy.feasible && exact.feasible ? `${proven ? `${solverLabel(proven.report.solver_name)} proved an optimal tour.` : "These budget-limited runs have not proved optimality."} Best feasible distance change from Greedy: ${(greedy.report.objective_value - best).toLocaleString()} ${greedy.report.objective_units}. Different algorithms may return the same tour, or equally good tours with a different visit order. Matrix SHA-256: ${greedy.matrix_metadata.sha256}.` : "Fleet extension: one applicable algorithm, not a three-way TSP comparison.";
       const displayed = (proven && proven.report.objective_value === best ? proven : results.find((r) => r.feasible && r.report.objective_value === best)) || results[0];
       showResult(displayed, { ...base, solver: methods[results.indexOf(displayed)] });
-    } catch (e) { error.textContent = e.message; byId("comparison-table").textContent = "Comparison did not complete. Resolve the error and run again."; } finally { setBusy(button, false, "Running…", "Run comparison"); }
+      window.WaybillComparison.mount(byId("comparison-routes"), { results, skipped, stopName, decode: motion.decodePolyline, onOpen: (index) => { showResult(results[index], { ...base, solver: methods[index] }); activateTab("dispatch"); } });
+    } catch (e) { comparison = null; error.textContent = e.message; byId("comparison-table").textContent = "Comparison did not complete. Resolve the error and run again."; byId("comparison-summary").replaceChildren(); byId("comparison-routes").replaceChildren(); byId("comparison-conclusion").textContent = ""; renderReport(); } finally { setBusy(button, false, "Running…", "Run comparison"); byId("compare-topic").disabled = false; }
   }
 
   async function auditAsymmetry() {

@@ -39,5 +39,9 @@ def test_live_workbench_exposes_each_connected_surface() -> None:
     assert "function solveHeldKarp" not in script
     assert 'src="route-motion.js?v=3"' in html
     assert 'src="real-data.js?v=2"' in html
+    assert 'src="route-comparison.js?v=1"' in html
+    assert 'request("/api/compare"' in script
+    assert "window.WaybillComparison.mount" in script
+    assert "include-held-karp" not in html
     for control in ("play-route", "step-route", "reset-route", "route-progress", "map-overview", "map-labels", "map-stop"):
         assert f'id="{control}"' in html

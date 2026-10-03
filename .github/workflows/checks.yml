@@ -21,4 +21,5 @@ jobs:
       - run: python -m tools.verify_data_manifest
       - run: python -m pytest
       - run: node tests/test_route_motion.cjs
+      - run: node tests/test_route_comparison.cjs
       - run: python -m tools.verify_gate

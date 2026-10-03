@@ -52,8 +52,7 @@ def coordinate(value, name, limit):
     return value
 
 
-def solve_request(payload, *, osrm_url="http://127.0.0.1:5001", dataset_id=None):
-    started = time.perf_counter()
+def _prepare_request(payload, *, osrm_url, dataset_id):
     fields = {"stops", "problem", "solver", "provider", "vehicles", "capacity", "shift_end", "wall_time_ms"}
     if not isinstance(payload, dict) or set(payload) - fields:
         raise ValueError("request must be an object containing only supported fields")
@@ -113,6 +112,15 @@ def solve_request(payload, *, osrm_url="http://127.0.0.1:5001", dataset_id=None)
     instance = Instance("live-request", tuple(stops), vehicles, cost_matrix, time_matrix=time_matrix)
     # ponytail: one bounded solve at a time; add worker processes for sustained multi-user load.
     budget = Budget(wall_time_ms=wall_time, max_nodes=10000, max_memory_mb=64)
+    return instance, distance_provider, budget
+
+
+def _solve_prepared(payload, prepared, started):
+    instance, distance_provider, budget = prepared
+    solver_name, provider_name = payload.get("solver", "nearest_neighbor"), payload.get("provider", "osrm")
+    cost_matrix, time_matrix = instance.matrix, instance.time_matrix
+    stops, vehicles = instance.stops, instance.vehicles
+    coords = [stop.coord for stop in stops]
     solution, report = SOLVERS[solver_name]().solve(instance, budget)
     feasibility = check(instance, solution)
     if report.status.is_feasible and not feasibility.is_feasible:
@@ -176,6 +184,34 @@ def solve_request(payload, *, osrm_url="http://127.0.0.1:5001", dataset_id=None)
     }
 
 
+def solve_request(payload, *, osrm_url="http://127.0.0.1:5001", dataset_id=None):
+    started = time.perf_counter()
+    prepared = _prepare_request(payload, osrm_url=osrm_url, dataset_id=dataset_id)
+    return _solve_prepared(payload, prepared, started)
+
+
+def compare_request(payload, *, osrm_url="http://127.0.0.1:5001", dataset_id=None):
+    """Run canonical solvers against one immutable instance, not refetched matrices."""
+    if not isinstance(payload, dict):
+        raise ValueError("request must be an object containing only supported fields")
+    # Validate the submitted algorithm as well, even though comparison selects all methods.
+    if not isinstance(payload.get("solver", "nearest_neighbor"), str) or payload.get("solver", "nearest_neighbor") not in SOLVERS:
+        raise ValueError("choose a supported problem and solver")
+    fleet = payload.get("problem", "TSP") == "CVRPTW"
+    if fleet != (payload.get("solver", "nearest_neighbor") == "savings"):
+        raise ValueError("savings requires CVRPTW; the other solvers require TSP")
+    base = {**payload, "solver": "savings" if fleet else "nearest_neighbor"}
+    started = time.perf_counter()
+    prepared = _prepare_request(base, osrm_url=osrm_url, dataset_id=dataset_id)
+    methods = ["savings"] if fleet else ["nearest_neighbor", "branch_and_bound", "held_karp"]
+    skipped = []
+    if not fleet and len(prepared[0].stops) > 17:
+        methods.remove("held_karp")
+        skipped.append({"solver": "held_karp", "reason": "Held–Karp is limited to 17 nodes including the depot in the live app. Reduce the dataset to compare all three; no substitute result was generated."})
+    results = [_solve_prepared({**base, "solver": method}, prepared, started) for method in methods]
+    return {"results": results, "skipped": skipped}
+
+
 class Handler(SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, directory=str(ROOT / "web"), **kwargs)
@@ -212,7 +248,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "/live.html")
             self.end_headers()
-        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/route-motion.js", "/real-data.js", "/evidence.js"}:
+        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/route-motion.js", "/route-comparison.js", "/real-data.js", "/evidence.js"}:
             super().do_HEAD()
         else:
             self.send_error(404)
@@ -231,7 +267,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "/live.html")
             self.end_headers()
-        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/route-motion.js", "/real-data.js", "/evidence.js"}:
+        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/route-motion.js", "/route-comparison.js", "/real-data.js", "/evidence.js"}:
             super().do_GET()
         else:
             self.send_json({"error": "not found"}, 404)
@@ -240,7 +276,7 @@ class Handler(SimpleHTTPRequestHandler):
         if not self.allowed_request():
             self.send_json({"error": "request must use the configured application origin"}, 403)
             return
-        if self.path not in ("/api/solve", "/api/places"):
+        if self.path not in ("/api/solve", "/api/compare", "/api/places"):
             self.send_json({"error": "not found"}, 404)
             return
         if self.headers.get_content_type() != "application/json":
@@ -254,12 +290,16 @@ class Handler(SimpleHTTPRequestHandler):
                 self.send_json({"error": "request body must be 1–65536 bytes"}, 413)
                 return
             payload = json.loads(self.rfile.read(size))
-            if self.path == "/api/solve" and solve_lock is not None:
+            if self.path in ("/api/solve", "/api/compare") and solve_lock is not None:
                 acquired = solve_lock.acquire(blocking=False)
                 if not acquired:
                     self.send_json({"error": "Another route is being calculated. Retry shortly."}, 429)
                     return
-            response = fetch_places(payload) if self.path == "/api/places" else solve_request(payload, osrm_url=self.server.osrm_url, dataset_id=self.server.dataset_id)
+            if self.path == "/api/places":
+                response = fetch_places(payload)
+            else:
+                operation = compare_request if self.path == "/api/compare" else solve_request
+                response = operation(payload, osrm_url=self.server.osrm_url, dataset_id=self.server.dataset_id)
         except (ValueError, TypeError) as exc:
             self.send_json({"error": str(exc)}, 400)
         except OsrmError as exc:

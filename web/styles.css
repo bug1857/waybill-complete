@@ -374,3 +374,27 @@ pre { overflow: auto; max-height: 450px; white-space: pre-wrap; overflow-wrap: a
 @media (max-width: 1080px) { .data-workspace { grid-template-columns: 1fr; } }
 @media (max-width: 760px) { .live-app .data-heading { display: block; }.data-heading .source-pill { margin-top: 20px; }.live-app .data-form, .live-app .data-preview { padding: 20px; }.question-grid { grid-template-columns: 1fr; }.live-app .topic-banner { margin-block: 12px 28px; }.live-app .data-form .drawer-actions button { width: 100%; }.live-app .nav-tab { padding: 10px 12px; } }
 @media (prefers-reduced-motion: reduce) { .live-app .app-panel { animation: none !important; }.live-app button, .live-app .file-button { transition: none; }.live-app button:hover:not(:disabled), .live-app button:active:not(:disabled) { transform: none; } }
+
+/* Same-input route inspection: native controls and one shared geographic scale. */
+.comparison-conclusion { overflow-wrap: anywhere; }
+.comparison-map-section { margin-block: 32px; }
+.comparison-controls { display: grid; grid-template-columns: minmax(0, 1fr) minmax(180px, 300px); gap: 18px 28px; margin-block: 20px 12px; }
+.comparison-controls label { margin-top: 0; font-size: 13px; }
+.comparison-step-group { display: grid; grid-template-columns: auto minmax(60px, 1fr) auto; gap: 8px; align-items: center; }
+.comparison-step-group label { grid-column: 1 / -1; margin-bottom: 0; }
+.comparison-step-group input { padding: 0; accent-color: var(--blue); cursor: pointer; }
+.comparison-step-group output { grid-column: 1 / -1; font-size: 12px; font-variant-numeric: tabular-nums; color: #59675e; }
+.comparison-map-options { grid-column: 1 / -1; display: flex; gap: 20px; flex-wrap: wrap; }
+.comparison-map-options .inline-check { margin: 0; }
+.comparison-map-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 20px; }
+.comparison-map-card { min-width: 0; display: flex; flex-direction: column; }
+.comparison-map-card h3 { font: 500 22px/1.25 Georgia, serif; margin-block: 12px; text-wrap: balance; }
+.comparison-map-card .source-pill { align-self: flex-start; font-size: 10px; }
+.comparison-map { display: block; width: 100%; height: auto; background: #f3f7f2; border: 1px solid #e1e7e0; border-radius: 10px; margin-top: 20px; }
+.comparison-leg { font-size: 18px; font-weight: 600; font-variant-numeric: tabular-nums; margin-bottom: 0; color: var(--blue); }
+.comparison-map-card details { font-size: 12px; margin-block: 18px; }
+.comparison-map-card button { margin-top: auto; }
+.comparison-sequence { font-family: ui-monospace, monospace; font-size: 12px; overflow-wrap: anywhere; }
+.comparison-skipped { background: #f6f8f3 !important; justify-content: center; }
+@media (max-width: 1080px) { .comparison-map-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .comparison-controls, .comparison-map-grid { grid-template-columns: 1fr; }.comparison-map-options { grid-column: 1; }.live-app .hero-actions .secondary { width: 100%; } }

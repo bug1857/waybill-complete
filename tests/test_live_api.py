@@ -10,15 +10,22 @@ import pytest
 
 from adapters.distance.haversine import HaversineProvider
 from adapters.distance.osrm import OsrmProvider
-from api.server import Handler, ROOT, solve_request
+from api.server import Handler, ROOT, compare_request, solve_request
 from core.model.geometry import Coord
 from core.model.units import Unit
 
 
-def test_topic_comparison_uses_one_matrix_and_valid_proof_states():
+def test_topic_comparison_uses_one_matrix_and_valid_proof_states(monkeypatch):
     stops = json.loads((ROOT / "data/live/monaco.json").read_text())["stops"]
-    results = [solve_request({"stops": stops, "provider": "haversine", "problem": "TSP", "solver": name})
-               for name in ("nearest_neighbor", "branch_and_bound", "held_karp")]
+    builds, original = [], HaversineProvider.build
+    def count_build(self, coords):
+        builds.append(self.unit)
+        return original(self, coords)
+    monkeypatch.setattr(HaversineProvider, "build", count_build)
+    comparison = compare_request({"stops": stops, "provider": "haversine", "problem": "TSP"})
+    results = comparison["results"]
+    assert comparison["skipped"] == []
+    assert len(builds) == 2  # One cost matrix and one time matrix, shared by all three.
     assert len({r["matrix_metadata"]["sha256"] for r in results}) == 1
     matrix = results[0]["matrix"]
     # Independent small-instance enumeration validates what the comparison may call optimal.
@@ -40,6 +47,35 @@ def test_topic_comparison_uses_one_matrix_and_valid_proof_states():
         assert route["nodes"][0] == route["nodes"][-1] == 0
         assert route["cost"] == sum(matrix[a][b] for a, b in zip(route["nodes"], route["nodes"][1:]))
         assert result["report"]["wall_time_ms"] >= 0
+
+
+@pytest.mark.parametrize("nodes", [17, 18, 100])
+def test_comparison_size_limits_preserve_other_runs(nodes):
+    stops = [{"lat": 26.9 + i * .0001, "lon": 75.8 + (i % 3) * .001} for i in range(nodes)]
+    result = compare_request({"stops": stops, "provider": "haversine", "solver": "held_karp", "wall_time_ms": 1})
+    assert len(result["results"]) == (3 if nodes <= 17 else 2)
+    assert len(result["skipped"]) == (0 if nodes <= 17 else 1)
+    if result["skipped"]:
+        assert result["skipped"][0]["solver"] == "held_karp"
+        assert "17 nodes" in result["skipped"][0]["reason"]
+    for run in result["results"]:
+        assert run["feasible"]
+        assert sorted(run["routes"][0]["sequence"]) == list(range(1, nodes))
+        assert run["report"]["objective_value"] == sum(run["matrix"][a][b] for a, b in zip(run["routes"][0]["nodes"], run["routes"][0]["nodes"][1:]))
+
+
+def test_comparison_fleet_only_uses_applicable_solver():
+    stops = json.loads((ROOT / "data/live/monaco.json").read_text())["stops"]
+    result = compare_request({"stops": stops, "provider": "haversine", "problem": "CVRPTW", "solver": "savings", "vehicles": 2, "capacity": 25})
+    assert result["skipped"] == []
+    assert len(result["results"]) == 1
+    assert result["results"][0]["report"]["solver_name"] == "clarke_wright_savings"
+
+
+@pytest.mark.parametrize("change", [{"solver": []}, {"solver": "fake"}, {"matrix": []}, {"provider": "remote"}, {"vehicles": 2}, {"wall_time_ms": 2001}, {"solver": "savings"}])
+def test_comparison_rejects_bad_inputs(change):
+    with pytest.raises(ValueError):
+        compare_request({"stops": [{"lat": 26.9, "lon": 75.8}, {"lat": 26.91, "lon": 75.81}], "provider": "haversine", **change})
 
 
 def test_live_routes_and_schedule():
@@ -111,10 +147,11 @@ def test_live_http_boundary():
         response.read()
         server.solve_lock.acquire()
         try:
-            client.request("POST", "/api/solve", "{}", {"Content-Type": "application/json"})
-            response = client.getresponse()
-            assert response.status == 429
-            response.read()
+            for path in ("/api/solve", "/api/compare"):
+                client.request("POST", path, "{}", {"Content-Type": "application/json"})
+                response = client.getresponse()
+                assert response.status == 429
+                response.read()
             client.request("HEAD", "/live.html")
             response = client.getresponse()
             assert response.status == 200
@@ -125,6 +162,16 @@ def test_live_http_boundary():
                        {"Content-Type": "application/json"})
         response = client.getresponse()
         assert response.status == 200 and json.loads(response.read())["feasible"]
+        client.request("POST", "/api/compare", json.dumps({"stops": stops, "provider": "haversine"}), {"Content-Type": "application/json"})
+        response = client.getresponse()
+        assert response.status == 200 and len(json.loads(response.read())["results"]) == 3
+        client.request("GET", "/route-comparison.js?v=1")
+        response = client.getresponse()
+        assert response.status == 200 and b"WaybillComparison" in response.read()
+        client.request("POST", "/api/compare", "{}", {"Content-Type": "application/json", "Origin": "https://evil.example"})
+        response = client.getresponse()
+        assert response.status == 403
+        response.read()
         for headers in [{"Origin": "https://evil.example"}, {"Host": "evil.example"}]:
             client.request("POST", "/api/solve", "{}", {"Content-Type": "application/json", **headers})
             response = client.getresponse()
