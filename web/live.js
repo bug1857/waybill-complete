@@ -580,5 +580,5 @@
     datasetName = example.name || "Monaco harbour deliveries"; byId("stops").value = sampleInput;
     if (!health.osrm_available) byId("provider").value = "haversine";
     const payload = payloadFromForm(); showResult(await solve(payload), payload);
-  }).catch((e) => { byId("engine-state").textContent = "Engine unavailable"; byId("solve-error").textContent = e.message; });
+  }).catch((e) => { byId("engine-state").textContent = "Engine unavailable"; byId("solve-error").textContent = e.message; }).finally(() => { byId("compare-topic").disabled = false; byId("compare-solvers").disabled = false; });
 }());

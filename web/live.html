@@ -62,7 +62,7 @@
         <div class="hero-actions">
           <label for="solver">Algorithm</label><select id="solver" form="solve-form"></select>
           <button type="submit" form="solve-form" id="solve-button">Solve tour</button>
-          <button type="button" class="secondary" id="compare-topic">Compare all algorithms &amp; routes</button>
+          <button type="button" class="secondary" id="compare-topic" disabled>Compare all algorithms &amp; routes</button>
           <button type="button" class="secondary" id="inspect-report">Inspect SolveReport</button>
           <p id="solve-error" class="error" role="alert"></p>
         </div>
@@ -137,7 +137,7 @@
 
     <section id="sandbox" class="app-panel" role="tabpanel" hidden>
       <div class="section-heading"><p class="eyebrow">TSP · Greedy · Branch &amp; Bound · Held–Karp</p><h1>Compare delivery algorithms.</h1><p class="lede">One dataset, one shared matrix. Compare measured distance, search work and the actual route each algorithm chooses. Every returned tour is independently checked.</p></div>
-      <section class="card action-card"><div><h2>Three algorithms. One fair comparison.</h2><p class="metric-copy">Greedy chooses the closest unvisited stop. Branch &amp; Bound explores and prunes partial tours using lower bounds. Held–Karp uses subset dynamic programming. Only a completed exact proof establishes optimality—not an algorithm's name.</p><p id="comparison-scope" class="metric-copy"></p></div><button id="compare-solvers" type="button">Run comparison</button><p id="compare-error" class="error" role="alert"></p></section>
+      <section class="card action-card"><div><h2>Three algorithms. One fair comparison.</h2><p class="metric-copy">Greedy chooses the closest unvisited stop. Branch &amp; Bound explores and prunes partial tours using lower bounds. Held–Karp uses subset dynamic programming. Only a completed exact proof establishes optimality—not an algorithm's name.</p><p id="comparison-scope" class="metric-copy"></p></div><button id="compare-solvers" type="button" disabled>Run comparison</button><p id="compare-error" class="error" role="alert"></p></section>
       <div id="comparison-summary" class="grid metrics-row"></div><div id="comparison-table" class="empty">Run the comparison to populate the solver ledger.</div>
       <p id="comparison-conclusion" class="comparison-conclusion" role="status"></p><div id="comparison-routes"></div>
       <p class="metric-copy">Greedy's explored counter counts next-stop selections; Branch &amp; Bound counts search states; Held–Karp counts dynamic-programming states. These are different measures of work. Solver runtime excludes matrix acquisition and map geometry. Gap to best feasible implies a gap to optimum only when an exact run proves it.</p>
@@ -167,6 +167,6 @@
 
   <dialog id="solve-report-dialog" class="report-dialog"><div class="card-heading"><div><p class="eyebrow">Canonical response</p><h2>SolveReport &amp; provenance</h2></div><button id="close-report" type="button" class="secondary small-button">Close</button></div><pre id="result-json">No run yet.</pre></dialog>
   <footer class="site-footer"><span>Waybill · canonical Python engine</span><a href="https://www.openstreetmap.org/copyright">Road data © OpenStreetMap contributors</a><a href="index.html">Offline evidence viewer</a></footer>
-  <script src="evidence.js"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=1"></script><script src="real-data.js?v=2"></script><script src="live.js?v=8"></script>
+  <script src="evidence.js"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=1"></script><script src="real-data.js?v=2"></script><script src="live.js?v=9"></script>
 </body>
 </html>

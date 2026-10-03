@@ -43,5 +43,7 @@ def test_live_workbench_exposes_each_connected_surface() -> None:
     assert 'request("/api/compare"' in script
     assert "window.WaybillComparison.mount" in script
     assert "include-held-karp" not in html
+    assert 'id="compare-topic" disabled' in html
+    assert 'id="compare-solvers" type="button" disabled' in html
     for control in ("play-route", "step-route", "reset-route", "route-progress", "map-overview", "map-labels", "map-stop"):
         assert f'id="{control}"' in html
