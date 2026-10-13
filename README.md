@@ -1,5 +1,11 @@
 # Waybill
 
+Use [bug1857/waybill-complete](https://github.com/bug1857/waybill-complete),
+branch **main**, as the canonical repository for all further work. The original
+`waybill` repository is a historical backup; the Google prototype remains a UI
+reference, not a second solver implementation to deploy.
+[Open the complete website](https://waybill-17fd.onrender.com/live.html).
+
 Project topic: **Courier Delivery Route Optimization System** (High level).
 Required DAA concepts: **TSP, Greedy, Branch & Bound**.
 
@@ -64,6 +70,11 @@ includes dispatch, solver comparison, directed-matrix analysis, generated
 evidence, runtime invariants, import/export, and printable reports. The map draws
 OSRM road geometry and schedules use the same travel-time matrix as the solver.
 An offline distance estimate is also available.
+**Places & real data → Your own stops** supports public place search or manual
+coordinates. Choose a start/return depot, add delivery destinations, then send
+the dataset to the same canonical solver. Location names and source metadata
+survive export/import. Custom trips default to labelled geographic estimates;
+road routing is supported only within the bundled Monaco area.
 The Route planner opens in TSP mode. Use **Compare all algorithms & routes**
 to run the required topic comparison, then view any returned tour without
 re-solving it. The Project & report tab explains the formulation and algorithms

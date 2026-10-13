@@ -30,6 +30,9 @@ CATEGORIES = {
 _cache = {}
 _attempts = deque()
 _fetch_lock = Lock()
+SEARCH_ENDPOINT = "https://photon.komoot.io/api/"
+_search_cache = {}
+_search_attempts = deque()
 
 
 class PlacesError(Exception):
@@ -47,6 +50,66 @@ class NoRedirect(HTTPRedirectHandler):
 
 def places_options():
     return {"regions": REGIONS, "categories": CATEGORIES}
+
+
+def search_places(payload):
+    if not isinstance(payload, dict) or set(payload) != {"query"} or not isinstance(payload["query"], str):
+        raise ValueError("provide a place search query only")
+    query = " ".join(payload["query"].split())
+    if not 3 <= len(query) <= 200:
+        raise ValueError("place search must contain 3–200 characters; include the city")
+    if not _fetch_lock.acquire(blocking=False):
+        raise PlacesBusy("A places request is already running. Retry shortly.")
+    try:
+        now = time.monotonic()
+        if query in _search_cache and now - _search_cache[query][0] < CACHE_SECONDS:
+            return {**_search_cache[query][1], "cached": True}
+        while _search_attempts and now - _search_attempts[0] >= 86400:
+            _search_attempts.popleft()
+        # shortcut: limits are per process, use a shared limiter before adding replicas.
+        if len(_search_attempts) >= 100 or (_search_attempts and now - _search_attempts[-1] < 1):
+            raise PlacesBusy("Search limit reached. Wait at least one second; at most 100 new searches/day.")
+        _search_attempts.append(now)
+        request = Request(SEARCH_ENDPOINT + "?" + urlencode({"q": query, "limit": 5, "lang": "en"}), headers={
+            "User-Agent": "WaybillAcademic/1.0 (https://github.com/bug1857/waybill-complete)", "Accept": "application/json"})
+        try:
+            with build_opener(NoRedirect()).open(request, timeout=15) as response:
+                raw = response.read(MAX_RESPONSE_BYTES + 1)
+            if len(raw) > MAX_RESPONSE_BYTES:
+                raise PlacesError("Place search response exceeded the safety limit.")
+            data = json.loads(raw)
+        except (URLError, TimeoutError, OSError, ValueError) as exc:
+            raise PlacesError("Place search is unavailable. Retry later or add coordinates manually.") from exc
+        if not isinstance(data, dict) or not isinstance(data.get("features"), list):
+            raise PlacesError("Place search returned an invalid response.")
+        places = []
+        retrieved = datetime.now(timezone.utc).isoformat()
+        for feature in data["features"][:5]:
+            if not isinstance(feature, dict):
+                continue
+            props, geometry = feature.get("properties"), feature.get("geometry")
+            if not isinstance(props, dict) or not isinstance(geometry, dict) or geometry.get("type") != "Point":
+                continue
+            coords = geometry.get("coordinates")
+            if not isinstance(coords, list) or len(coords) != 2 or any(type(v) not in (int, float) for v in coords):
+                continue
+            lon, lat = coords
+            if not -90 <= lat <= 90 or not -180 <= lon <= 180:
+                continue
+            labels = [props.get(k) for k in ("name", "housenumber", "street", "city", "state", "country")]
+            name = ", ".join(dict.fromkeys(v for v in labels if isinstance(v, str) and v))[:240]
+            if not name:
+                continue
+            places.append({"name": name, "lat": lat, "lon": lon, "coordinate_kind": "mapped search result",
+                           "source": "OpenStreetMap via Photon", "query": query, "retrieved_at": retrieved,
+                           "response_sha256": hashlib.sha256(raw).hexdigest()})
+        result = {"places": places, "cached": False}
+        if len(_search_cache) >= 100:
+            _search_cache.pop(next(iter(_search_cache)))
+        _search_cache[query] = (time.monotonic(), result)
+        return result
+    finally:
+        _fetch_lock.release()
 
 
 def fetch_places(payload):

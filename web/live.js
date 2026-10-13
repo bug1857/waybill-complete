@@ -359,7 +359,7 @@
       lines.push("", "Runtimes are measurements of this run, not a general performance ranking. Optimality applies only when the returned status is PROVEN_OPTIMAL_TSP.");
     }
     lines.push("", "## Reproducibility", "", `- Solver: ${d.report.solver_name}`, `- Stop reason: ${d.report.stop_reason}`, `- Provider: ${d.provenance.provider_fingerprint}`, `- Git revision: ${d.provenance.git_revision}${d.provenance.git_dirty ? " (dirty)" : ""}`);
-    if (activeDatasetMeta()) lines.push("", "## Location source (separate from solver evidence)", "", "```json", JSON.stringify(activeDatasetMeta().provenance, null, 2), "```", "", "Locations are mapped public places, not actual customer orders. Fleet constraints are user-defined assumptions.");
+    if (activeDatasetMeta()) lines.push("", "## Location source (separate from solver evidence)", "", "```json", JSON.stringify({ ...activeDatasetMeta().provenance, places: activeDatasetMeta().places }, null, 2), "```", "", "Locations are searched map records or user-supplied coordinates, not verified customer orders. Fleet constraints are user-defined assumptions.");
     return lines.join("\n");
   }
 
@@ -388,7 +388,7 @@
     body.append(metric("Status", d.report.status.replaceAll("_", " "), `Stopped: ${d.report.stop_reason}`), metric("Objective", `${d.report.objective_value.toLocaleString()} ${d.report.objective_units}`, `${d.routes.length} used vehicles`), metric("Feasibility", d.feasible ? "passed" : "failed", d.feasible ? "Independent checker found no violation." : d.violations.join("; ")));
     body.append(element("h3", "Routes"), table(["Vehicle", "Sequence", "Load", "Cost", "Depot return"], d.routes.map((r) => [r.vehicle_id, `D → ${r.sequence.join(" → ")} → D`, r.load, r.cost, clock(r.schedule.return_to_depot)])), element("h3", "Provenance"));
     const pre = element("pre", JSON.stringify({ input_sha256: d.provenance.input_sha256, matrix_sha256: d.matrix_metadata.sha256, provider: d.provenance.provider_fingerprint, git_revision: d.provenance.git_revision, git_dirty: d.provenance.git_dirty, budget: d.provenance.budget }, null, 2)); body.append(pre);
-    if (activeDatasetMeta()) body.append(element("h3", "Location source · user-built dataset"), element("p", "Public mapped places, not actual customer orders. Fleet constraints are user-defined assumptions.", "metric-copy"), element("pre", JSON.stringify(activeDatasetMeta().provenance, null, 2)));
+    if (activeDatasetMeta()) body.append(element("h3", "Location source · user-built dataset"), element("p", "Searched map records or user-supplied coordinates, not verified customer orders. Fleet constraints are user-defined assumptions.", "metric-copy"), element("pre", JSON.stringify({ ...activeDatasetMeta().provenance, places: activeDatasetMeta().places }, null, 2)));
     if (comparisonForResult()) body.append(element("h3", "Same-input algorithm comparison"), comparisonTable(comparison.results, comparison.skipped));
   }
 
@@ -529,7 +529,7 @@
   }
 
   async function importFile(file) {
-    if (!file) return; if (file.size > 65536) throw new Error("Import must be 64 KB or smaller.");
+    if (!file) return; if (file.size > 262144) throw new Error("Import must be 256 KB or smaller.");
     const revision = inputRevision, text = await file.text();
     const data = parseImport(text, file.name.toLowerCase().endsWith(".json"), byId("provider").value);
     if (revision !== inputRevision) throw new Error("Inputs changed while reading the file. Import it again to replace the updated dataset.");
@@ -597,6 +597,7 @@
   document.addEventListener("visibilitychange", () => { if (document.hidden) pausePlayback(); });
   reducedMotion.addEventListener("change", () => { pausePlayback(); byId("play-route").disabled = !playback || resultRevision !== inputRevision || reducedMotion.matches; });
   form.addEventListener("input", inputEdited);
+  byId("solver").addEventListener("change", inputEdited);
   byId("dataset-selector").addEventListener("change", () => {
     const custom = byId("dataset-selector").value === "custom";
     const data = custom ? importedDataset : sampleDataset;

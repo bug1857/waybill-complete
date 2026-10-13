@@ -4,6 +4,28 @@ const fs = require("node:fs");
 const vm = require("node:vm");
 const path = require("node:path");
 const source = fs.readFileSync(path.join(__dirname, "../web/live.js"), "utf8");
+const placesSource = fs.readFileSync(path.join(__dirname, "../web/real-data.js"), "utf8");
+const fileNodes = new Map();
+const makeNode = () => ({ value: "", disabled: false, children: [], listeners: {},
+  replaceChildren(...children) { this.children = children; }, append(...children) { this.children.push(...children); },
+  addEventListener(type, handler) { this.listeners[type] = handler; }, setAttribute() {} });
+const fileNode = id => { if (!fileNodes.has(id)) fileNodes.set(id, makeNode()); return fileNodes.get(id); };
+let fileRequests = 0;
+vm.runInNewContext(placesSource, { location: {protocol:"file:"}, fetch() { fileRequests++; throw new Error("file mode must not fetch"); },
+  document: {getElementById:fileNode, createElement:makeNode, createTextNode:text=>({textContent:text})} });
+assert.equal(fileRequests, 0);
+assert.equal(fileNode("custom-search").disabled, true);
+assert.equal(fileNode("custom-query").disabled, true);
+assert.equal(fileNode("custom-search-error").children[1].href, "http://127.0.0.1:8000/live.html#real-data");
+for (let i=0;i<2;i++) {
+  fileNode("custom-name").value = `Offline test ${i}`; fileNode("custom-lat").value = String(i); fileNode("custom-lon").value = "0";
+  fileNode("custom-manual-form").listeners.submit({preventDefault() {}});
+}
+assert.equal(fileNode("custom-stops").children.length, 2);
+assert.equal(fileNode("use-custom-places").disabled, true);
+fileNode("custom-search-form").listeners.submit({preventDefault() {}});
+fileNode("places-form").listeners.submit({preventDefault() {}});
+assert.equal(fileRequests, 0);
 const ctx = vm.createContext({ byId: () => ({ value: "" }) });
 // Follow the existing display test's pattern: exercise the actual page functions.
 vm.runInContext(source.slice(source.indexOf("  function parseStops("), source.indexOf("  function payloadFromForm(")), ctx);
@@ -28,6 +50,13 @@ assert.throws(() => parse({ problem: "CVRPTW", stops: [{ lat: 0, lon: 0 }, { lat
 const named = { ...fixture, places: fixture.stops.map((s, i) => ({ ...s, name: `Test place ${i}` })), provenance: { source: "Test-only metadata" } };
 assert.equal(parse(named).places[1].name, "Test place 1");
 assert.throws(() => parse({ ...named, places: named.places.toReversed() }));
+const { buildCustomDataset } = require('../web/real-data.js');
+const largeCustom = buildCustomDataset(Array.from({length:100}, (_,i)=>({name:'अ'.repeat(240),lat:0,lon:i,query:'अ'.repeat(200),source:'OpenStreetMap via Photon',retrieved_at:'2026-10-13T00:00:00Z',response_sha256:'a'.repeat(64),coordinate_kind:'mapped search result'})));
+// Export input includes the API fields and dataset metadata, not duplicate top-level places.
+const exportedInput = JSON.stringify({stops:largeCustom.stops,problem:'TSP',provider:'haversine',dataset:largeCustom}, null, 2);
+assert.ok(Buffer.byteLength(exportedInput) <= 262144);
+assert.ok(Buffer.byteLength(exportedInput) > 65536); // Long UTF-8 place metadata exceeds the previous import cap.
+assert.equal(parse(JSON.parse(exportedInput)).places.length, 100);
 
 // Importing or switching datasets restores every control, including a custom budget.
 const nodes = Object.fromEntries(["problem", "solver", "provider", "vehicles", "capacity", "shift", "budget", "stops", "hero-title", "import-error"].map(id => [id, { value: "", options: [], append(option) { this.options.push(option); } }]));
@@ -42,6 +71,9 @@ assert.equal(nodes.problem.value, "CVRPTW"); assert.equal(nodes.solver.value, "s
 assert.ok(nodes.stops.value.includes("2, 0, 28800, 120"));
 
 (async () => {
+  const importer = vm.createContext({});
+  vm.runInContext(source.slice(source.indexOf("  async function importFile("), source.indexOf('  document.addEventListener("waybill:dataset"')), importer);
+  await assert.rejects(importer.importFile({ size: 262145, text() { throw new Error("oversized files must not be read"); } }), /256 KB/);
   const http = vm.createContext({ AbortSignal, fetch: async () => ({ status: 503, json: async () => { throw new SyntaxError("HTML maintenance page"); } }) });
   vm.runInContext(source.slice(source.indexOf("  async function request("), source.indexOf("  function setBusy(")), http);
   await assert.rejects(http.request("/api/solve"), /unreadable response \(HTTP 503\)/);

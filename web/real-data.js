@@ -18,11 +18,83 @@
       vehicles: fleet ? answers.vehicles : 1, capacity: fleet ? answers.capacity : 25, shift_end: fleet ? answers.shift : 28800, wall_time_ms: 1000,
       provenance: { ...catalog.provenance, selection: "geographic proximity to user-selected depot", planning_assumptions: fleet ? { parcels_per_customer: answers.demand, service_seconds: answers.service, shift_seconds: answers.shift, windows: "entire user-defined shift" } : { model: "TSP", actual_orders: false } } };
   }
-  if (typeof module !== "undefined") { module.exports = { buildDataset }; return; }
+  function validateCustomPlaces(places) {
+    if (!Array.isArray(places) || places.length < 1 || places.length > 100) throw new Error("Use at most 100 places, including the starting depot.");
+    const seen = new Set();
+    for (const p of places) {
+      if (!p || typeof p.name !== "string" || !p.name.trim() || p.name.length > 240 || !Number.isFinite(p.lat) || !Number.isFinite(p.lon) || Math.abs(p.lat) > 90 || Math.abs(p.lon) > 180) throw new Error("Each place needs a name and valid latitude / longitude.");
+      const key = `${p.lat},${p.lon}`;
+      if (seen.has(key)) throw new Error("This location is already in your stop list.");
+      seen.add(key);
+    }
+  }
+  function buildCustomDataset(places) {
+    validateCustomPlaces(places);
+    if (places.length < 2) throw new Error("Add a starting place and 1–99 delivery stops.");
+    return { name: `Custom round trip · ${places[0].name}`, places: places.map(p => ({ ...p })), stops: places.map(({ lat, lon }) => ({ lat, lon })),
+      problem: "TSP", solver: "nearest_neighbor", provider: "haversine", vehicles: 1, capacity: 25, shift_end: 28800, wall_time_ms: 1000,
+      provenance: { source: "User-selected custom places", selection: "first place is the start and return depot; remaining stops are optimized", locations_only: true,
+        attribution: "Search results: © OpenStreetMap contributors · ODbL; manual coordinates are user supplied", planning_assumptions: { model: "TSP", actual_orders: false } } };
+  }
+  if (typeof module !== "undefined") { module.exports = { buildDataset, buildCustomDataset }; return; }
   const byId = (id) => document.getElementById(id);
+  const fileMode = location.protocol === "file:";
   let options = null, catalog = null;
   const fields = byId("real-build-fields"), preview = byId("places-preview"), button = byId("fetch-places");
   function node(tag, text, cls) { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (cls) el.className = cls; return el; }
+  const selectedPlaces = [];
+  function renderCustomStops() {
+    const list = byId("custom-stops"); list.replaceChildren();
+    byId("custom-summary").textContent = selectedPlaces.length ? `${selectedPlaces.length} places · start and return: ${selectedPlaces[0].name}` : "Add your starting place, then the places you want to visit.";
+    byId("use-custom-places").disabled = fileMode || selectedPlaces.length < 2;
+    selectedPlaces.forEach((p, i) => {
+      const row = node("article", undefined, "place-row"), info = node("div");
+      info.append(node("strong", `${i ? `Stop ${i}` : "Start / return"} · ${p.name}`), node("small", `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)} · ${p.coordinate_kind}`));
+      const actions = node("div", undefined, "custom-stop-actions");
+      if (i) {
+        const start = node("button", "Start here", "secondary small-button"); start.type = "button"; start.setAttribute("aria-label", `Start and return at ${p.name}`);
+        start.addEventListener("click", () => { selectedPlaces.unshift(selectedPlaces.splice(i, 1)[0]); renderCustomStops(); byId("use-custom-places").focus(); }); actions.append(start);
+      }
+      const remove = node("button", "Remove", "secondary small-button"); remove.type = "button"; remove.setAttribute("aria-label", `Remove ${p.name}`);
+      remove.addEventListener("click", () => { selectedPlaces.splice(i, 1); renderCustomStops(); byId("custom-query").focus(); }); actions.append(remove);
+      row.append(info, actions); list.append(row);
+    });
+  }
+  function addCustomPlace(place) {
+    byId("custom-error").textContent = "";
+    try {
+      validateCustomPlaces([...selectedPlaces, place]);
+      selectedPlaces.push({ ...place }); renderCustomStops();
+      byId("custom-error").textContent = `${place.name} added.`;
+    } catch (e) { byId("custom-error").textContent = e.message; }
+  }
+  byId("custom-manual-form").addEventListener("submit", event => {
+    event.preventDefault();
+    addCustomPlace({ name: byId("custom-name").value.trim(), lat: Number(byId("custom-lat").value), lon: Number(byId("custom-lon").value), coordinate_kind: "user-supplied coordinates", source: "Manual entry" });
+  });
+  byId("custom-search-form").addEventListener("submit", async event => {
+    event.preventDefault(); if (fileMode) return;
+    const button = byId("custom-search"), results = byId("custom-results");
+    button.disabled = true; button.textContent = "Searching…"; results.replaceChildren(); byId("custom-search-error").textContent = "";
+    byId("custom-search-form").setAttribute("aria-busy", "true");
+    try {
+      const response = await fetch("/api/places/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: byId("custom-query").value }), signal: AbortSignal.timeout(20000) });
+      let data;
+      try { data = await response.json(); } catch (_) { throw new Error(`Place search returned an unreadable response (HTTP ${response.status}).`); }
+      if (!response.ok) throw new Error(data.error || "Place search is unavailable.");
+      if (!data.places.length) results.append(node("p", "No matching places. Include the city, try another name, or enter coordinates below.", "metric-copy"));
+      data.places.forEach(p => {
+        const row = node("article", undefined, "place-row"), info = node("div"), add = node("button", "Add stop", "secondary small-button");
+        info.append(node("strong", p.name), node("small", `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}`));
+        add.type = "button"; add.setAttribute("aria-label", `Add ${p.name}`); add.addEventListener("click", () => addCustomPlace(p)); row.append(info, add); results.append(row);
+      });
+    } catch (e) { byId("custom-search-error").textContent = e.name === "TimeoutError" ? "Place search timed out. Retry or enter coordinates below." : e.message; }
+    finally { button.disabled = false; button.textContent = "Search places"; byId("custom-search-form").setAttribute("aria-busy", "false"); }
+  });
+  byId("use-custom-places").addEventListener("click", () => {
+    try { document.dispatchEvent(new CustomEvent("waybill:dataset", { detail: buildCustomDataset(selectedPlaces) })); } catch (e) { byId("custom-error").textContent = e.message; }
+  });
+  renderCustomStops();
   function answers() { return Object.fromEntries(["depot", "count", "model", "vehicles", "capacity", "demand", "service", "shift"].map((key) => [key, key === "model" ? byId(`real-${key}`).value : Number(byId(`real-${key}`).value)])); }
   function currentDataset() { if (!catalog) throw new Error("Fetch places first."); return buildDataset(catalog, answers()); }
   function renderPreview() {
@@ -55,7 +127,8 @@
   byId("real-region").addEventListener("change", invalidate); byId("real-category").addEventListener("change", invalidate);
   fields.addEventListener("change", renderPreview);
   byId("places-form").addEventListener("submit", async (event) => {
-    event.preventDefault(); invalidate(); button.disabled = true; button.textContent = "Fetching OpenStreetMap…";
+    event.preventDefault(); if (fileMode) return;
+    invalidate(); button.disabled = true; button.textContent = "Fetching OpenStreetMap…";
     byId("real-region").disabled = true; byId("real-category").disabled = true;
     byId("places-loading").hidden = false; byId("places-form").setAttribute("aria-busy", "true");
     byId("places-status").textContent = "Fetching public map records. This can take up to 25 seconds.";
@@ -88,6 +161,16 @@
   byId("download-real-data").addEventListener("click", () => {
     try { document.dispatchEvent(new CustomEvent("waybill:download", { detail: { name: `waybill-${catalog.region}-${catalog.category}.json`, value: JSON.stringify(currentDataset(), null, 2) } })); } catch (e) { byId("dataset-error").textContent = e.message; }
   });
+  if (fileMode) {
+    const message = "This page was opened as a file. Search and routing need the local server. Run make live, then ";
+    const link = node("a", "open the running app ↗"); link.href = "http://127.0.0.1:8000/live.html#real-data"; link.target = "_blank"; link.rel = "noopener";
+    byId("custom-search-error").replaceChildren(document.createTextNode(message), link);
+    byId("custom-query").disabled = true; byId("custom-search").disabled = true;
+    byId("places-error").textContent = "Open the running app using the link above to fetch places.";
+    byId("real-region").replaceChildren(node("option", "Open the running app first"));
+    byId("real-category").replaceChildren(node("option", "Open the running app first"));
+    return;
+  }
   fetch("/api/places/options").then(async (response) => {
     if (!response.ok) throw new Error("Could not load the real-data setup. Reload when the engine is available.");
     options = await response.json();

@@ -50,7 +50,7 @@ const one = turnAngle(0, 90, 32), two = turnAngle(turnAngle(0, 90, 16), 90, 16);
 assert.ok(Math.abs(one - two) < 1e-9); // frame-rate independent turn smoothing
 console.log('Smooth motion: distance-paced unequal legs, heading seams, time-based interpolation passed.');
 
-const { buildDataset } = require('../web/real-data.js');
+const { buildDataset, buildCustomDataset } = require('../web/real-data.js');
 const catalog = {regionName:'Test-only region', categoryName:'Test-only category', roads:false, provenance:{response_sha256:'a'.repeat(64)}, places:[
   {lat:0,lon:0,name:'Fixture depot',osm_id:1}, {lat:0,lon:.02,name:'Fixture far',osm_id:2}, {lat:0,lon:.01,name:'Fixture near',osm_id:3}]};
 const data = buildDataset(catalog, {depot:0,count:2,model:'TSP'});
@@ -63,3 +63,12 @@ assert.equal(fleetData.provider, 'osrm'); assert.equal(fleetData.solver, 'saving
 assert.deepEqual(fleetData.stops[0], {lat:0,lon:0});
 assert.equal(fleetData.stops[1].demand, 2); assert.equal(fleetData.stops[1].latest, 28800);
 console.log('Real-data builder: fetched identities, honest selection limits, user-defined fleet constraints passed.');
+const custom = buildCustomDataset(catalog.places);
+assert.deepEqual(custom.stops, catalog.places.map(({lat,lon}) => ({lat,lon})));
+assert.equal(custom.places[0].name, 'Fixture depot'); assert.equal(custom.problem, 'TSP');
+assert.equal(custom.provider, 'haversine'); assert.equal(custom.vehicles, 1);
+assert.equal(custom.places[1].name, 'Fixture far');
+catalog.places[0].name = 'Changed after use';
+assert.equal(custom.places[0].name, 'Fixture depot');
+for (const invalid of [[], [custom.places[0]], [custom.places[0], custom.places[0]], [null, {}], [{name:'bad',lat:NaN,lon:0},custom.places[1]], [{name:'',lat:0,lon:0},custom.places[1]], Array.from({length:101}, (_,i)=>({name:'place',lat:0,lon:i}))]) assert.throws(()=>buildCustomDataset(invalid));
+console.log('Custom places: depot order, coordinate validation, duplicate rejection and copied provenance passed.');

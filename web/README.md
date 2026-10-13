@@ -10,6 +10,24 @@ See `docs/deployment.md` for the free hosted configuration.
 
 ## Real data
 
+**Places & real data → Your own stops** accepts a public place/address search
+(include the city) or a name with latitude/longitude. Add each chosen result,
+remove unwanted stops, and use **Start here** to choose the depot. **Use these
+stops in route planner** loads a closed TSP tour through the 1–99 remaining
+stops. Run Solve tour or the algorithm comparison; the list is the input, not a
+fixed visit order. Export input retains names and per-place location sources.
+Open the HTTP app served by `make live`, rather than double-clicking
+`live.html`: file mode disables searches and shows a link to the running app.
+Custom trips default to the labelled geographic distance estimate. The existing
+Monaco-only road router can be selected for locations within its coverage.
+
+Search uses the [Photon public demo](https://github.com/komoot/photon#demo-server),
+with explicit searches, five matches, no key, a 15-second timeout, six-hour
+cache, and per-process limits of one new query/second and 100/day. Availability
+and map completeness are not guaranteed. The search text is sent to Photon;
+manual coordinates stay in the app until the chosen routing provider is used.
+No new dependencies are needed.
+
 The **Real data** tab fetches OpenStreetMap places on demand: select a bounded
 city-centre area and restaurant/pharmacy/supermarket/hotel category, then
 choose a fetched place as depot, customer count and TSP/fleet constraints.
@@ -63,7 +81,7 @@ Display regression check: `node tests/test_route_comparison.cjs`.
 ## Import, exports and edited inputs
 
 Import JSON (a stop array or an object containing `stops`) or CSV with two
-coordinate columns, optionally four fleet columns. Files are limited to 64 KB
+coordinate columns, optionally four fleet columns. Files are limited to 256 KB
 and 2–100 nodes including the depot. JSON exports retain supported model,
 algorithm, budget, vehicle and travel settings, plus matching location metadata.
 An invalid file leaves the current dataset unchanged. Switching between the

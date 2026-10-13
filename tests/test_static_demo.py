@@ -38,7 +38,9 @@ def test_live_workbench_exposes_each_connected_surface() -> None:
     assert "renderTimeline()" in script
     assert "function solveHeldKarp" not in script
     assert 'src="route-motion.js?v=3"' in html
-    assert 'src="real-data.js?v=2"' in html
+    assert 'src="real-data.js?v=4"' in html
+    assert 'id="custom-search-form"' in html
+    assert 'id="use-custom-places"' in html
     assert 'src="route-comparison.js?v=2"' in html
     assert 'request("/api/compare"' in script
     assert "window.WaybillComparison.mount" in script

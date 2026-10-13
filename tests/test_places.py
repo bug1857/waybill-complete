@@ -18,9 +18,13 @@ from api import server as api
 def reset_query_state():
     p._cache.clear()
     p._attempts.clear()
+    p._search_cache.clear()
+    p._search_attempts.clear()
     yield
     p._cache.clear()
     p._attempts.clear()
+    p._search_cache.clear()
+    p._search_attempts.clear()
 
 
 def example_response():
@@ -108,6 +112,7 @@ def test_busy_and_daily_cap(monkeypatch):
 
 def test_http_routes_use_existing_origin_and_body_guards(monkeypatch):
     monkeypatch.setattr(api, "fetch_places", lambda _: {"places": []})
+    monkeypatch.setattr(api, "search_places", lambda _: {"places": []})
     server = HTTPServer(("127.0.0.1", 0), api.Handler)
     worker = Thread(target=server.serve_forever, daemon=True); worker.start()
     client = HTTPConnection("127.0.0.1", server.server_port, timeout=3)
@@ -116,11 +121,54 @@ def test_http_routes_use_existing_origin_and_body_guards(monkeypatch):
         response = client.getresponse()
         assert response.status == 200 and "jaipur" in json.loads(response.read())["regions"]
         for origin, status in [(f"http://127.0.0.1:{server.server_port}", 200), ("https://evil.test", 403)]:
-            client.request("POST", "/api/places", "{}", {"Content-Type": "application/json", "Origin": origin})
-            response = client.getresponse()
-            assert response.status == status; response.read()
+            for endpoint in ("/api/places", "/api/places/search"):
+                client.request("POST", endpoint, "{}", {"Content-Type": "application/json", "Origin": origin})
+                response = client.getresponse()
+                assert response.status == status; response.read()
         client.request("GET", "/real-data.js?v=1")
         response = client.getresponse()
         assert response.status == 200; response.read()
     finally:
         client.close(); server.shutdown(); server.server_close(); worker.join()
+
+
+def test_search_preserves_coordinates_identity_and_cached_retrieval(monkeypatch):
+    feature = {"properties": {"name": "Test museum", "city": "Jaipur"}, "geometry": {"type": "Point", "coordinates": [75.82, 26.92]}}
+    invalid = {**feature, "geometry": {"type": "Point", "coordinates": [True, 91]}}
+    raw = json.dumps({"features": [feature, invalid, None]}).encode()
+    calls = mock_network(monkeypatch, raw)
+    result = p.search_places({"query": "Test museum Jaipur"})
+    place, = result["places"]
+    assert (place["lat"], place["lon"]) == (26.92, 75.82)
+    assert place["name"] == "Test museum, Jaipur"
+    assert place["response_sha256"] == hashlib.sha256(raw).hexdigest()
+    assert calls[0][0].full_url.startswith(p.SEARCH_ENDPOINT + "?q=Test+museum+Jaipur")
+    assert "limit=5" in calls[0][0].full_url and calls[0][1] == 15
+    assert p.search_places({"query": "  Test museum   Jaipur "})["places"] == result["places"]
+    assert len(calls) == 1
+    with pytest.raises(p.PlacesBusy):
+        p.search_places({"query": "Another place"})
+
+
+@pytest.mark.parametrize("payload", [None, {}, {"query": []}, {"query": "ab"}, {"query": "x" * 201}, {"query": "place", "url": "https://evil.test"}])
+def test_invalid_search_never_reaches_network(payload):
+    with pytest.raises(ValueError):
+        p.search_places(payload)
+    assert not p._search_attempts
+
+
+@pytest.mark.parametrize("raw", [b"not JSON", b"{}", b"x" * (p.MAX_RESPONSE_BYTES + 1)])
+def test_search_upstream_errors_do_not_create_places(monkeypatch, raw):
+    mock_network(monkeypatch, raw)
+    with pytest.raises(p.PlacesError):
+        p.search_places({"query": "Test museum Jaipur"})
+    assert not p._search_cache
+
+
+def test_search_empty_results_and_daily_limit(monkeypatch):
+    mock_network(monkeypatch, b'{"features":[]}')
+    assert p.search_places({"query": "Missing place"})["places"] == []
+    monkeypatch.setattr(p.time, "monotonic", lambda: 10000)
+    p._search_attempts.clear(); p._search_attempts.extend(range(100))
+    with pytest.raises(p.PlacesBusy):
+        p.search_places({"query": "Another place"})

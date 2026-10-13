@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Courier Delivery Route Optimization System: TSP with Greedy nearest neighbour and Branch & Bound, measured on the same input.">
   <title>Waybill — Courier Delivery Route Optimization System</title>
-  <link rel="stylesheet" href="styles.css?v=10">
+  <link rel="stylesheet" href="styles.css?v=11">
 </head>
 <body class="live-app">
   <header class="site-header">
@@ -21,7 +21,7 @@
     </div>
     <nav class="app-nav" aria-label="Application sections" role="tablist">
       <button id="tab-dispatch" class="nav-tab" role="tab" aria-selected="true" aria-controls="dispatch" data-tab="dispatch">Route planner</button>
-      <button id="tab-real-data" class="nav-tab" role="tab" aria-selected="false" aria-controls="real-data" data-tab="real-data">Real data</button>
+      <button id="tab-real-data" class="nav-tab" role="tab" aria-selected="false" aria-controls="real-data" data-tab="real-data">Places &amp; real data</button>
       <button id="tab-sandbox" class="nav-tab" role="tab" aria-selected="false" aria-controls="sandbox" data-tab="sandbox">Algorithm comparison</button>
       <button id="tab-asymmetry" class="nav-tab" role="tab" aria-selected="false" aria-controls="asymmetry" data-tab="asymmetry">Asymmetry trap</button>
       <button id="tab-evidence" class="nav-tab" role="tab" aria-selected="false" aria-controls="evidence" data-tab="evidence">Evidence lab</button>
@@ -50,7 +50,7 @@
   <main class="page workbench">
     <section id="dispatch" class="app-panel" role="tabpanel" aria-labelledby="tab-dispatch">
       <div class="topic-banner">
-        <div><p class="eyebrow">Waybill / Routing studio</p><h1>Every stop.<br><span>Considered.</span></h1><p>Real places. Measured routes. A clear view of every delivery—from the first stop to the return home.</p><button type="button" class="secondary small-button" id="start-real-data">Build with real places ↗</button></div>
+        <div><p class="eyebrow">Waybill / Routing studio</p><h1>Every stop.<br><span>Considered.</span></h1><p>Real places. Measured routes. A clear view of every delivery—from the first stop to the return home.</p><button type="button" class="secondary small-button" id="start-real-data">Add your own places ↗</button></div>
         <div class="route-sticker" aria-hidden="true"><svg viewBox="0 0 140 90" fill="none"><path d="M18 69C18 14 119 87 119 30C119 6 49 11 49 41" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 6"/><circle cx="18" cy="69" r="5" fill="currentColor"/><path d="m49 48-7-12h14Z" fill="currentColor"/></svg><span>THE WAY FORWARD</span></div>
       </div>
       <section class="dispatch-hero">
@@ -106,6 +106,33 @@
 
     <section id="real-data" class="app-panel" role="tabpanel" aria-labelledby="tab-real-data" hidden>
       <div class="section-heading data-heading"><div><p class="eyebrow">01 / Real-world inputs</p><h1>A route begins<br>with real places.</h1><p class="lede">Choose a neighbourhood and the places you want to visit. Fetch live OpenStreetMap records, choose your depot, and build a transparent routing dataset.</p></div><span class="source-pill">OpenStreetMap · public data</span></div>
+      <section class="card custom-places" aria-labelledby="custom-title">
+        <div class="card-heading"><div><p class="eyebrow">Your own stops</p><h2 id="custom-title">Start here. Visit every place. Return home.</h2></div></div>
+        <p class="metric-copy">Search a place or address with its city, confirm the matching location, and add it. The first place is your start and return point; use Start here to choose another.</p>
+        <div class="data-workspace">
+          <div>
+            <form id="custom-search-form">
+              <label for="custom-query">Place / address and city</label><input id="custom-query" type="search" minlength="3" maxlength="200" placeholder="e.g. Hawa Mahal, Jaipur" required>
+              <button id="custom-search" type="submit">Search places</button><p id="custom-search-error" class="error" role="alert"></p>
+            </form>
+            <p class="data-disclosure">Search text is sent to <a href="https://photon.komoot.io/">Photon</a>. Search results © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors · ODbL</a>. Check the location before adding; public search may miss a place.</p>
+            <div id="custom-results" class="places-preview" aria-live="polite"></div>
+            <details><summary>Add a place using coordinates</summary>
+              <form id="custom-manual-form">
+                <label for="custom-name">Place name</label><input id="custom-name" maxlength="240" required>
+                <div class="question-grid"><div><label for="custom-lat">Latitude</label><input id="custom-lat" type="number" min="-90" max="90" step="any" required></div><div><label for="custom-lon">Longitude</label><input id="custom-lon" type="number" min="-180" max="180" step="any" required></div></div>
+                <button type="submit" class="secondary">Add coordinates</button>
+              </form>
+            </details>
+          </div>
+          <div>
+            <h3>Your round trip</h3><p id="custom-summary" class="metric-copy" role="status"></p>
+            <div id="custom-stops" class="places-preview"></div><p id="custom-error" class="metric-copy" role="status"></p>
+            <p class="coverage-note">Custom trips start with geographic distance estimates. These are straight-line distances, without road directions or traffic. Up to 100 places including the start.</p>
+            <button id="use-custom-places" type="button" disabled>Use these stops in route planner ↗</button>
+          </div>
+        </div>
+      </section>
       <div class="data-workspace">
         <form id="places-form" class="card data-form">
           <div class="question-heading"><span>01</span><div><h2>Where are we delivering?</h2><p class="metric-copy">Small city-centre areas keep queries fast and fair.</p></div></div>
@@ -167,6 +194,6 @@
 
   <dialog id="solve-report-dialog" class="report-dialog"><div class="card-heading"><div><p class="eyebrow">Canonical response</p><h2>SolveReport &amp; provenance</h2></div><button id="close-report" type="button" class="secondary small-button">Close</button></div><pre id="result-json">No run yet.</pre></dialog>
   <footer class="site-footer"><span>Waybill · canonical Python engine</span><a href="https://www.openstreetmap.org/copyright">Road data © OpenStreetMap contributors</a><a href="index.html">Offline evidence viewer</a></footer>
-  <script src="evidence.js"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=2"></script><script src="real-data.js?v=2"></script><script src="live.js?v=10"></script>
+  <script src="evidence.js"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=2"></script><script src="real-data.js?v=4"></script><script src="live.js?v=11"></script>
 </body>
 </html>

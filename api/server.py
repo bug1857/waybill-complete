@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 
 from adapters.distance.haversine import HaversineProvider
 from adapters.distance.osrm import OsrmError, OsrmProvider
-from adapters.places import REGIONS, PlacesBusy, PlacesError, fetch_places, places_options
+from adapters.places import REGIONS, PlacesBusy, PlacesError, fetch_places, places_options, search_places
 from bench.evidence.provenance import GitState, ProvenanceError, capture_git_state
 from core.construct import ClarkeWrightSolver, NearestNeighborSolver
 from core.eval.feasibility import check, schedule
@@ -281,7 +281,7 @@ class Handler(SimpleHTTPRequestHandler):
         if not self.allowed_request():
             self.send_json({"error": "request must use the configured application origin"}, 403)
             return
-        if self.path not in ("/api/solve", "/api/compare", "/api/places"):
+        if self.path not in ("/api/solve", "/api/compare", "/api/places", "/api/places/search"):
             self.send_json({"error": "not found"}, 404)
             return
         if self.headers.get_content_type() != "application/json":
@@ -302,6 +302,8 @@ class Handler(SimpleHTTPRequestHandler):
                     return
             if self.path == "/api/places":
                 response = fetch_places(payload)
+            elif self.path == "/api/places/search":
+                response = search_places(payload)
             else:
                 operation = compare_request if self.path == "/api/compare" else solve_request
                 response = operation(payload, osrm_url=self.server.osrm_url, dataset_id=self.server.dataset_id)

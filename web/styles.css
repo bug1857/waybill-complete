@@ -344,6 +344,12 @@ pre { overflow: auto; max-height: 450px; white-space: pre-wrap; overflow-wrap: a
 .live-app .data-heading h1 { font: 400 clamp(38px, 4vw, 60px)/1.08 Georgia, serif; margin-block: 16px; }
 .source-pill { display: inline-flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid #d2ded4; border-radius: 6px; color: var(--blue); background: #f4f8f3; font: 500 11px ui-monospace, monospace; flex-shrink: 0; }
 .data-workspace { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+.custom-places { margin-bottom: 28px; }
+.custom-places button { margin-top: 12px; }
+.custom-places .place-row > div:first-child { flex: 1; overflow-wrap: anywhere; }
+.custom-places .place-row > button, .custom-stop-actions { width: auto; flex-shrink: 0; }
+.custom-stop-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.custom-stop-actions button { width: auto; }
 .live-app .data-form, .live-app .data-preview { padding: 28px; }
 .question-heading { display: flex; align-items: start; gap: 14px; }
 .question-heading > span { flex: 0 0 30px; padding-top: 5px; font: 500 12px ui-monospace, monospace; color: #7d8a81; }

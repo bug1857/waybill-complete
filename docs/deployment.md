@@ -2,6 +2,8 @@
 
 Deploy the repository's Dockerfile as a Render **Free** web service. No paid
 database, disk, worker, custom domain or external routing API is required.
+Use the canonical GitHub repository `bug1857/waybill-complete`, branch `main`;
+the original repository is retained only as a historical backup.
 Render provides `PORT`, `RENDER_EXTERNAL_URL` and `RENDER_GIT_COMMIT`; the server
 requires the exact HTTPS origin and records the deployed commit in solve results.
 
