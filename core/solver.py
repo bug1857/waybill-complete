@@ -34,7 +34,11 @@ class Budget:
     def __post_init__(self) -> None:
         for name in ("wall_time_ms", "max_nodes", "max_memory_mb"):
             value = getattr(self, name)
-            if value is not None and value <= 0:
+            if value is None:
+                continue
+            if not isinstance(value, int) or isinstance(value, bool):
+                raise TypeError(f"{name} must be an integer when set")
+            if value <= 0:
                 raise ValueError(f"{name} must be positive when set, got {value}")
 
     @property

@@ -10,28 +10,35 @@ Prints evidence rather than a bare pass/fail, because the point of the gate is
 that someone else can read the numbers and check them against TSPLIB themselves.
 """
 
+import argparse
+import json
 import sys
 from itertools import permutations
 from pathlib import Path
 
 from adapters.distance.haversine import HaversineProvider
 from adapters.distance.osrm import OsrmProvider
-from bench.generators import random_asymmetric_tsp, random_euclidean_tsp
+from bench.evidence.bundle import EvidenceBundle
+from bench.evidence.report import verify_markdown_report
+from bench.generators import (
+    clustered_cvrptw_150,
+    random_asymmetric_tsp,
+    random_euclidean_tsp,
+)
 from bench.tsplib.known_optima import PUBLISHED_OPTIMA
 from bench.tsplib.parser import parse_problem, parse_tour
 from core.eval.feasibility import check
 from core.eval.objective import closed_tour_cost
-from core.construct.nearest_neighbour import NearestNeighbourSolver
-from core.construct.savings import ClarkeWrightSolver
-from core.exact.bounds.reduction import completion_bound
+from core.construct import ClarkeWrightSolver
 from core.exact.branch_and_bound import BranchAndBoundSolver
 from core.exact.brute_force import BruteForceSolver
 from core.exact.held_karp import HeldKarpSolver
-from bench.tsplib.parser import parse_tour as _parse_tour
 from core.model.geometry import Coord
+from core.reporting.status import SolveStatus
 from core.model.units import Unit
 
 DATA = Path(__file__).resolve().parent.parent / "data" / "tsplib"
+ROOT = Path(__file__).resolve().parent.parent
 
 
 def _exhaustive(instance) -> int:
@@ -134,82 +141,89 @@ def gate_distance_adapters() -> bool:
     return True
 
 
-EXPLICIT_OPTIMA = {"gr24": 1272, "bayg29": 1610, "bays29": 2020}
+def gate_exact_core() -> bool:
+    """Phase 2: three independent exact implementations agree."""
+    print("\nPhase 2 -- exact solver agreement")
+    instance = random_euclidean_tsp(10, 17, name="gate-exact-n10-s17")
+    reports = [
+        solver.solve(instance)[1]
+        for solver in (BruteForceSolver(), HeldKarpSolver(), BranchAndBoundSolver())
+    ]
+    objectives = {report.objective_value for report in reports}
+    valid = all(
+        report.status is SolveStatus.PROVEN_OPTIMAL_TSP
+        and report.best_lower_bound == report.objective_value
+        for report in reports
+    )
+    print(f"  objectives: {[report.objective_value for report in reports]}")
+    print(f"  proof statuses: {'YES' if valid else 'NO'}")
+    return len(objectives) == 1 and valid
 
 
-def gate_explicit() -> bool:
-    """Phase 2: matrix-defined instances parse correctly."""
-    print("\nEXPLICIT instances reproduce published optima")
-    ok = True
-    for name, published in sorted(EXPLICIT_OPTIMA.items()):
-        problem = parse_problem(DATA / f"{name}.tsp")
-        instance = problem.to_instance()
-        tour = _parse_tour(DATA / f"{name}.opt.tour")
-        got = closed_tour_cost(instance.matrix, tour)
-        match = got == published
-        ok &= match and problem.coords == ()
-        print(f"  {name:<9} {problem.edge_weight_format.value:<15} "
-              f"{got:>7} vs {published:<7} {'YES' if match else 'NO':<4} "
-              f"geometry-coords={len(problem.coords)}")
-    return ok
+def gate_cvrptw() -> bool:
+    """Phase 5: named 150-customer/6-vehicle construction is complete."""
+    print("\nPhase 5 -- CVRPTW fleet feasibility")
+    instance = clustered_cvrptw_150()
+    solution, report = ClarkeWrightSolver().solve(instance)
+    feasibility = check(instance, solution)
+    served = set(solution.served) == set(instance.customer_indices)
+    valid = (
+        feasibility.is_feasible
+        and instance.n == 151
+        and solution.used_vehicle_count == 6
+        and served
+        and report.status is SolveStatus.HEURISTIC_FEASIBLE_CVRPTW
+    )
+    print(
+        f"  stops={instance.n - 1} vehicles={solution.used_vehicle_count} "
+        f"served={len(solution.served)} status={report.status.value}"
+    )
+    return valid
 
 
-def gate_exact_agreement() -> bool:
-    """Phase 2 exit gate: three independent exact solvers must agree."""
-    print("\nExact solvers agree (brute force / Held-Karp / Branch & Bound)")
-    bf, hk, bb = BruteForceSolver(), HeldKarpSolver(), BranchAndBoundSolver()
-    ok = True
-    for label, factory in (("symmetric", random_euclidean_tsp),
-                           ("asymmetric", random_asymmetric_tsp)):
-        mismatches = 0
-        count = 0
-        for n in range(3, 9):
-            for seed in range(6):
-                inst = factory(n, seed)
-                a = bf.solve(inst)[1].objective_value
-                b = hk.solve(inst)[1].objective_value
-                c = bb.solve(inst)[1].objective_value
-                count += 1
-                if not (a == b == c):
-                    mismatches += 1
-        ok &= mismatches == 0
-        print(f"  {label:<11} {count} instances, {mismatches} mismatch(es)")
-
-    violations = 0
-    checks = 0
-    for n in range(4, 9):
-        for seed in range(12):
-            inst = random_euclidean_tsp(n, seed)
-            opt = bf.solve(inst)[1].objective_value
-            lb = completion_bound(inst.matrix, inst.depot_index,
-                                  set(inst.customer_indices), inst.depot_index)
-            checks += 1
-            if lb > opt:
-                violations += 1
-    ok &= violations == 0
-    print(f"  bound validity: {checks} checks, {violations} violation(s) "
-          f"(LB must never exceed the optimum)")
-
-    inst = parse_problem(DATA / "gr17.tsp").to_instance()
-    rep = hk.solve(inst)[1]
-    match = rep.objective_value == 2085
-    ok &= match
-    print(f"  gr17 (EXPLICIT, n=17): Held-Karp {rep.objective_value} vs "
-          f"published 2085  {'YES' if match else 'NO'}")
-    return ok
+def gate_evidence_and_demo() -> bool:
+    """Phase 6/7: generated report and offline UI share one valid bundle."""
+    print("\nPhase 6/7 -- evidence bundle and static demo")
+    bundle_path = ROOT / "artifacts" / "evidence.json"
+    report_path = ROOT / "report" / "results.md"
+    payload_path = ROOT / "web" / "evidence.js"
+    index_path = ROOT / "web" / "index.html"
+    app_path = ROOT / "web" / "app.js"
+    try:
+        bundle = EvidenceBundle.read(bundle_path)
+        verify_markdown_report(bundle, report_path.read_text(encoding="utf-8"))
+        payload = payload_path.read_text(encoding="utf-8")
+        embedded = json.loads(
+            payload.removeprefix("window.WAYBILL_EVIDENCE = ").rstrip(";\n")
+        )
+        embedded_bundle = EvidenceBundle.from_dict(embedded)
+    except (OSError, ValueError) as exc:
+        print(f"  FAIL: {exc}")
+        return False
+    static_files = all(path.is_file() for path in (index_path, app_path))
+    same_bundle = embedded_bundle.content_hash == bundle.content_hash
+    no_live_fetch = "fetch(" not in app_path.read_text(encoding="utf-8")
+    print(f"  bundle={bundle.content_hash[:16]} records={len(bundle.records)}")
+    print(f"  embedded bundle match: {'YES' if same_bundle else 'NO'}")
+    return static_files and same_bundle and no_live_fetch
 
 
 def main() -> int:
+    parser = argparse.ArgumentParser(description="Verify Waybill acceptance gates.")
+    parser.add_argument(
+        "--osrm",
+        action="store_true",
+        help="include the optional local OSRM adapter gate",
+    )
+    arguments = parser.parse_args()
     print("Waybill exit gates\n" + "=" * 52)
     print("Phase 0 -- contracts and truth")
     results = [gate_tsplib(), gate_brute_force()]
-    print("\n" + "-" * 52)
-    print("Phase 1 -- distance contract and adapters")
-    results.append(gate_distance_adapters())
-    print("\n" + "-" * 52)
-    print("Phase 2 -- assignment-complete solver core")
-    results.append(gate_explicit())
-    results.append(gate_exact_agreement())
+    results.extend([gate_exact_core(), gate_cvrptw(), gate_evidence_and_demo()])
+    if arguments.osrm:
+        print("\n" + "-" * 52)
+        print("Optional OSRM integration")
+        results.append(gate_distance_adapters())
     print("\n" + "=" * 52)
     if all(results):
         print("ALL GATES PASSED")

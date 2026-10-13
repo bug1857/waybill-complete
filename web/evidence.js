@@ -1,0 +1,363 @@
+window.WAYBILL_EVIDENCE = {
+  "content_sha256": "6f3b73319af8f6778b2fba44899f93cc7e7d33bd006d73ed993359d3cd2f65f1",
+  "metadata": {
+    "purpose": "release evidence and static demo",
+    "scope": "exact validation, heuristic reference, and CVRPTW feasibility"
+  },
+  "records": [
+    {
+      "manifest": {
+        "budget": {
+          "max_memory_mb": null,
+          "max_nodes": null,
+          "wall_time_ms": null
+        },
+        "created_at_utc": "2026-10-13T06:46:31.172689Z",
+        "git_dirty": false,
+        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
+        "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
+        "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
+        "matrix_unit": "tsplib_units",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+        "python_version": "3.14.5",
+        "schema_version": "1.0.0",
+        "seed": null,
+        "solver_config": {
+          "instance_config": {
+            "family": "random_euclidean_tsp",
+            "name": "exact-euclidean-n10-s17",
+            "nodes": 10,
+            "seed": 17,
+            "span": 1000
+          },
+          "solver": "brute_force"
+        },
+        "solver_name": "brute_force"
+      },
+      "result": {
+        "best_lower_bound": 3232,
+        "cpu_time_ms": 496.106,
+        "feasible": true,
+        "metrics": {
+          "bound_time_ms": 0.0,
+          "nodes_created": 181440,
+          "nodes_explored": 181440,
+          "nodes_pruned": 0,
+          "peak_frontier": 0,
+          "report_distance_matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
+          "report_solver_config_hash": "edb0cffc120a09bc"
+        },
+        "objective_unit": "tsplib_units",
+        "objective_value": 3232,
+        "peak_memory_mb": null,
+        "problem_type": "TSP",
+        "reference_source": null,
+        "reference_value": null,
+        "status": "PROVEN_OPTIMAL_TSP",
+        "stop_reason": "optimal",
+        "wall_time_ms": 525.3101669950411
+      }
+    },
+    {
+      "manifest": {
+        "budget": {
+          "max_memory_mb": null,
+          "max_nodes": null,
+          "wall_time_ms": null
+        },
+        "created_at_utc": "2026-10-13T06:46:31.215951Z",
+        "git_dirty": false,
+        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
+        "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
+        "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
+        "matrix_unit": "tsplib_units",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+        "python_version": "3.14.5",
+        "schema_version": "1.0.0",
+        "seed": null,
+        "solver_config": {
+          "instance_config": {
+            "family": "random_euclidean_tsp",
+            "name": "exact-euclidean-n10-s17",
+            "nodes": 10,
+            "seed": 17,
+            "span": 1000
+          },
+          "solver": "held_karp"
+        },
+        "solver_name": "held_karp"
+      },
+      "result": {
+        "best_lower_bound": 3232,
+        "cpu_time_ms": 4.709999999999992,
+        "feasible": true,
+        "metrics": {
+          "bound_time_ms": 0.0,
+          "nodes_created": 2304,
+          "nodes_explored": 2304,
+          "nodes_pruned": 0,
+          "peak_frontier": 0,
+          "report_distance_matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
+          "report_extra": {
+            "greedy_customer_bytes_estimate": "96",
+            "max_customers": "18",
+            "node_budget_counter": "dp_states_materialized",
+            "projected_states": "2304",
+            "state_bytes_estimate": "320",
+            "states_materialized": "2304"
+          },
+          "report_solver_config_hash": "edb0cffc120a09bc"
+        },
+        "objective_unit": "tsplib_units",
+        "objective_value": 3232,
+        "peak_memory_mb": 0.7033233642578125,
+        "problem_type": "TSP",
+        "reference_source": null,
+        "reference_value": null,
+        "status": "PROVEN_OPTIMAL_TSP",
+        "stop_reason": "optimal",
+        "wall_time_ms": 4.869208991294727
+      }
+    },
+    {
+      "manifest": {
+        "budget": {
+          "max_memory_mb": null,
+          "max_nodes": null,
+          "wall_time_ms": null
+        },
+        "created_at_utc": "2026-10-13T06:46:31.364043Z",
+        "git_dirty": false,
+        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
+        "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
+        "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
+        "matrix_unit": "tsplib_units",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+        "python_version": "3.14.5",
+        "schema_version": "1.0.0",
+        "seed": null,
+        "solver_config": {
+          "instance_config": {
+            "family": "random_euclidean_tsp",
+            "name": "exact-euclidean-n10-s17",
+            "nodes": 10,
+            "seed": 17,
+            "span": 1000
+          },
+          "solver": "branch_and_bound_min_in_out"
+        },
+        "solver_name": "branch_and_bound_min_in_out"
+      },
+      "result": {
+        "best_lower_bound": 3232,
+        "cpu_time_ms": 10.410999999999948,
+        "feasible": true,
+        "metrics": {
+          "bound_time_ms": 9.702948140329681,
+          "nodes_created": 458,
+          "nodes_explored": 77,
+          "nodes_pruned": 380,
+          "peak_frontier": 65,
+          "report_distance_matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
+          "report_extra": {
+            "bound": "min_in_out",
+            "incumbent_seed": "nearest_neighbor",
+            "node_budget_counter": "nodes_explored",
+            "search_strategy": "best_first",
+            "state_bytes_estimate": "672"
+          },
+          "report_solver_config_hash": "edb0cffc120a09bc"
+        },
+        "objective_unit": "tsplib_units",
+        "objective_value": 3232,
+        "peak_memory_mb": 0.0424957275390625,
+        "problem_type": "TSP",
+        "reference_source": null,
+        "reference_value": null,
+        "status": "PROVEN_OPTIMAL_TSP",
+        "stop_reason": "optimal",
+        "wall_time_ms": 10.410499991849065
+      }
+    },
+    {
+      "manifest": {
+        "budget": {
+          "max_memory_mb": null,
+          "max_nodes": null,
+          "wall_time_ms": null
+        },
+        "created_at_utc": "2026-10-13T06:46:31.404620Z",
+        "git_dirty": false,
+        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
+        "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
+        "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
+        "matrix_unit": "tsplib_units",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+        "python_version": "3.14.5",
+        "schema_version": "1.0.0",
+        "seed": null,
+        "solver_config": {
+          "instance_config": {
+            "family": "random_euclidean_tsp",
+            "name": "exact-euclidean-n10-s17",
+            "nodes": 10,
+            "seed": 17,
+            "span": 1000
+          },
+          "solver": "nearest_neighbor"
+        },
+        "solver_name": "nearest_neighbor"
+      },
+      "result": {
+        "best_lower_bound": null,
+        "cpu_time_ms": 0.08099999999999774,
+        "feasible": true,
+        "metrics": {
+          "bound_time_ms": 0.0,
+          "nodes_created": 9,
+          "nodes_explored": 9,
+          "nodes_pruned": 0,
+          "peak_frontier": 0,
+          "report_distance_matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
+          "report_extra": {
+            "construction_complete": "true",
+            "tie_break": "node_index"
+          },
+          "report_solver_config_hash": "edb0cffc120a09bc"
+        },
+        "objective_unit": "tsplib_units",
+        "objective_value": 3355,
+        "peak_memory_mb": 0.000823974609375,
+        "problem_type": "TSP",
+        "reference_source": null,
+        "reference_value": null,
+        "status": "HEURISTIC_FEASIBLE_TSP",
+        "stop_reason": "completed",
+        "wall_time_ms": 0.08250000246334821
+      }
+    },
+    {
+      "manifest": {
+        "budget": {
+          "max_memory_mb": null,
+          "max_nodes": null,
+          "wall_time_ms": null
+        },
+        "created_at_utc": "2026-10-13T06:46:31.441240Z",
+        "git_dirty": false,
+        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "input_name": "data/tsplib/eil51.tsp",
+        "input_sha256": "66c05ad077ffd64d5778e358bbd16be049f8c8ae880cbd24f034487331d1ccce",
+        "matrix_hash": "fc44db3d68b784409c051776f121425b5a337251c2fda66a3ebc17cb18c6ed85",
+        "matrix_unit": "tsplib_units",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+        "python_version": "3.14.5",
+        "schema_version": "1.0.0",
+        "seed": null,
+        "solver_config": {
+          "instance": "eil51",
+          "reference": "TSPLIB95 published optimum"
+        },
+        "solver_name": "nearest_neighbor"
+      },
+      "result": {
+        "best_lower_bound": null,
+        "cpu_time_ms": 0.5249999999999977,
+        "feasible": true,
+        "metrics": {
+          "bound_time_ms": 0.0,
+          "nodes_created": 50,
+          "nodes_explored": 50,
+          "nodes_pruned": 0,
+          "peak_frontier": 0,
+          "report_distance_matrix_hash": "fc44db3d68b784409c051776f121425b5a337251c2fda66a3ebc17cb18c6ed85",
+          "report_extra": {
+            "construction_complete": "true",
+            "tie_break": "node_index"
+          },
+          "report_solver_config_hash": "edb0cffc120a09bc"
+        },
+        "objective_unit": "tsplib_units",
+        "objective_value": 511,
+        "peak_memory_mb": 0.00457763671875,
+        "problem_type": "TSP",
+        "reference_source": "TSPLIB95 published optimum",
+        "reference_value": 426,
+        "status": "HEURISTIC_FEASIBLE_TSP",
+        "stop_reason": "completed",
+        "wall_time_ms": 0.5260420002741739
+      }
+    },
+    {
+      "manifest": {
+        "budget": {
+          "max_memory_mb": null,
+          "max_nodes": null,
+          "wall_time_ms": null
+        },
+        "created_at_utc": "2026-10-13T06:46:31.503148Z",
+        "git_dirty": false,
+        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "input_name": "data/benchmarks/clustered-cvrptw-150-v6-s240519.json",
+        "input_sha256": "45f8cc35a2ab2a780aa78bb0d38cd4e574baa5f5556dc11b7135652e24ac944e",
+        "matrix_hash": "608925deea2c204b4affa1de8b963a33632bd466781bc898c43e5b3e676f707a",
+        "matrix_unit": "metres",
+        "platform": "macOS-27.0.1-arm64-arm-64bit-Mach-O",
+        "python_version": "3.14.5",
+        "schema_version": "1.0.0",
+        "seed": null,
+        "solver_config": {
+          "instance_config": {
+            "customers": 150,
+            "family": "clustered_cvrptw_150",
+            "name": "clustered-cvrptw-c150-v6-s240519",
+            "note": "Synthetic reproducible integration fixture; not live-road or live-traffic data.",
+            "seed": 240519,
+            "vehicles": 6
+          }
+        },
+        "solver_name": "clarke_wright_savings"
+      },
+      "result": {
+        "best_lower_bound": null,
+        "cpu_time_ms": 32.93199999999996,
+        "feasible": true,
+        "metrics": {
+          "bound_time_ms": 0.0,
+          "nodes_created": 22350,
+          "nodes_explored": 21940,
+          "nodes_pruned": 0,
+          "peak_frontier": 0,
+          "report_distance_matrix_hash": "608925deea2c204b4affa1de8b963a33632bd466781bc898c43e5b3e676f707a",
+          "report_extra": {
+            "construction": "directed_parallel_clarke_wright",
+            "construction_complete": "true",
+            "final_routes": "6",
+            "initial_routes": "150",
+            "instance_infeasibility_proven": "false",
+            "merges_accepted": "144",
+            "pairs_evaluated": "21940",
+            "positive_merges": "144",
+            "savings_pairs": "22350"
+          },
+          "report_solver_config_hash": "edb0cffc120a09bc"
+        },
+        "objective_unit": "metres",
+        "objective_value": 142224,
+        "peak_memory_mb": 1.5346527099609375,
+        "problem_type": "CVRPTW",
+        "reference_source": null,
+        "reference_value": null,
+        "status": "HEURISTIC_FEASIBLE_CVRPTW",
+        "stop_reason": "completed",
+        "wall_time_ms": 34.69916600442957
+      }
+    }
+  ],
+  "schema_version": "1.0.0"
+}
+;

@@ -1,21 +1,15 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Waybill — Courier Routing Engine & DAA Prover</title>
-    <meta name="description" content="A courier routing engine that proves what it claims. Exact B&B, Held-Karp, CVRPTW dispatch, and validation chain." />
-    <meta property="og:title" content="Waybill — Courier Routing Engine & DAA Prover" />
-    <meta property="og:description" content="A courier routing engine that proves what it claims. Exact B&B, Held-Karp, CVRPTW dispatch, and validation chain." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,300..700;1,6..72,300..700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Waybill routing evidence viewer">
+    <title>Waybill — Evidence Viewer</title>
+    <link rel="stylesheet" href="styles.css">
   </head>
-  <body class="bg-[#F7F3F0] text-[#1A1A1A] antialiased selection:bg-[#1A1A1A] selection:text-[#F7F3F0]">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+  <body>
+    <main class="page" id="app" aria-live="polite"></main>
+    <script src="evidence.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>
-

@@ -7,11 +7,14 @@ without Docker still gets a meaningful suite.
 """
 
 import json
+import io
+import sqlite3
 from pathlib import Path
 
 import pytest
 
 from adapters.distance.cache import CachedProvider
+import adapters.distance.cache as cache_module
 from adapters.distance.haversine import (
     DEFAULT_ROAD_FACTOR,
     HaversineProvider,
@@ -133,6 +136,57 @@ def test_trivial_sizes_need_no_request():
     assert provider.build([MONACO[0]]).n == 1
 
 
+@pytest.mark.parametrize("raw", [None, {}, [None, []], [[0, True], [2, 0]], [[0, -1], [2, 0]], [[0, "nan"], [2, 0]], [[0, "2"], [2, 0]]])
+def test_osrm_malformed_tables_are_typed_errors(raw):
+    with pytest.raises(OsrmError):
+        OsrmProvider._to_matrix(raw, 2, Unit.METRES)
+
+
+@pytest.mark.parametrize("payload", [[], None, {"code": "Ok", "routes": [None]}, {"code": "Ok", "routes": [{"geometry": "x", "distance": -1, "duration": 2}]}])
+def test_osrm_bad_responses_do_not_escape_as_generic_500(monkeypatch, payload):
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: io.BytesIO(json.dumps(payload).encode()))
+    with pytest.raises(OsrmError):
+        OsrmProvider().route_geometry(MONACO)
+
+
+def test_osrm_timeout_is_actionable(monkeypatch):
+    def timeout(*args, **kwargs):
+        raise TimeoutError("test timeout")
+    monkeypatch.setattr("urllib.request.urlopen", timeout)
+    with pytest.raises(OsrmError, match="reach OSRM"):
+        OsrmProvider().build(MONACO)
+
+
+@pytest.mark.parametrize("legs", [None, {}, [None], [{"steps": {}}], [{"steps": [None]}], [{"steps": [{"geometry": 2}]}]])
+def test_osrm_invalid_leg_shapes_are_typed_errors(monkeypatch, legs):
+    provider = OsrmProvider()
+    monkeypatch.setattr(provider, "_get", lambda _: {"routes": [{"geometry": "x", "distance": 2, "duration": 1, "legs": legs}]})
+    with pytest.raises(OsrmError):
+        provider.route_geometry(MONACO)
+
+
+def test_osrm_response_size_is_bounded(monkeypatch):
+    monkeypatch.setattr("adapters.distance.osrm.MAX_RESPONSE_BYTES", 20)
+    monkeypatch.setattr("urllib.request.urlopen", lambda *a, **kw: io.BytesIO(b"x" * 21))
+    with pytest.raises(OsrmError, match="safety limit"):
+        OsrmProvider().build(MONACO)
+
+
+def test_route_geometry_keeps_osrm_leg_boundaries(monkeypatch):
+    provider = OsrmProvider()
+    requests = []
+    def recorded(url):
+        requests.append(url)
+        return {"routes": [{"geometry": "full", "distance": 12.4, "duration": 3.4,
+                            "legs": [{"steps": [{"geometry": "first"}, {"geometry": "arrival"}]},
+                                     {"steps": [{"geometry": "return"}]}]}]}
+    monkeypatch.setattr(provider, "_get", recorded)
+    geometry = provider.route_geometry(MONACO)
+    assert "steps=true" in requests[0]
+    assert geometry.leg_polylines == (("first", "arrival"), ("return",))
+    assert geometry.polyline == "full" and geometry.distance_m == 12
+
+
 # --- Cache -----------------------------------------------------------------
 
 class CountingProvider:
@@ -208,3 +262,51 @@ def test_clear_empties_the_cache(tmp_path):
     cached.clear()
     cached.build(MONACO)
     assert inner.calls == 2
+
+
+def test_haversine_speed_is_part_of_the_cache_identity(tmp_path):
+    db = tmp_path / "c.sqlite"
+    slow = CachedProvider(
+        HaversineProvider(unit=Unit.SECONDS, speed_kmh=30.0), db
+    )
+    fast = CachedProvider(
+        HaversineProvider(unit=Unit.SECONDS, speed_kmh=60.0), db
+    )
+    slow_matrix = slow.build(MONACO)
+    fast_matrix = fast.build(MONACO)
+    assert fast.misses == 1
+    assert fast_matrix.cost(0, 1) < slow_matrix.cost(0, 1)
+
+
+def test_osrm_cache_identity_includes_server_and_dataset():
+    original = OsrmProvider(
+        base_url="http://router-a:5000", dataset_id="monaco-2026-08"
+    )
+    other_server = OsrmProvider(
+        base_url="http://router-b:5000", dataset_id="monaco-2026-08"
+    )
+    other_dataset = OsrmProvider(
+        base_url="http://router-a:5000", dataset_id="monaco-2026-09"
+    )
+    assert original.cache_fingerprint != other_server.cache_fingerprint
+    assert original.cache_fingerprint != other_dataset.cache_fingerprint
+
+
+def test_cache_closes_every_sqlite_connection(tmp_path, monkeypatch):
+    real_connect = sqlite3.connect
+    opened = []
+
+    def tracking_connect(*args, **kwargs):
+        conn = real_connect(*args, **kwargs)
+        opened.append(conn)
+        return conn
+
+    monkeypatch.setattr(cache_module.sqlite3, "connect", tracking_connect)
+    cached = CachedProvider(CountingProvider(), tmp_path / "c.sqlite")
+    cached.build(MONACO)
+    cached.clear()
+
+    assert opened
+    for conn in opened:
+        with pytest.raises(sqlite3.ProgrammingError, match="closed database"):
+            conn.execute("SELECT 1")

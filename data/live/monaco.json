@@ -1,0 +1,11 @@
+{
+  "name": "Monaco harbour deliveries",
+  "source": "Named Monaco locations used by the existing OSRM integration gate; latitude and longitude in decimal degrees.",
+  "stops": [
+    {"lat": 43.7355, "lon": 7.4256},
+    {"lat": 43.7397, "lon": 7.4276},
+    {"lat": 43.7470, "lon": 7.4370},
+    {"lat": 43.7275, "lon": 7.4180},
+    {"lat": 43.7315, "lon": 7.4212}
+  ]
+}

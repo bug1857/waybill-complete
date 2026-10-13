@@ -44,10 +44,14 @@ def test_missing_customer_is_caught():
                for v in report.violations)
 
 
-def test_explicitly_unserved_customer_is_allowed():
+def test_explicitly_unserved_customer_marks_a_partial_solution_infeasible():
     inst = line_instance()
     report = check(inst, Solution((Route(0, (1, 2)),), unserved=frozenset({3})))
-    assert report.is_feasible
+    assert not report.is_feasible
+    assert any(
+        v.kind is ViolationKind.UNSERVED_CUSTOMER and v.node == 3
+        for v in report.violations
+    )
 
 
 def test_duplicate_visit_across_routes_is_caught():
@@ -151,3 +155,35 @@ def test_tsp_solution_needs_no_time_source():
     assert inst.problem_type is ProblemType.TSP
     assert not inst.has_time_constraints
     assert check(inst, Solution.single_tour((1, 2, 3, 4, 5))).is_feasible
+
+
+def test_capacity_only_cvrp_does_not_require_a_time_matrix():
+    n = 4
+    matrix = DistanceMatrix(
+        [0 if i == j else abs(i - j) * 100 for i in range(n) for j in range(n)],
+        n,
+        Unit.METRES,
+    )
+    inst = Instance(
+        name="capacity-only",
+        stops=tuple(Stop(id=i, demand=0 if i == 0 else 1) for i in range(n)),
+        vehicles=(Vehicle(id=0, capacity=3),),
+        matrix=matrix,
+    )
+    assert inst.problem_type is ProblemType.CVRP
+    assert not inst.has_time_constraints
+    assert check(inst, Solution((Route(0, (1, 2, 3)),))).is_feasible
+
+
+@pytest.mark.parametrize("unserved", [frozenset({0}), frozenset({99})])
+def test_depot_and_unknown_nodes_cannot_be_declared_unserved(unserved):
+    inst = line_instance()
+    report = check(inst, Solution((Route(0, (1, 2, 3)),), unserved=unserved))
+    assert any(
+        v.kind is ViolationKind.INVALID_UNSERVED_NODE for v in report.violations
+    )
+
+
+def test_a_node_cannot_be_both_served_and_unserved():
+    with pytest.raises(ValueError, match="both served and unserved"):
+        Solution((Route(0, (1, 2, 3)),), unserved=frozenset({3}))

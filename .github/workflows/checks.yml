@@ -1,0 +1,26 @@
+name: Canonical engine checks
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: python -m pip install '.[dev]'
+      - run: python -m tools.check_purity
+      - run: python -m tools.verify_data_manifest
+      - run: python -m pytest
+      - run: node tests/test_route_motion.cjs
+      - run: node tests/test_route_comparison.cjs
+      - run: node tests/test_live_ui.cjs
+      - run: python -m tools.verify_gate

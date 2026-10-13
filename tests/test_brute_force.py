@@ -15,11 +15,13 @@ import pytest
 from bench.generators import random_asymmetric_tsp, random_euclidean_tsp
 from core.distance.matrix import DistanceMatrix
 from core.eval.feasibility import check
+import core.exact.brute_force as brute_force_module
 from core.exact.brute_force import BruteForceSolver
 from core.model.instance import Instance
 from core.model.stop import Stop
 from core.model.units import Unit
 from core.reporting.status import SolveStatus, StopReason
+from core.solver import Budget
 
 
 def exhaustive_reference(instance: Instance) -> int:
@@ -114,3 +116,41 @@ def test_single_node_instance():
     instance = Instance.single_vehicle_tsp("solo", [Stop(id=0)], matrix)
     _, report = BruteForceSolver().solve(instance)
     assert report.objective_value == 0
+
+
+def test_node_budget_returns_a_feasible_incumbent_without_claiming_proof():
+    instance = random_asymmetric_tsp(7, seed=19)
+    solution, report = BruteForceSolver().solve(instance, Budget(max_nodes=2))
+    assert check(instance, solution).is_feasible
+    assert report.status is SolveStatus.EXACT_TIMEOUT_WITH_INCUMBENT
+    assert report.stop_reason is StopReason.NODE_CAP
+    assert report.nodes_explored == 2
+    assert report.best_lower_bound is not None
+    assert report.best_lower_bound <= report.objective_value
+
+
+def test_wall_budget_returns_an_incumbent_and_reports_timeout(monkeypatch):
+    instance = random_asymmetric_tsp(7, seed=23)
+    readings = iter((100.0, 100.010, 100.011))
+    monkeypatch.setattr(
+        brute_force_module.time, "perf_counter", lambda: next(readings)
+    )
+    solution, report = BruteForceSolver().solve(instance, Budget(wall_time_ms=1))
+    assert check(instance, solution).is_feasible
+    assert report.status is SolveStatus.EXACT_TIMEOUT_WITH_INCUMBENT
+    assert report.stop_reason is StopReason.TIMEOUT
+    assert report.nodes_explored == 1
+    assert report.wall_time_ms == pytest.approx(11.0)
+
+
+def test_budget_large_enough_to_finish_preserves_proven_result():
+    instance = random_asymmetric_tsp(5, seed=7)
+    _, report = BruteForceSolver().solve(instance, Budget(max_nodes=10_000))
+    assert report.status is SolveStatus.PROVEN_OPTIMAL_TSP
+    assert report.stop_reason is StopReason.OPTIMAL
+
+
+def test_memory_budget_is_rejected_instead_of_silently_ignored():
+    instance = random_euclidean_tsp(4, seed=1)
+    with pytest.raises(NotImplementedError, match="cannot enforce max_memory_mb"):
+        BruteForceSolver().solve(instance, Budget(max_memory_mb=32))

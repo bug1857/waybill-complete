@@ -1,0 +1,10 @@
+*
+!core/**
+!adapters/**
+!bench/**
+!api/**
+!web/**
+!data/live/**
+!infra/start-hosted.sh
+**/__pycache__
+**/*.pyc

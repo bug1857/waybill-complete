@@ -14,7 +14,7 @@ from core.eval.feasibility import check
 from core.exact.bounds.reduction import completion_bound
 from core.exact.branch_and_bound import BranchAndBoundSolver
 from core.exact.brute_force import BruteForceSolver
-from core.exact.held_karp import HeldKarpSolver
+from core.exact.held_karp import HeldKarpSolver, projected_state_count
 from core.reporting.status import SolveStatus, StopReason
 from core.solver import Budget
 
@@ -101,13 +101,12 @@ def test_branch_and_bound_records_bound_time_separately():
 
 def test_held_karp_refuses_instances_beyond_its_memory_wall():
     instance = random_euclidean_tsp(40, seed=1)
-    with pytest.raises(ValueError, match="Held-Karp table would"):
+    with pytest.raises(ValueError, match="Held--Karp limit"):
         HeldKarpSolver().solve(instance)
 
 
 def test_held_karp_memory_estimate_doubles_per_stop():
-    hk = HeldKarpSolver()
-    a, b = hk.estimated_memory_mb(15), hk.estimated_memory_mb(16)
+    a, b = projected_state_count(14), projected_state_count(15)
     assert b / a == pytest.approx(2.13, rel=0.05)   # 2x from the mask, plus n/(n-1)
 
 

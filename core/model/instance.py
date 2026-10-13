@@ -42,6 +42,8 @@ class Instance:
     metadata: Mapping[str, str] = field(default_factory=lambda: MappingProxyType({}))
 
     def __post_init__(self) -> None:
+        if not isinstance(self.depot_index, int) or isinstance(self.depot_index, bool):
+            raise TypeError("depot_index must be an integer")
         if not self.stops:
             raise ValueError("instance must have at least one stop")
         if not self.vehicles:
@@ -58,8 +60,11 @@ class Instance:
                 raise ValueError("time_matrix size does not match stop count")
             if self.time_matrix.unit is not Unit.SECONDS:
                 raise ValueError("time_matrix must be in seconds")
-        ids = [v.id for v in self.vehicles]
-        if len(set(ids)) != len(ids):
+        stop_ids = [stop.id for stop in self.stops]
+        if len(set(stop_ids)) != len(stop_ids):
+            raise ValueError("stop ids must be unique")
+        vehicle_ids = [v.id for v in self.vehicles]
+        if len(set(vehicle_ids)) != len(vehicle_ids):
             raise ValueError("vehicle ids must be unique")
 
     @property
@@ -84,15 +89,13 @@ class Instance:
         never needs a travel-time matrix, and demanding one would reject it.
         """
         return any(s.is_constrained_in_time for s in self.stops) or any(
-            v.has_time_limits for v in self.vehicles
+            v.has_time_constraints for v in self.vehicles
         )
 
     @property
     def problem_type(self) -> ProblemType:
         """Classify by inspection, not by declaration."""
-        if any(s.time_window.is_unbounded is False for s in self.stops) or any(
-            v.max_route_duration is not None for v in self.vehicles
-        ):
+        if self.has_time_constraints:
             return ProblemType.CVRPTW
         if len(self.vehicles) > 1 or any(s.demand > 0 for s in self.stops):
             return ProblemType.CVRP
