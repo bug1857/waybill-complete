@@ -39,11 +39,15 @@ def test_live_workbench_exposes_each_connected_surface() -> None:
     assert "function solveHeldKarp" not in script
     assert 'src="route-motion.js?v=3"' in html
     assert 'src="real-data.js?v=2"' in html
-    assert 'src="route-comparison.js?v=1"' in html
+    assert 'src="route-comparison.js?v=2"' in html
     assert 'request("/api/compare"' in script
     assert "window.WaybillComparison.mount" in script
+    assert ".comparison-map-card:only-child { grid-column: 1 / -1; }" in (ROOT / "web" / "styles.css").read_text()
     assert "include-held-karp" not in html
     assert 'id="compare-topic" disabled' in html
     assert 'id="compare-solvers" type="button" disabled' in html
+    assert 'id="calculate-routes" disabled' in html
+    for panel in ("dispatch", "real-data", "sandbox", "asymmetry", "evidence", "invariants", "report"):
+        assert f'aria-labelledby="tab-{panel}"' in html
     for control in ("play-route", "step-route", "reset-route", "route-progress", "map-overview", "map-labels", "map-stop"):
         assert f'id="{control}"' in html

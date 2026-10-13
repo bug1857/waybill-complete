@@ -386,8 +386,9 @@ pre { overflow: auto; max-height: 450px; white-space: pre-wrap; overflow-wrap: a
 .comparison-step-group output { grid-column: 1 / -1; font-size: 12px; font-variant-numeric: tabular-nums; color: #59675e; }
 .comparison-map-options { grid-column: 1 / -1; display: flex; gap: 20px; flex-wrap: wrap; }
 .comparison-map-options .inline-check { margin: 0; }
-.comparison-map-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin-top: 20px; }
+.comparison-map-grid { display: grid; grid-template-columns: repeat(var(--comparison-columns, 3), minmax(0, 1fr)); gap: 18px; margin-top: 20px; }
 .comparison-map-card { min-width: 0; display: flex; flex-direction: column; }
+.comparison-map-card:only-child { grid-column: 1 / -1; }
 .comparison-map-card h3 { font: 500 22px/1.25 Georgia, serif; margin-block: 12px; text-wrap: balance; }
 .comparison-map-card .source-pill { align-self: flex-start; font-size: 10px; }
 .comparison-map { display: block; width: 100%; height: auto; background: #f3f7f2; border: 1px solid #e1e7e0; border-radius: 10px; margin-top: 20px; }
@@ -398,3 +399,9 @@ pre { overflow: auto; max-height: 450px; white-space: pre-wrap; overflow-wrap: a
 .comparison-skipped { background: #f6f8f3 !important; justify-content: center; }
 @media (max-width: 1080px) { .comparison-map-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .comparison-controls, .comparison-map-grid { grid-template-columns: 1fr; }.comparison-map-options { grid-column: 1; }.live-app .hero-actions .secondary { width: 100%; } }
+.live-app .comparison-map-section > .card-heading h2 { font: 400 clamp(25px, 3vw, 34px)/1.2 Georgia, serif; }
+.live-app .coverage-note { overflow-wrap: anywhere; }
+.live-app .side-panel .timeline-stop time { white-space: nowrap; }
+.live-app button:disabled { transform: none; }
+.live-app .site-header { padding-top: env(safe-area-inset-top); }
+.live-app .table-wrap:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; }

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Courier Delivery Route Optimization System: TSP with Greedy nearest neighbour and Branch & Bound, measured on the same input.">
   <title>Waybill — Courier Delivery Route Optimization System</title>
-  <link rel="stylesheet" href="styles.css?v=9">
+  <link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body class="live-app">
   <header class="site-header">
@@ -20,13 +20,13 @@
       <p id="engine-state" class="engine-state" role="status">Connecting…</p>
     </div>
     <nav class="app-nav" aria-label="Application sections" role="tablist">
-      <button class="nav-tab" role="tab" aria-selected="true" aria-controls="dispatch" data-tab="dispatch">Route planner</button>
-      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="real-data" data-tab="real-data">Real data <span class="nav-new">NEW</span></button>
-      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="sandbox" data-tab="sandbox">Algorithm comparison</button>
-      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="asymmetry" data-tab="asymmetry">Asymmetry trap</button>
-      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="evidence" data-tab="evidence">Evidence lab</button>
-      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="invariants" data-tab="invariants">Invariant chain</button>
-      <button class="nav-tab" role="tab" aria-selected="false" aria-controls="report" data-tab="report">Project &amp; report</button>
+      <button id="tab-dispatch" class="nav-tab" role="tab" aria-selected="true" aria-controls="dispatch" data-tab="dispatch">Route planner</button>
+      <button id="tab-real-data" class="nav-tab" role="tab" aria-selected="false" aria-controls="real-data" data-tab="real-data">Real data</button>
+      <button id="tab-sandbox" class="nav-tab" role="tab" aria-selected="false" aria-controls="sandbox" data-tab="sandbox">Algorithm comparison</button>
+      <button id="tab-asymmetry" class="nav-tab" role="tab" aria-selected="false" aria-controls="asymmetry" data-tab="asymmetry">Asymmetry trap</button>
+      <button id="tab-evidence" class="nav-tab" role="tab" aria-selected="false" aria-controls="evidence" data-tab="evidence">Evidence lab</button>
+      <button id="tab-invariants" class="nav-tab" role="tab" aria-selected="false" aria-controls="invariants" data-tab="invariants">Invariant chain</button>
+      <button id="tab-report" class="nav-tab" role="tab" aria-selected="false" aria-controls="report" data-tab="report">Project &amp; report</button>
       <button class="nav-tab import-tab" type="button" id="open-import">Import data</button>
     </nav>
   </header>
@@ -48,7 +48,7 @@
   </section>
 
   <main class="page workbench">
-    <section id="dispatch" class="app-panel" role="tabpanel">
+    <section id="dispatch" class="app-panel" role="tabpanel" aria-labelledby="tab-dispatch">
       <div class="topic-banner">
         <div><p class="eyebrow">Waybill / Routing studio</p><h1>Every stop.<br><span>Considered.</span></h1><p>Real places. Measured routes. A clear view of every delivery—from the first stop to the return home.</p><button type="button" class="secondary small-button" id="start-real-data">Build with real places ↗</button></div>
         <div class="route-sticker" aria-hidden="true"><svg viewBox="0 0 140 90" fill="none"><path d="M18 69C18 14 119 87 119 30C119 6 49 11 49 41" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="4 6"/><circle cx="18" cy="69" r="5" fill="currentColor"/><path d="m49 48-7-12h14Z" fill="currentColor"/></svg><span>THE WAY FORWARD</span></div>
@@ -61,9 +61,9 @@
         </div>
         <div class="hero-actions">
           <label for="solver">Algorithm</label><select id="solver" form="solve-form"></select>
-          <button type="submit" form="solve-form" id="solve-button">Solve tour</button>
+          <button type="submit" form="solve-form" id="solve-button" disabled>Solve tour</button>
           <button type="button" class="secondary" id="compare-topic" disabled>Compare all algorithms &amp; routes</button>
-          <button type="button" class="secondary" id="inspect-report">Inspect SolveReport</button>
+          <button type="button" class="secondary" id="inspect-report" disabled>Inspect SolveReport</button>
           <p id="solve-error" class="error" role="alert"></p>
         </div>
       </section>
@@ -83,7 +83,7 @@
         </section>
         <aside class="dispatch-sidebar">
           <section class="card side-panel"><div class="card-heading"><h2 id="route-details-title">Tour coverage</h2><span id="fleet-count" class="label">—</span></div><div id="fleet-utilization" class="fleet-list empty">Solve a tour to inspect visited customers.</div></section>
-          <section class="card side-panel"><div class="card-heading"><h2>Stop ETA timeline</h2><span id="timeline-label" class="label">—</span></div><div id="eta-timeline" class="timeline empty">Run dispatch to inspect the schedule.</div></section>
+          <section class="card side-panel"><div class="card-heading"><h2>Elapsed-time schedule</h2><span id="timeline-label" class="label">—</span></div><div id="eta-timeline" class="timeline empty">Run dispatch to inspect the schedule.</div></section>
         </aside>
       </div>
 
@@ -94,17 +94,17 @@
             <div><label for="problem">Planning model</label><select id="problem"><option value="TSP" selected>TSP · project topic</option><option value="CVRPTW">Optional fleet extension · capacity and time windows</option></select></div>
             <div><label for="provider">Travel model</label><select id="provider"><option value="osrm">Local OSRM roads</option><option value="haversine">Offline distance estimate</option></select></div>
             <div><label for="budget">Solver budget</label><select id="budget"><option value="1000">1 second</option><option value="2000">2 seconds</option><option value="250">250 milliseconds</option></select></div>
-            <div id="fleet-fields"><label for="vehicles">Available vehicles</label><input id="vehicles" type="number" min="1" max="6" value="2" required><label for="capacity">Parcels per vehicle</label><input id="capacity" type="number" min="1" max="100000" value="2" required><label for="shift">Shift duration (minutes)</label><input id="shift" type="number" min="1" max="1440" value="480" required></div>
+            <div id="fleet-fields"><label for="vehicles">Available vehicles</label><input id="vehicles" type="number" min="1" max="6" value="2" required><label for="capacity">Parcels per vehicle</label><input id="capacity" type="number" min="1" max="100000" value="2" required><label for="shift">Shift duration (minutes)</label><input id="shift" type="number" min="0.016666666666666666" max="1440" step="any" value="480" required></div>
             <div class="stops-field"><label for="stops">Stops · depot first</label><textarea id="stops" rows="9" required spellcheck="false" aria-describedby="stop-help"></textarea><p id="stop-help" class="metric-copy">Latitude, longitude per line. Fleet rows may add demand, earliest, latest, and service seconds.</p></div>
           </div>
-          <div class="drawer-actions"><button type="submit">Calculate canonical routes</button><button type="button" class="secondary" id="download-input">Export input</button></div>
+          <div class="drawer-actions"><button type="submit" id="calculate-routes" disabled>Calculate canonical routes</button><button type="button" class="secondary" id="download-input">Export input</button></div>
         </form>
       </details>
 
       <section id="schedule-section" class="card" hidden><div class="card-heading"><h2>Vehicle schedules</h2><button type="button" class="secondary small-button" id="download-result">Export canonical result</button></div><details><summary>Expand calculated stop schedules</summary><div id="schedules"></div></details></section>
     </section>
 
-    <section id="real-data" class="app-panel" role="tabpanel" hidden>
+    <section id="real-data" class="app-panel" role="tabpanel" aria-labelledby="tab-real-data" hidden>
       <div class="section-heading data-heading"><div><p class="eyebrow">01 / Real-world inputs</p><h1>A route begins<br>with real places.</h1><p class="lede">Choose a neighbourhood and the places you want to visit. Fetch live OpenStreetMap records, choose your depot, and build a transparent routing dataset.</p></div><span class="source-pill">OpenStreetMap · public data</span></div>
       <div class="data-workspace">
         <form id="places-form" class="card data-form">
@@ -135,7 +135,7 @@
       </div>
     </section>
 
-    <section id="sandbox" class="app-panel" role="tabpanel" hidden>
+    <section id="sandbox" class="app-panel" role="tabpanel" aria-labelledby="tab-sandbox" hidden>
       <div class="section-heading"><p class="eyebrow">TSP · Greedy · Branch &amp; Bound · Held–Karp</p><h1>Compare delivery algorithms.</h1><p class="lede">One dataset, one shared matrix. Compare measured distance, search work and the actual route each algorithm chooses. Every returned tour is independently checked.</p></div>
       <section class="card action-card"><div><h2>Three algorithms. One fair comparison.</h2><p class="metric-copy">Greedy chooses the closest unvisited stop. Branch &amp; Bound explores and prunes partial tours using lower bounds. Held–Karp uses subset dynamic programming. Only a completed exact proof establishes optimality—not an algorithm's name.</p><p id="comparison-scope" class="metric-copy"></p></div><button id="compare-solvers" type="button" disabled>Run comparison</button><p id="compare-error" class="error" role="alert"></p></section>
       <div id="comparison-summary" class="grid metrics-row"></div><div id="comparison-table" class="empty">Run the comparison to populate the solver ledger.</div>
@@ -143,30 +143,30 @@
       <p class="metric-copy">Greedy's explored counter counts next-stop selections; Branch &amp; Bound counts search states; Held–Karp counts dynamic-programming states. These are different measures of work. Solver runtime excludes matrix acquisition and map geometry. Gap to best feasible implies a gap to optimum only when an exact run proves it.</p>
     </section>
 
-    <section id="asymmetry" class="app-panel" role="tabpanel" hidden>
+    <section id="asymmetry" class="app-panel" role="tabpanel" aria-labelledby="tab-asymmetry" hidden>
       <div class="section-heading"><p class="eyebrow">Asymmetry trap</p><h1>One-way roads change the problem.</h1><p class="lede">Measure d(A,B) against d(B,A) from the exact cost matrix used by the solver—no simulated OSRM values.</p></div>
-      <section class="card action-card"><div><h2>Direction audit</h2><p class="metric-copy">Uses the active provider and stop list from Dispatch.</p></div><button id="audit-asymmetry" type="button">Audit matrix</button><p id="asymmetry-error" class="error" role="alert"></p></section>
+      <section class="card action-card"><div><h2>Direction audit</h2><p class="metric-copy">Uses the active provider and stop list from Dispatch.</p></div><button id="audit-asymmetry" type="button" disabled>Audit matrix</button><p id="asymmetry-error" class="error" role="alert"></p></section>
       <div id="asymmetry-metrics" class="grid metrics-row"></div><div id="asymmetry-table" class="empty">Run the audit to inspect directed pairs.</div>
     </section>
 
-    <section id="evidence" class="app-panel" role="tabpanel" hidden>
+    <section id="evidence" class="app-panel" role="tabpanel" aria-labelledby="tab-evidence" hidden>
       <div class="section-heading"><p class="eyebrow">Evidence laboratory</p><h1>Measured claims, one generated bundle.</h1><p class="lede">Release runs, source hashes, budgets, proof states, and comparator provenance—not hand-written performance claims.</p></div><div id="evidence-summary" class="grid metrics-row"></div><div id="evidence-ledger"></div>
     </section>
 
-    <section id="invariants" class="app-panel" role="tabpanel" hidden>
+    <section id="invariants" class="app-panel" role="tabpanel" aria-labelledby="tab-invariants" hidden>
       <div class="section-heading"><p class="eyebrow">Invariant chain</p><h1>Trust, then verify independently.</h1><p class="lede">Re-run the active request and audit response shape, visit coverage, objective reconstruction, feasibility, and matrix identity.</p></div>
-      <section class="card action-card"><div><h2>Active-plan audit</h2><p class="metric-copy">Checks the visible run; the repository test suite remains the deeper regression gate.</p></div><button id="run-invariants" type="button">Run invariants</button><p id="invariant-error" class="error" role="alert"></p></section><div id="invariant-results" class="check-list empty">Calculate a plan or run the audit.</div>
+      <section class="card action-card"><div><h2>Active-plan audit</h2><p class="metric-copy">Checks the visible run; the repository test suite remains the deeper regression gate.</p></div><button id="run-invariants" type="button" disabled>Run invariants</button><p id="invariant-error" class="error" role="alert"></p></section><div id="invariant-results" class="check-list empty">Calculate a plan or run the audit.</div>
     </section>
 
-    <section id="report" class="app-panel" role="tabpanel" hidden>
+    <section id="report" class="app-panel" role="tabpanel" aria-labelledby="tab-report" hidden>
       <div class="section-heading"><p class="eyebrow">Project topic &amp; generated report</p><h1>Courier Delivery Route Optimization System</h1><p class="lede">Required DAA concepts: TSP, Greedy, and Branch &amp; Bound. The report below records the active solution and any comparison performed on the same input.</p></div>
       <section class="card topic-explanation"><h2>Problem and algorithm design</h2><p>Input: a depot, customer locations, and a directed integer distance matrix. Output: a closed tour visiting every customer exactly once, its total distance, feasibility, and solve status. The objective is to minimize the sum of tour edges.</p><p><strong>Greedy nearest neighbour:</strong> scan the unvisited customers for the cheapest next edge, with node-index tie breaking. This implementation takes O(n²) selection work and O(n) extra storage. It produces a feasible tour without proving optimality.</p><p><strong>Branch &amp; Bound:</strong> keep partial tours in a lower-bound priority queue, branch to each remaining customer, and prune using an admissible minimum incoming/outgoing edge bound. Search can grow factorially in the worst case. A finished proof establishes optimality for this input matrix; a time, node, or memory limit preserves a feasible incumbent with its remaining lower bound.</p><p>Optional extensions: Held–Karp validation, road geometry from OSRM, and CVRPTW fleet constraints. Road and offline distance models are identified in each result.</p></section>
-      <div class="report-actions"><button id="print-report" type="button">Print report</button><button id="download-report" class="secondary" type="button">Download Markdown</button></div><article id="report-body" class="card report-sheet"><p class="empty">Calculate a route to generate the report.</p></article>
+      <div class="report-actions"><button id="print-report" type="button" disabled>Print report</button><button id="download-report" class="secondary" type="button" disabled>Download Markdown</button></div><article id="report-body" class="card report-sheet"><p class="empty">Calculate a route to generate the report.</p></article>
     </section>
   </main>
 
   <dialog id="solve-report-dialog" class="report-dialog"><div class="card-heading"><div><p class="eyebrow">Canonical response</p><h2>SolveReport &amp; provenance</h2></div><button id="close-report" type="button" class="secondary small-button">Close</button></div><pre id="result-json">No run yet.</pre></dialog>
   <footer class="site-footer"><span>Waybill · canonical Python engine</span><a href="https://www.openstreetmap.org/copyright">Road data © OpenStreetMap contributors</a><a href="index.html">Offline evidence viewer</a></footer>
-  <script src="evidence.js"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=1"></script><script src="real-data.js?v=2"></script><script src="live.js?v=9"></script>
+  <script src="evidence.js"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=2"></script><script src="real-data.js?v=2"></script><script src="live.js?v=10"></script>
 </body>
 </html>

@@ -7,6 +7,7 @@ without Docker still gets a meaningful suite.
 """
 
 import json
+import io
 import sqlite3
 from pathlib import Path
 
@@ -133,6 +134,42 @@ def test_trivial_sizes_need_no_request():
     provider = OsrmProvider(base_url="http://127.0.0.1:9", timeout_s=1.0)
     assert provider.build([]).n == 0
     assert provider.build([MONACO[0]]).n == 1
+
+
+@pytest.mark.parametrize("raw", [None, {}, [None, []], [[0, True], [2, 0]], [[0, -1], [2, 0]], [[0, "nan"], [2, 0]], [[0, "2"], [2, 0]]])
+def test_osrm_malformed_tables_are_typed_errors(raw):
+    with pytest.raises(OsrmError):
+        OsrmProvider._to_matrix(raw, 2, Unit.METRES)
+
+
+@pytest.mark.parametrize("payload", [[], None, {"code": "Ok", "routes": [None]}, {"code": "Ok", "routes": [{"geometry": "x", "distance": -1, "duration": 2}]}])
+def test_osrm_bad_responses_do_not_escape_as_generic_500(monkeypatch, payload):
+    monkeypatch.setattr("urllib.request.urlopen", lambda *args, **kwargs: io.BytesIO(json.dumps(payload).encode()))
+    with pytest.raises(OsrmError):
+        OsrmProvider().route_geometry(MONACO)
+
+
+def test_osrm_timeout_is_actionable(monkeypatch):
+    def timeout(*args, **kwargs):
+        raise TimeoutError("test timeout")
+    monkeypatch.setattr("urllib.request.urlopen", timeout)
+    with pytest.raises(OsrmError, match="reach OSRM"):
+        OsrmProvider().build(MONACO)
+
+
+@pytest.mark.parametrize("legs", [None, {}, [None], [{"steps": {}}], [{"steps": [None]}], [{"steps": [{"geometry": 2}]}]])
+def test_osrm_invalid_leg_shapes_are_typed_errors(monkeypatch, legs):
+    provider = OsrmProvider()
+    monkeypatch.setattr(provider, "_get", lambda _: {"routes": [{"geometry": "x", "distance": 2, "duration": 1, "legs": legs}]})
+    with pytest.raises(OsrmError):
+        provider.route_geometry(MONACO)
+
+
+def test_osrm_response_size_is_bounded(monkeypatch):
+    monkeypatch.setattr("adapters.distance.osrm.MAX_RESPONSE_BYTES", 20)
+    monkeypatch.setattr("urllib.request.urlopen", lambda *a, **kw: io.BytesIO(b"x" * 21))
+    with pytest.raises(OsrmError, match="safety limit"):
+        OsrmProvider().build(MONACO)
 
 
 def test_route_geometry_keeps_osrm_leg_boundaries(monkeypatch):

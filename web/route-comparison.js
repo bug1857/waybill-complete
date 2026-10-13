@@ -61,7 +61,7 @@
     stepGroup.append(stepLabel, prev, range, next, output);
     const departGroup = el("div"), departLabel = el("label", "Or compare departing from"), depart = el("select"); departLabel.htmlFor = "comparison-departure"; depart.id = "comparison-departure";
     const stepOption = el("option", "Match by visit step"); stepOption.value = "step"; depart.append(stepOption);
-    results[0].stops.forEach((_, n) => { const option = el("option", `${nodeLabel(n)} · ${stopName(n)}`); option.value = n; depart.append(option); });
+    results[0].stops.forEach((_, n) => { const option = el("option", `${nodeLabel(n)} · ${stopName(n)}${!n && results[0].routes.length > 1 ? " (first vehicle departure)" : ""}`); option.value = n; depart.append(option); });
     departGroup.append(departLabel, depart);
     const checks = el("div", undefined, "comparison-map-options"), full = el("input"), names = el("input"); full.type = names.type = "checkbox"; full.checked = results[0].stops.length <= 30; names.checked = results[0].stops.length <= 20;
     for (const [control, text] of [[full, "Full tour"], [names, "All stop IDs"]]) { const wrapper = el("label", undefined, "inline-check"); wrapper.append(control, document.createTextNode(` ${text}`)); checks.append(wrapper); }
@@ -70,6 +70,7 @@
     const geometry = results.map((r) => routeGeometry(r, decode));
     const project = sharedProjection([...results[0].stops, ...geometry.flatMap((routes) => routes.flatMap((g) => [...g.overview, ...g.legs.flat()]))]);
     const grid = el("div", undefined, "comparison-map-grid"), cards = [];
+    grid.style.setProperty("--comparison-columns", Math.min(3, results.length + skipped.length));
     results.forEach((result, index) => {
       const card = el("article", undefined, "card comparison-map-card"), title = label(result.report.solver_name);
       card.append(el("p", `${result.report.objective_value.toLocaleString()} ${result.report.objective_units} · ${result.report.wall_time_ms.toFixed(2)} ms`, "eyebrow"), el("h3", title));
@@ -110,9 +111,9 @@
           marker.append(svgEl("title", {}, `${nodeLabel(node)} · ${stopName(node)}`)); map.append(marker);
           if (!node || active || names.checked) map.append(svgEl("text", { x: x + 10, y: y - 10, class: "map-node-label", "font-size": 14 }, nodeLabel(node)));
         });
-        legText.textContent = edge ? `${nodeLabel(edge.from)} → ${nodeLabel(edge.to)} · ${edge.cost.toLocaleString()} ${result.matrix_metadata.unit}` : "No served edge for this selection.";
+        legText.textContent = edge ? `${result.routes.length > 1 ? `Vehicle ${result.routes[edge.routeIndex].vehicle_id} · ` : ""}${nodeLabel(edge.from)} → ${nodeLabel(edge.to)} · ${edge.cost.toLocaleString()} ${result.matrix_metadata.unit}` : "No served edge for this selection.";
         const served = new Set(result.routes.flatMap((r) => r.sequence)).size;
-        progressText.textContent = `Coverage ${served} / ${result.stops.length - 1} customers · ${result.unserved.length} unserved${edge ? ` · ${edge.leg} visits before this leg` : ""}${edge && !activePoints.length ? " · Road geometry unavailable for this leg" : ""}`;
+        progressText.textContent = `Coverage ${served} / ${result.stops.length - 1} customers · ${result.unserved.length} unserved${edge ? ` · ${edge.leg} visits on this vehicle before this leg` : ""}${edge && !activePoints.length ? " · Road geometry unavailable for this leg" : ""}`;
         map.setAttribute("aria-label", `${title}. ${legText.textContent} ${progressText.textContent}`);
       });
     }

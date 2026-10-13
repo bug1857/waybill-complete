@@ -124,6 +124,20 @@ def test_live_rejects_bad_inputs_before_network():
             solve_request({"stops": stops, **change})
 
 
+@pytest.mark.parametrize("operation", [solve_request, compare_request])
+def test_pinned_monaco_router_rejects_outside_coverage_before_network(monkeypatch, operation):
+    def network_must_not_run(*_):
+        pytest.fail("out-of-coverage coordinates reached OSRM")
+    monkeypatch.setattr(OsrmProvider, "build", network_must_not_run)
+    with pytest.raises(ValueError, match="Monaco.*estimate"):
+        operation({"stops": [{"lat": 26.9124, "lon": 75.7873}, {"lat": 26.9239, "lon": 75.8267}], "provider": "osrm"}, dataset_id="monaco-260901:test")
+
+
+def test_estimates_remain_available_outside_monaco():
+    result = solve_request({"stops": [{"lat": 26.9124, "lon": 75.7873}, {"lat": 26.9239, "lon": 75.8267}], "provider": "haversine"}, dataset_id="monaco-260901:test")
+    assert result["feasible"] and result["report"]["objective_value"] > 0
+
+
 def test_live_http_boundary():
     server = HTTPServer(("127.0.0.1", 0), Handler)
     server.osrm_url, server.dataset_id = "http://127.0.0.1:1", None

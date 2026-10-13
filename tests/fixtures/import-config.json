@@ -1,0 +1,21 @@
+{
+  "name": "Import settings regression fixture",
+  "problem": "TSP",
+  "solver": "held_karp",
+  "provider": "haversine",
+  "vehicles": 1,
+  "capacity": 25,
+  "shift_end": 28800,
+  "wall_time_ms": 250,
+  "stops": [
+    {"lat": 43.7355, "lon": 7.4256},
+    {"lat": 43.7397, "lon": 7.4276},
+    {"lat": 43.747, "lon": 7.437}
+  ],
+  "places": [
+    {"lat": 43.7355, "lon": 7.4256, "name": "Test-only depot"},
+    {"lat": 43.7397, "lon": 7.4276, "name": "Test-only first place"},
+    {"lat": 43.747, "lon": 7.437, "name": "Test-only second place"}
+  ],
+  "provenance": {"source": "Synthetic import regression fixture", "actual_orders": false}
+}

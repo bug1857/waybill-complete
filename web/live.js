@@ -7,11 +7,11 @@
   let currentPayload = null;
   let datasetName = "Monaco harbour deliveries";
   let comparison = null;
-  let sampleInput = "";
-  let importedInput = "";
-  let importedName = "";
+  let sampleDataset = null;
+  let importedDataset = null;
   let datasetMeta = null;
-  let importedMeta = null;
+  let inputRevision = 0;
+  let resultRevision = -1;
   const motion = window.WaybillMotion;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let playback = null;
@@ -29,14 +29,16 @@
   }
 
   async function request(path, options) {
-    const response = await fetch(path, options);
-    const data = await response.json();
+    const response = await fetch(path, { ...options, signal: AbortSignal.timeout(90000) });
+    let data;
+    try { data = await response.json(); } catch (_) { throw new Error(`The engine returned an unreadable response (HTTP ${response.status}). Retry when the service is ready.`); }
     if (!response.ok) throw new Error(data.error || `Request failed (${response.status})`);
     return data;
   }
 
   function setBusy(button, busy, busyLabel, normalLabel) {
-    button.disabled = busy;
+    for (const id of ["solve-button", "calculate-routes", "compare-topic", "compare-solvers", "audit-asymmetry", "run-invariants"]) byId(id).disabled = busy;
+    form.setAttribute("aria-busy", String(busy));
     button.textContent = busy ? busyLabel : normalLabel;
   }
 
@@ -58,8 +60,8 @@
     }
   }
 
-  function parseStops() {
-    const source = byId("stops").value.trim();
+  function parseStops(text = byId("stops").value) {
+    const source = text.trim();
     if (!source) throw new Error("Enter at least a depot and one stop.");
     return source.split(/\n+/).map((line, index) => {
       const pieces = line.split(",").map((part) => part.trim());
@@ -82,7 +84,10 @@
   }
 
   async function solve(payload) {
-    return request("/api/solve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    const revision = inputRevision;
+    const result = await request("/api/solve", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+    if (revision !== inputRevision) throw new Error("Inputs changed while calculating. Run again for the updated dataset.");
+    return result;
   }
 
   function svgElement(tag, attrs, text) {
@@ -227,8 +232,8 @@
       byId("playback-count").textContent = `0 / ${route?.sequence.length || 0} stops replayed`;
       byId("route-progress").value = 0;
     }
-    for (const id of ["play-route", "step-route", "reset-route", "route-progress"]) byId(id).disabled = !playback;
-    byId("play-route").disabled = !playback || reducedMotion.matches;
+    for (const id of ["play-route", "step-route", "reset-route", "route-progress"]) byId(id).disabled = !playback || resultRevision !== inputRevision;
+    byId("play-route").disabled = !playback || resultRevision !== inputRevision || reducedMotion.matches;
     byId("play-route").title = reducedMotion.matches ? "Reduced motion is enabled. Use Next stop or the progress slider." : "Play the calculated route";
     const stops = byId("map-stop"); stops.replaceChildren();
     data.stops.forEach((_, node) => { if (filter === "all" || visibleNodes.has(node)) { const option = element("option", `${node ? `${node} · ` : "D · "}${stopName(node)}${data.unserved.includes(node) ? " · unserved" : ""}`); option.value = node; stops.append(option); } });
@@ -257,6 +262,7 @@
   function table(headers, rows) {
     const wrap = element("div", undefined, "table-wrap"), node = element("table"), head = element("thead"), hr = element("tr");
     headers.forEach((value) => hr.append(element("th", value))); head.append(hr); const body = element("tbody");
+    wrap.tabIndex = 0; wrap.setAttribute("role", "region"); wrap.setAttribute("aria-label", "Results table. Scroll horizontally to see all columns.");
     rows.forEach((values) => { const row = element("tr"); values.forEach((value) => row.append(element("td", value))); body.append(row); }); node.append(head, body); wrap.append(node); return wrap;
   }
 
@@ -284,7 +290,7 @@
     const filter = byId("route-filter").value;
     const route = currentResult.routes.find((item) => String(item.vehicle_id) === filter) || currentResult.routes[0];
     const target = byId("eta-timeline"); target.className = "timeline"; target.replaceChildren();
-    if (!route) { target.className = "timeline empty"; target.textContent = "No route was produced."; return; }
+    if (!route) { byId("timeline-label").textContent = "No served vehicle"; target.className = "timeline empty"; target.textContent = "No route was produced."; return; }
     byId("timeline-label").textContent = `Vehicle ${route.vehicle_id} · elapsed time`;
     const depot = element("article", undefined, "timeline-stop"); depot.append(element("strong", "D · Depot"), element("time", "00:00:00")); target.append(depot);
     route.sequence.forEach((node, index) => {
@@ -312,6 +318,9 @@
   function showResult(data, payload) {
     pausePlayback(); selectedStop = 0;
     currentResult = data; currentPayload = payload;
+    resultRevision = inputRevision;
+    for (const id of ["download-result", "download-report", "print-report"]) byId(id).disabled = false;
+    byId("inspect-report").disabled = false;
     byId("solver").value = payload.solver;
     const badge = byId("result-status"); badge.textContent = data.report.status.replaceAll("_", " "); badge.className = `status ${statusClass(data.report.status)}`;
     byId("result-summary").replaceChildren(element("p", data.headline, "result-headline"), element("p", `${solverLabel(data.report.solver_name)} · ${data.routes.length} used vehicles · ${data.unserved.length} unserved · solver ${data.report.wall_time_ms.toFixed(3)} ms`, "metric-copy"));
@@ -374,6 +383,7 @@
   function renderReport() {
     if (!currentResult) return;
     const d = currentResult, body = byId("report-body"); body.replaceChildren(element("p", "Waybill · dispatch report", "eyebrow"), element("h2", d.headline));
+    if (resultRevision !== inputRevision) body.prepend(element("p", "Inputs changed. This report describes the last calculated plan; re-solve before submitting or exporting it.", "coverage-note"));
     body.append(element("p", `Model: ${d.report.problem_type} · Algorithm: ${solverLabel(d.report.solver_name)}`, "metric-copy"));
     body.append(metric("Status", d.report.status.replaceAll("_", " "), `Stopped: ${d.report.stop_reason}`), metric("Objective", `${d.report.objective_value.toLocaleString()} ${d.report.objective_units}`, `${d.routes.length} used vehicles`), metric("Feasibility", d.feasible ? "passed" : "failed", d.feasible ? "Independent checker found no violation." : d.violations.join("; ")));
     body.append(element("h3", "Routes"), table(["Vehicle", "Sequence", "Load", "Cost", "Depot return"], d.routes.map((r) => [r.vehicle_id, `D → ${r.sequence.join(" → ")} → D`, r.load, r.cost, clock(r.schedule.return_to_depot)])), element("h3", "Provenance"));
@@ -389,11 +399,11 @@
       comparison = null;
       byId("comparison-summary").replaceChildren(); byId("comparison-routes").replaceChildren(); byId("comparison-conclusion").textContent = "";
       byId("comparison-table").replaceChildren(element("p", "Computing algorithms on the selected input…")); renderReport();
-      const base = payloadFromForm();
+      const base = payloadFromForm(), revision = inputRevision;
       const { results, skipped } = await request("/api/compare", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(base) });
       const methods = results.map((r) => ({ nearest_neighbor: "nearest_neighbor", branch_and_bound_min_in_out: "branch_and_bound", held_karp: "held_karp", clarke_wright_savings: "savings" }[r.report.solver_name]));
       if (new Set(results.map((r) => r.matrix_metadata.sha256)).size !== 1) throw new Error("Matrix identity changed between solver runs.");
-      if (JSON.stringify(payloadFromForm()) !== JSON.stringify(base)) throw new Error("Inputs changed during comparison. Run it again for the updated input.");
+      if (revision !== inputRevision || JSON.stringify(payloadFromForm()) !== JSON.stringify(base)) throw new Error("Inputs changed during comparison. Run it again for the updated input.");
       comparison = { payload: base, results, skipped };
       const costs = results.filter((r) => r.feasible).map((r) => r.report.objective_value), best = costs.length ? Math.min(...costs) : null;
       const proven = results.find((r) => r.report.status === "PROVEN_OPTIMAL_TSP");
@@ -447,6 +457,7 @@
   }
 
   function activateTab(name, focus) {
+    if (!document.querySelector(`.nav-tab[data-tab="${CSS.escape(name)}"]`)) name = "dispatch";
     if (name !== "dispatch") pausePlayback();
     document.querySelectorAll(".app-panel").forEach((panel) => { panel.hidden = panel.id !== name; });
     document.querySelectorAll(".nav-tab[data-tab]").forEach((button) => { const active = button.dataset.tab === name; button.setAttribute("aria-selected", active); button.tabIndex = active ? 0 : -1; if (active) { button.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "instant" }); if (focus) button.focus(); } });
@@ -454,8 +465,10 @@
   }
 
   function inputEdited() {
+    inputRevision++;
     form.dataset.edited = "true";
     pausePlayback();
+    for (const id of ["play-route", "step-route", "reset-route", "route-progress", "download-result", "download-report", "print-report"]) byId(id).disabled = true;
     try { byId("instance-stops").textContent = parseStops().length; } catch (_) { byId("instance-stops").textContent = "—"; }
     byId("instance-vehicles").textContent = byId("problem").value === "TSP" ? 1 : byId("vehicles").value;
     byId("instance-matrix").textContent = "Pending solve";
@@ -463,38 +476,72 @@
     comparison = null;
     byId("comparison-summary").replaceChildren(); byId("comparison-routes").replaceChildren(); byId("comparison-conclusion").textContent = "";
     byId("comparison-table").className = "empty"; byId("comparison-table").textContent = "Inputs changed. Run comparison for the updated input.";
+    byId("asymmetry-metrics").replaceChildren(); byId("asymmetry-table").textContent = "Inputs changed. Audit the updated matrix.";
+    byId("invariant-results").className = "check-list empty"; byId("invariant-results").textContent = "Inputs changed. Re-run the audit for this dataset.";
     if (currentResult) byId("hero-description").textContent = `Inputs edited. The displayed tour is the last calculated result (${solverLabel(currentResult.report.solver_name)}). Solve again to update it.`;
     renderReport();
   }
 
+  function parseImport(text, json, defaultProvider) {
+    let data;
+    if (json) { data = JSON.parse(text); if (Array.isArray(data)) data = { stops: data }; }
+    else {
+      const lines = text.trim().split(/\n+/);
+      if (/^\s*(lat|latitude)\s*,\s*(lon|longitude)\b/i.test(lines[0])) lines.shift();
+      data = { stops: parseStops(lines.join("\n")) };
+    }
+    if (!data || !Array.isArray(data.stops) || data.stops.length < 2 || data.stops.length > 100) throw new Error("Import needs 2–100 stops, with the depot first.");
+    if (["problem", "solver", "provider", "vehicles", "capacity", "shift_end", "wall_time_ms"].some((key) => data[key] === null)) throw new Error("Imported settings cannot be null.");
+    const problem = data.problem ?? (data.stops.some((s) => s && ["demand", "earliest", "latest", "service_time"].some((key) => s[key] !== undefined)) ? "CVRPTW" : "TSP");
+    if (!["TSP", "CVRPTW"].includes(problem)) throw new Error("Unsupported planning model in the import.");
+    const fleet = problem === "CVRPTW", solver = data.solver ?? (fleet ? "savings" : "nearest_neighbor"), provider = data.provider ?? defaultProvider;
+    if (!(fleet ? ["savings"] : ["nearest_neighbor", "branch_and_bound", "held_karp"]).includes(solver) || !["osrm", "haversine"].includes(provider)) throw new Error("Unsupported solver or travel model in the import.");
+    const settings = { problem, solver, provider, vehicles: data.vehicles ?? (fleet ? 2 : 1), capacity: data.capacity ?? 25, shift_end: data.shift_end ?? 28800, wall_time_ms: data.wall_time_ms ?? 1000 };
+    const integer = (v, low, high) => Number.isInteger(v) && v >= low && v <= high;
+    if (!integer(settings.vehicles, 1, fleet ? 6 : 1) || !integer(settings.capacity, 1, 100000) || !integer(settings.shift_end, 1, 86400) || !integer(settings.wall_time_ms, 1, 2000)) throw new Error("Imported vehicle, capacity, shift or budget values are out of range.");
+    const stops = data.stops.map((s, i) => {
+      if (!s || typeof s !== "object" || !Number.isFinite(s.lat) || !Number.isFinite(s.lon) || Math.abs(s.lat) > 90 || Math.abs(s.lon) > 180) throw new Error(`Stop ${i}: invalid latitude or longitude.`);
+      if (["demand", "earliest", "latest", "service_time"].some((key) => s[key] === null)) throw new Error(`Stop ${i}: fleet constraints cannot be null.`);
+      const stop = { lat: s.lat, lon: s.lon };
+      if (!fleet || !i) {
+        if ((s.demand ?? 0) !== 0 || (s.service_time ?? 0) !== 0 || s.earliest !== undefined || s.latest !== undefined) throw new Error(`Stop ${i}: ${!i ? "depot" : "TSP"} cannot carry fleet constraints.`);
+      } else {
+        Object.assign(stop, { demand: s.demand ?? 1, earliest: s.earliest ?? 0, latest: s.latest ?? settings.shift_end, service_time: s.service_time ?? 120 });
+        if (!integer(stop.demand, 0, 100000) || !integer(stop.earliest, 0, 86400) || !integer(stop.latest, stop.earliest, 86400) || !integer(stop.service_time, 0, 86400)) throw new Error(`Stop ${i}: invalid fleet constraints.`);
+      }
+      return stop;
+    });
+    const metadata = data.dataset ?? data;
+    if (!metadata || typeof metadata !== "object") throw new Error("Invalid imported dataset metadata.");
+    if (metadata.places !== undefined && (!Array.isArray(metadata.places) || metadata.places.length !== stops.length || metadata.places.some((p, i) => !p || typeof p.name !== "string" || p.lat !== stops[i].lat || p.lon !== stops[i].lon))) throw new Error("Place metadata must match every imported stop.");
+    return { ...settings, stops, name: typeof data.name === "string" ? data.name : "Imported dataset", ...(metadata.places ? { places: metadata.places, provenance: metadata.provenance } : {}) };
+  }
+
+  function loadDataset(data) {
+    byId("problem").value = data.problem; chooseModel(); byId("solver").value = data.solver; byId("provider").value = data.provider;
+    byId("vehicles").value = data.vehicles; byId("capacity").value = data.capacity; byId("shift").value = data.shift_end / 60;
+    const budget = byId("budget");
+    if (![...budget.options].some((option) => Number(option.value) === data.wall_time_ms)) { const option = element("option", `${data.wall_time_ms} milliseconds (imported)`); option.value = data.wall_time_ms; budget.append(option); }
+    budget.value = data.wall_time_ms;
+    byId("stops").value = data.stops.map((s) => [s.lat, s.lon, ...(s.demand === undefined ? [] : [s.demand, s.earliest, s.latest, s.service_time])].join(", ")).join("\n");
+    datasetMeta = data.places ? data : null; datasetName = data.name;
+    byId("hero-title").textContent = data.name; byId("import-error").textContent = ""; inputEdited();
+  }
+
   async function importFile(file) {
     if (!file) return; if (file.size > 65536) throw new Error("Import must be 64 KB or smaller.");
-    const text = await file.text(); let stops, settings = null;
-    if (file.name.toLowerCase().endsWith(".json")) { const value = JSON.parse(text); stops = Array.isArray(value) ? value : value.stops; settings = Array.isArray(value) ? null : value; if (!Array.isArray(stops)) throw new Error("JSON must be a stop array or contain a stops array."); }
-    else {
-      const lines = text.trim().split(/\n+/), rows = lines.map((line) => line.split(",").map((v) => v.trim()));
-      if (rows[0] && !Number.isFinite(Number(rows[0][0]))) rows.shift();
-      stops = rows.map((r) => { if (![2, 6].includes(r.length) || r.some((v) => !Number.isFinite(Number(v)))) throw new Error("CSV rows need 2 or 6 numeric columns."); const v = r.map(Number), s = { lat: v[0], lon: v[1] }; if (v.length === 6) [s.demand, s.earliest, s.latest, s.service_time] = v.slice(2); return s; });
-    }
-    if (stops.length < 2 || stops.length > 100) throw new Error("Import needs 2–100 stops.");
-    byId("problem").value = settings?.problem === "CVRPTW" || stops.some((s) => s.demand !== undefined) ? "CVRPTW" : "TSP"; chooseModel();
-    if (["osrm", "haversine"].includes(settings?.provider)) byId("provider").value = settings.provider;
-    for (const [field, key, scale] of [["vehicles", "vehicles", 1], ["capacity", "capacity", 1], ["shift", "shift_end", 60]]) if (Number.isInteger(settings?.[key])) byId(field).value = settings[key] / scale;
-    byId("stops").value = stops.map((s) => [s.lat, s.lon, ...(s.demand === undefined ? [] : [s.demand, s.earliest, s.latest, s.service_time])].join(", ")).join("\n");
-    datasetName = file.name; const custom = byId("dataset-selector").querySelector('[value="custom"]'); custom.disabled = false; custom.textContent = file.name; byId("dataset-selector").value = "custom"; byId("import-error").textContent = "";
-    const meta = settings?.dataset || settings;
-    importedMeta = meta && Array.isArray(meta.places) && meta.places.length === stops.length ? { stops, places: meta.places, provenance: meta.provenance } : null;
-    datasetMeta = importedMeta; importedInput = byId("stops").value; importedName = file.name; inputEdited(); activateTab("dispatch");
+    const revision = inputRevision, text = await file.text();
+    const data = parseImport(text, file.name.toLowerCase().endsWith(".json"), byId("provider").value);
+    if (revision !== inputRevision) throw new Error("Inputs changed while reading the file. Import it again to replace the updated dataset.");
+    data.name = file.name; importedDataset = data;
+    const custom = byId("dataset-selector").querySelector('[value="custom"]'); custom.disabled = false; custom.textContent = data.name;
+    byId("dataset-selector").value = "custom"; loadDataset(data); activateTab("dispatch");
   }
 
   document.addEventListener("waybill:dataset", ({ detail: data }) => {
-    byId("problem").value = data.problem; chooseModel(); byId("solver").value = data.solver; byId("provider").value = data.provider;
-    byId("vehicles").value = data.vehicles; byId("capacity").value = data.capacity; byId("shift").value = data.shift_end / 60;
-    byId("stops").value = data.stops.map((s) => [s.lat, s.lon, ...(s.demand === undefined ? [] : [s.demand, s.earliest, s.latest, s.service_time])].join(", ")).join("\n");
-    datasetMeta = data; importedMeta = data; importedInput = byId("stops").value; datasetName = data.name; importedName = data.name;
+    importedDataset = data;
     const custom = byId("dataset-selector").querySelector('[value="custom"]'); custom.disabled = false; custom.textContent = data.name; byId("dataset-selector").value = "custom";
-    byId("hero-title").textContent = data.name; byId("hero-description").textContent = "Dataset ready. Solve to calculate a route from these fetched places.";
-    byId("instance-stops").textContent = data.stops.length; byId("import-error").textContent = ""; inputEdited(); activateTab("dispatch");
+    loadDataset(data); activateTab("dispatch");
     byId("solve-button").focus({ preventScroll: true });
   });
   document.addEventListener("waybill:download", ({ detail }) => download(detail.name, detail.value, "application/json"));
@@ -548,17 +595,16 @@
   new ResizeObserver(([entry]) => { if (entry.contentRect.width && currentResult) fitMap(currentResult.stops.length > 30); }).observe(map);
   new ResizeObserver(([entry]) => document.documentElement.style.setProperty("--shell-height", `${entry.contentRect.height}px`)).observe(document.querySelector(".site-header"));
   document.addEventListener("visibilitychange", () => { if (document.hidden) pausePlayback(); });
-  reducedMotion.addEventListener("change", () => { pausePlayback(); byId("play-route").disabled = !playback || reducedMotion.matches; });
+  reducedMotion.addEventListener("change", () => { pausePlayback(); byId("play-route").disabled = !playback || resultRevision !== inputRevision || reducedMotion.matches; });
   form.addEventListener("input", inputEdited);
   byId("dataset-selector").addEventListener("change", () => {
     const custom = byId("dataset-selector").value === "custom";
-    byId("stops").value = custom ? importedInput : sampleInput;
-    datasetMeta = custom ? importedMeta : null;
-    datasetName = custom ? importedName : byId("dataset-selector").firstElementChild.textContent.split(" · ")[0]; inputEdited();
+    const data = custom ? importedDataset : sampleDataset;
+    if (data) loadDataset(data);
   });
   byId("compare-topic").addEventListener("click", () => { activateTab("sandbox"); runComparison(); });
   byId("compare-solvers").addEventListener("click", runComparison); byId("audit-asymmetry").addEventListener("click", auditAsymmetry); byId("run-invariants").addEventListener("click", runInvariants);
-  byId("import-file").addEventListener("change", (event) => importFile(event.target.files[0]).catch((e) => { byId("import-error").textContent = e.message; }));
+  byId("import-file").addEventListener("change", (event) => importFile(event.target.files[0]).catch((e) => { byId("import-error").textContent = e.message; }).finally(() => { event.target.value = ""; }));
   byId("download-input").addEventListener("click", () => { try { const payload = payloadFromForm(); const meta = datasetMeta && JSON.stringify(payload.stops) === JSON.stringify(datasetMeta.stops) ? { dataset: datasetMeta } : {}; download("waybill-input.json", JSON.stringify({ ...payload, ...meta }, null, 2), "application/json"); } catch (e) { byId("import-error").textContent = e.message; } });
   byId("download-result").addEventListener("click", () => { if (currentResult) download("waybill-result.json", JSON.stringify(currentResult, null, 2), "application/json"); });
   byId("download-report").addEventListener("click", () => { try { download("waybill-report.md", reportMarkdown(), "text/markdown"); } catch (e) { byId("report-body").replaceChildren(element("p", e.message, "error")); } });
@@ -569,16 +615,17 @@
   byId("close-report").addEventListener("click", () => byId("solve-report-dialog").close());
   document.querySelector(".brand").addEventListener("click", (event) => { event.preventDefault(); activateTab("dispatch"); });
   document.querySelectorAll(".nav-tab[data-tab]").forEach((button) => button.addEventListener("click", () => activateTab(button.dataset.tab)));
-  document.querySelector(".app-nav").addEventListener("keydown", (event) => { if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return; const tabs = [...document.querySelectorAll(".nav-tab[data-tab]")], index = tabs.findIndex((x) => x.getAttribute("aria-selected") === "true"), next = (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length; event.preventDefault(); activateTab(tabs[next].dataset.tab, true); });
+  document.querySelector(".app-nav").addEventListener("keydown", (event) => { if (!event.target.matches('.nav-tab[data-tab]') || !["ArrowLeft", "ArrowRight"].includes(event.key)) return; const tabs = [...document.querySelectorAll(".nav-tab[data-tab]")], index = tabs.findIndex((x) => x.getAttribute("aria-selected") === "true"), next = (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length; event.preventDefault(); activateTab(tabs[next].dataset.tab, true); });
 
-  chooseModel(); renderEvidence(); activateTab(location.hash.slice(1) && byId(location.hash.slice(1)) ? location.hash.slice(1) : "dispatch");
+  window.addEventListener("hashchange", () => activateTab(location.hash.slice(1)));
+  chooseModel(); renderEvidence(); activateTab(location.hash.slice(1));
   if (location.protocol === "file:") { byId("engine-state").textContent = "Start `make live` and open the HTTP URL."; byId("solve-button").disabled = true; return; }
   Promise.all([request("/api/example"), request("/api/health")]).then(async ([example, health]) => {
-    sampleInput = example.stops.map((stop) => `${stop.lat}, ${stop.lon}`).join("\n"); byId("dataset-selector").firstElementChild.textContent = `${example.name || "Monaco harbour deliveries"} · canonical live example`;
+    sampleDataset = { problem: "TSP", solver: "nearest_neighbor", vehicles: 1, capacity: 25, shift_end: 28800, wall_time_ms: 1000, name: example.name || "Monaco harbour deliveries", stops: example.stops, provider: health.osrm_available ? "osrm" : "haversine" };
+    byId("dataset-selector").firstElementChild.textContent = `${sampleDataset.name} · canonical live example`;
     byId("engine-state").textContent = health.osrm_available ? "Engine ready · OSRM connected" : "Engine ready · offline distances";
     if (form.dataset.edited) return;
-    datasetName = example.name || "Monaco harbour deliveries"; byId("stops").value = sampleInput;
-    if (!health.osrm_available) byId("provider").value = "haversine";
+    loadDataset(sampleDataset);
     const payload = payloadFromForm(); showResult(await solve(payload), payload);
-  }).catch((e) => { byId("engine-state").textContent = "Engine unavailable"; byId("solve-error").textContent = e.message; }).finally(() => { byId("compare-topic").disabled = false; byId("compare-solvers").disabled = false; });
+  }).catch((e) => { byId("engine-state").textContent = "Initial plan not loaded · retry solve"; byId("solve-error").textContent = e.message; }).finally(() => { setBusy(byId("solve-button"), false, "Loading…", byId("problem").value === "CVRPTW" ? "Dispatch fleet" : "Solve tour"); });
 }());

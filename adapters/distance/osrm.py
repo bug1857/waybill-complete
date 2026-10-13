@@ -38,6 +38,7 @@ DEFAULT_BASE_URL = "http://127.0.0.1:5001"
 
 #: OSRM's table service refuses very large requests by default.
 MAX_TABLE_COORDS = 100
+MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 
 
 class OsrmError(RuntimeError):
@@ -136,15 +137,20 @@ class OsrmProvider:
     def _get(self, url: str) -> dict:
         try:
             with urllib.request.urlopen(url, timeout=self._timeout) as response:
-                payload = json.loads(response.read().decode())
-        except urllib.error.URLError as exc:
+                raw = response.read(MAX_RESPONSE_BYTES + 1)
+            if len(raw) > MAX_RESPONSE_BYTES:
+                raise OsrmError("OSRM response exceeded the safety limit")
+            payload = json.loads(raw)
+        except (urllib.error.URLError, OSError) as exc:
             raise OsrmError(
-                f"cannot reach OSRM at {self._base_url}: {exc.reason}. "
+                f"cannot reach OSRM at {self._base_url}: {getattr(exc, 'reason', str(exc))}. "
                 f"Start it with `make osrm-up`."
             ) from exc
-        except json.JSONDecodeError as exc:
+        except ValueError as exc:
             raise OsrmError(f"OSRM returned malformed JSON: {exc}") from exc
 
+        if not isinstance(payload, dict):
+            raise OsrmError("OSRM returned an invalid response object")
         if payload.get("code") != "Ok":
             raise OsrmError(
                 f"OSRM error {payload.get('code')}: {payload.get('message', 'no detail')}"
@@ -208,23 +214,28 @@ class OsrmProvider:
         the same place and would corrupt every tour through them -- so it is
         rejected loudly here.
         """
+        if not isinstance(raw, list):
+            raise OsrmError("OSRM matrix must be an array of rows")
         if len(raw) != n:
             raise OsrmError(f"expected {n} rows from OSRM, got {len(raw)}")
 
         data = [0] * (n * n)
         for i, row in enumerate(raw):
+            if not isinstance(row, list):
+                raise OsrmError(f"row {i} is not an array")
             if len(row) != n:
                 raise OsrmError(f"row {i} has {len(row)} entries, expected {n}")
             for j, value in enumerate(row):
-                if i == j:
-                    continue
                 if value is None:
                     raise OsrmError(
                         f"OSRM cannot route between coordinate {i} and {j}. "
                         f"One of them is probably not reachable from the road "
                         f"network in this extract."
                     )
-                data[i * n + j] = int(float(value) + 0.5)
+                if type(value) not in (int, float) or value < 0 or not math.isfinite(value):
+                    raise OsrmError(f"OSRM matrix entry {i},{j} must be a finite non-negative number")
+                if i != j:
+                    data[i * n + j] = int(value + 0.5)
         return DistanceMatrix(data, n, unit)
 
     def route_geometry(self, coords: Sequence[Coord]) -> RouteGeometry:
@@ -237,13 +248,27 @@ class OsrmProvider:
         )
         payload = self._get(url)
         routes = payload.get("routes") or []
-        if not routes:
+        if not isinstance(routes, list) or not routes:
             raise OsrmError("OSRM returned no route")
         route = routes[0]
+        if not isinstance(route, dict) or not isinstance(route.get("geometry"), str) or not route["geometry"]:
+            raise OsrmError("OSRM returned invalid route geometry")
+        for key in ("distance", "duration"):
+            value = route.get(key)
+            if type(value) not in (int, float) or value < 0 or not math.isfinite(value):
+                raise OsrmError(f"OSRM route {key} must be a finite non-negative number")
+        legs = route.get("legs", [])
+        if not isinstance(legs, list):
+            raise OsrmError("OSRM returned invalid route legs")
+        for leg in legs:
+            if not isinstance(leg, dict) or not isinstance(leg.get("steps", []), list):
+                raise OsrmError("OSRM returned invalid route legs")
+            if any(not isinstance(step, dict) or not isinstance(step.get("geometry", ""), str) for step in leg.get("steps", [])):
+                raise OsrmError("OSRM returned invalid route steps")
         return RouteGeometry(
             polyline=route["geometry"],
             distance_m=int(route["distance"] + 0.5),
             duration_s=int(route["duration"] + 0.5),
             leg_polylines=tuple(tuple(step["geometry"] for step in leg.get("steps", [])
-                                     if step.get("geometry")) for leg in route.get("legs", [])),
+                                     if step.get("geometry")) for leg in legs),
         )

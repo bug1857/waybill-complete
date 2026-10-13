@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 
 from adapters.distance.haversine import HaversineProvider
 from adapters.distance.osrm import OsrmError, OsrmProvider
-from adapters.places import PlacesBusy, PlacesError, fetch_places, places_options
+from adapters.places import REGIONS, PlacesBusy, PlacesError, fetch_places, places_options
 from bench.evidence.provenance import GitState, ProvenanceError, capture_git_state
 from core.construct import ClarkeWrightSolver, NearestNeighborSolver
 from core.eval.feasibility import check, schedule
@@ -96,6 +96,11 @@ def _prepare_request(payload, *, osrm_url, dataset_id):
             stop = Stop(index, coord=coord)
         coords.append(coord)
         stops.append(stop)
+
+    if provider_name == "osrm" and dataset_id and dataset_id.startswith("monaco-"):
+        south, west, north, east = REGIONS["monaco"]["bbox"]
+        if any(not (south <= c.x <= north and west <= c.y <= east) for c in coords):
+            raise ValueError("The pinned road router covers only the Monaco area. Choose the offline distance estimate for stops outside road coverage.")
 
     def provider(unit):
         if provider_name == "osrm":

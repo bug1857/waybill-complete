@@ -59,3 +59,20 @@ Directed stop-to-stop edge overlap is labelled separately from physical road
 coverage. Equal tours and budget-limited results are legitimate outcomes.
 
 Display regression check: `node tests/test_route_comparison.cjs`.
+
+## Import, exports and edited inputs
+
+Import JSON (a stop array or an object containing `stops`) or CSV with two
+coordinate columns, optionally four fleet columns. Files are limited to 64 KB
+and 2–100 nodes including the depot. JSON exports retain supported model,
+algorithm, budget, vehicle and travel settings, plus matching location metadata.
+An invalid file leaves the current dataset unchanged. Switching between the
+sample and imported dataset restores their settings, not only their coordinates.
+
+Editing inputs marks the displayed route as the previous result, clears stale
+audits/comparisons, and disables replay and result/report exports until a fresh
+solve completes. A response arriving after an input change is rejected. The
+timeline is an elapsed-time schedule, not current traffic or live ETA.
+
+Regression check: `node tests/test_live_ui.cjs`. Browser verification also uses
+`tests/fixtures/import-config.json`, `import-valid.csv` and `import-invalid.csv`.

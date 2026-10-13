@@ -4,10 +4,10 @@ Project topic: **Courier Delivery Route Optimization System** (High level).
 Required DAA concepts: **TSP, Greedy, Branch & Bound**.
 
 Waybill's primary demo solves a single courier's closed TSP tour and compares
-Greedy nearest neighbour with admissible-bound Branch & Bound on the same input
+Greedy nearest neighbour, admissible-bound Branch & Bound, and Held–Karp on the same input
 and matrix. It shows measured distance, runtime, explored/pruned nodes, lower
 bound, feasibility, and stop reason. Optimality is claimed only for a completed
-proof. Held–Karp is an optional comparison cross-check; constrained CVRPTW fleet
+proof. Held–Karp is a cross-check run automatically up to 17 nodes; constrained CVRPTW fleet
 routing is an extension. The canonical Python engine is the source of truth;
 the static UI renders generated evidence and contains no routing logic.
 
@@ -64,8 +64,8 @@ includes dispatch, solver comparison, directed-matrix analysis, generated
 evidence, runtime invariants, import/export, and printable reports. The map draws
 OSRM road geometry and schedules use the same travel-time matrix as the solver.
 An offline distance estimate is also available.
-The Route planner opens in TSP mode. Use **Compare Greedy vs Branch & Bound**
-to run the required topic comparison, then view either returned tour without
+The Route planner opens in TSP mode. Use **Compare all algorithms & routes**
+to run the required topic comparison, then view any returned tour without
 re-solving it. The Project & report tab explains the formulation and algorithms
 and includes the measured comparison when it belongs to the active result.
 To use the current alternate local port: `.venv/bin/python -m api.server --port 8001`.
@@ -77,7 +77,8 @@ GPS or an ETA simulation. Inputs over 30 nodes default to a focused current-leg
 view with fewer labels; full routes, stop inspection, zoom/pan and the underlying
 schedules remain available. Reduced-motion users can step or scrub without
 continuous animation. Playback pauses off-screen and on tab changes.
-Run `node tests/test_route_motion.cjs` for the display-geometry regression check.
+Run `node tests/test_route_motion.cjs`, `node tests/test_route_comparison.cjs`,
+and `node tests/test_live_ui.cjs` for motion, comparison, import and stale-result checks.
 
 The local API accepts `POST /api/solve` and returns the canonical `SolveReport`,
 independent feasibility results, route geometry, schedules, and input/matrix
@@ -93,6 +94,8 @@ Without this argument, the OSRM dataset is explicitly labelled unversioned.
 
 The [free deployment guide](docs/deployment.md) describes the complete Docker
 workbench with its own pinned Monaco road router and clean-source release evidence.
+The Python wheel is for engine/library use. The complete website runs from the
+source checkout or Docker image, which also supplies web assets and datasets.
 The preserved Google UI prototype is in `reference/google-ui`; it is not the
 deployed computation path.
 
