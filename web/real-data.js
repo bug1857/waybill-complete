@@ -45,6 +45,7 @@
   const selectedPlaces = [];
   function renderCustomStops() {
     const list = byId("custom-stops"); list.replaceChildren();
+    byId("custom-error").textContent = "";
     byId("custom-summary").textContent = selectedPlaces.length ? `${selectedPlaces.length} places · start and return: ${selectedPlaces[0].name}` : "Add your starting place, then the places you want to visit.";
     byId("use-custom-places").disabled = fileMode || selectedPlaces.length < 2;
     selectedPlaces.forEach((p, i) => {

@@ -8,7 +8,7 @@ const placesSource = fs.readFileSync(path.join(__dirname, "../web/real-data.js")
 const fileNodes = new Map();
 const makeNode = () => ({ value: "", disabled: false, children: [], listeners: {},
   replaceChildren(...children) { this.children = children; }, append(...children) { this.children.push(...children); },
-  addEventListener(type, handler) { this.listeners[type] = handler; }, setAttribute() {} });
+  addEventListener(type, handler) { this.listeners[type] = handler; }, setAttribute() {}, focus() {} });
 const fileNode = id => { if (!fileNodes.has(id)) fileNodes.set(id, makeNode()); return fileNodes.get(id); };
 let fileRequests = 0;
 vm.runInNewContext(placesSource, { location: {protocol:"file:"}, fetch() { fileRequests++; throw new Error("file mode must not fetch"); },
@@ -23,6 +23,9 @@ for (let i=0;i<2;i++) {
 }
 assert.equal(fileNode("custom-stops").children.length, 2);
 assert.equal(fileNode("use-custom-places").disabled, true);
+fileNode("custom-stops").children[1].children[1].children[1].listeners.click();
+assert.equal(fileNode("custom-stops").children.length, 1);
+assert.equal(fileNode("custom-error").textContent, "");
 fileNode("custom-search-form").listeners.submit({preventDefault() {}});
 fileNode("places-form").listeners.submit({preventDefault() {}});
 assert.equal(fileRequests, 0);

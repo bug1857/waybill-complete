@@ -1,5 +1,5 @@
 {
-  "content_sha256": "51fcc4a8ecb2ea8d7c5cc994702f6402f90f214f2bba92e6be887cadc6f15fce",
+  "content_sha256": "3814664c69b955e2282f3953b7061b812d5abf8bc9a95161ed738afd4f3337cc",
   "metadata": {
     "purpose": "release evidence and static demo",
     "scope": "exact validation, heuristic reference, and CVRPTW feasibility"
@@ -12,9 +12,9 @@
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:05:39.342478Z",
+        "created_at_utc": "2026-10-13T06:43:43.455417Z",
         "git_dirty": false,
-        "git_revision": "53ca9a4b61e8f00af019a575461cb251c368ffe3",
+        "git_revision": "56b6b2445df91451a3be0f028ff42465065e1aed",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
@@ -37,7 +37,7 @@
       },
       "result": {
         "best_lower_bound": 3232,
-        "cpu_time_ms": 560.354,
+        "cpu_time_ms": 549.574,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -56,7 +56,7 @@
         "reference_value": null,
         "status": "PROVEN_OPTIMAL_TSP",
         "stop_reason": "optimal",
-        "wall_time_ms": 651.7095409944886
+        "wall_time_ms": 636.5002080128761
       }
     },
     {
@@ -66,9 +66,9 @@
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:05:39.452539Z",
+        "created_at_utc": "2026-10-13T06:43:43.511265Z",
         "git_dirty": false,
-        "git_revision": "53ca9a4b61e8f00af019a575461cb251c368ffe3",
+        "git_revision": "56b6b2445df91451a3be0f028ff42465065e1aed",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
@@ -91,7 +91,7 @@
       },
       "result": {
         "best_lower_bound": 3232,
-        "cpu_time_ms": 6.42100000000001,
+        "cpu_time_ms": 4.213000000000022,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -118,7 +118,7 @@
         "reference_value": null,
         "status": "PROVEN_OPTIMAL_TSP",
         "stop_reason": "optimal",
-        "wall_time_ms": 9.706291995826177
+        "wall_time_ms": 4.213874999550171
       }
     },
     {
@@ -128,9 +128,9 @@
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:05:39.490191Z",
+        "created_at_utc": "2026-10-13T06:43:43.557376Z",
         "git_dirty": false,
-        "git_revision": "53ca9a4b61e8f00af019a575461cb251c368ffe3",
+        "git_revision": "56b6b2445df91451a3be0f028ff42465065e1aed",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
@@ -153,10 +153,10 @@
       },
       "result": {
         "best_lower_bound": 3232,
-        "cpu_time_ms": 11.662999999999979,
+        "cpu_time_ms": 11.80099999999995,
         "feasible": true,
         "metrics": {
-          "bound_time_ms": 11.132588944747113,
+          "bound_time_ms": 11.041412013582885,
           "nodes_created": 458,
           "nodes_explored": 77,
           "nodes_pruned": 380,
@@ -179,7 +179,7 @@
         "reference_value": null,
         "status": "PROVEN_OPTIMAL_TSP",
         "stop_reason": "optimal",
-        "wall_time_ms": 12.109875009628013
+        "wall_time_ms": 12.212959001772106
       }
     },
     {
@@ -189,9 +189,9 @@
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:05:39.513646Z",
+        "created_at_utc": "2026-10-13T06:43:43.598500Z",
         "git_dirty": false,
-        "git_revision": "53ca9a4b61e8f00af019a575461cb251c368ffe3",
+        "git_revision": "56b6b2445df91451a3be0f028ff42465065e1aed",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
@@ -214,7 +214,7 @@
       },
       "result": {
         "best_lower_bound": null,
-        "cpu_time_ms": 0.076000000000076,
+        "cpu_time_ms": 0.07699999999999374,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -237,7 +237,7 @@
         "reference_value": null,
         "status": "HEURISTIC_FEASIBLE_TSP",
         "stop_reason": "completed",
-        "wall_time_ms": 0.07612499757669866
+        "wall_time_ms": 0.07741700392216444
       }
     },
     {
@@ -247,9 +247,9 @@
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:05:39.534608Z",
+        "created_at_utc": "2026-10-13T06:43:43.627992Z",
         "git_dirty": false,
-        "git_revision": "53ca9a4b61e8f00af019a575461cb251c368ffe3",
+        "git_revision": "56b6b2445df91451a3be0f028ff42465065e1aed",
         "input_name": "data/tsplib/eil51.tsp",
         "input_sha256": "66c05ad077ffd64d5778e358bbd16be049f8c8ae880cbd24f034487331d1ccce",
         "matrix_hash": "fc44db3d68b784409c051776f121425b5a337251c2fda66a3ebc17cb18c6ed85",
@@ -266,7 +266,7 @@
       },
       "result": {
         "best_lower_bound": null,
-        "cpu_time_ms": 0.4770000000000607,
+        "cpu_time_ms": 1.2619999999999854,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -289,7 +289,7 @@
         "reference_value": 426,
         "status": "HEURISTIC_FEASIBLE_TSP",
         "stop_reason": "completed",
-        "wall_time_ms": 0.47733300016261637
+        "wall_time_ms": 1.2624999944819137
       }
     },
     {
@@ -299,9 +299,9 @@
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:05:39.605920Z",
+        "created_at_utc": "2026-10-13T06:43:43.707382Z",
         "git_dirty": false,
-        "git_revision": "53ca9a4b61e8f00af019a575461cb251c368ffe3",
+        "git_revision": "56b6b2445df91451a3be0f028ff42465065e1aed",
         "input_name": "data/benchmarks/clustered-cvrptw-150-v6-s240519.json",
         "input_sha256": "45f8cc35a2ab2a780aa78bb0d38cd4e574baa5f5556dc11b7135652e24ac944e",
         "matrix_hash": "608925deea2c204b4affa1de8b963a33632bd466781bc898c43e5b3e676f707a",
@@ -324,7 +324,7 @@
       },
       "result": {
         "best_lower_bound": null,
-        "cpu_time_ms": 39.54000000000002,
+        "cpu_time_ms": 37.039999999999964,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -354,7 +354,7 @@
         "reference_value": null,
         "status": "HEURISTIC_FEASIBLE_CVRPTW",
         "stop_reason": "completed",
-        "wall_time_ms": 45.07787499460392
+        "wall_time_ms": 40.490375002264045
       }
     }
   ],
