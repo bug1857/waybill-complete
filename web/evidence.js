@@ -1,5 +1,5 @@
 window.WAYBILL_EVIDENCE = {
-  "content_sha256": "6f3b73319af8f6778b2fba44899f93cc7e7d33bd006d73ed993359d3cd2f65f1",
+  "content_sha256": "972d469a4915594961651916189e5b5c0b839086722f84b4e41c2c3634affb04",
   "metadata": {
     "purpose": "release evidence and static demo",
     "scope": "exact validation, heuristic reference, and CVRPTW feasibility"
@@ -12,9 +12,9 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:46:31.172689Z",
+        "created_at_utc": "2026-10-14T08:09:48.026950Z",
         "git_dirty": false,
-        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "git_revision": "976760703f6b299c3d4bbd3d43dd5c25b73256b8",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
@@ -37,7 +37,7 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": 3232,
-        "cpu_time_ms": 496.106,
+        "cpu_time_ms": 473.04999999999995,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -56,7 +56,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": null,
         "status": "PROVEN_OPTIMAL_TSP",
         "stop_reason": "optimal",
-        "wall_time_ms": 525.3101669950411
+        "wall_time_ms": 473.84512500138953
       }
     },
     {
@@ -66,9 +66,9 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:46:31.215951Z",
+        "created_at_utc": "2026-10-14T08:09:48.075381Z",
         "git_dirty": false,
-        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "git_revision": "976760703f6b299c3d4bbd3d43dd5c25b73256b8",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
@@ -91,7 +91,7 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": 3232,
-        "cpu_time_ms": 4.709999999999992,
+        "cpu_time_ms": 3.922000000000092,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -118,7 +118,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": null,
         "status": "PROVEN_OPTIMAL_TSP",
         "stop_reason": "optimal",
-        "wall_time_ms": 4.869208991294727
+        "wall_time_ms": 3.922875002899673
       }
     },
     {
@@ -128,9 +128,9 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:46:31.364043Z",
+        "created_at_utc": "2026-10-14T08:09:48.101459Z",
         "git_dirty": false,
-        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "git_revision": "976760703f6b299c3d4bbd3d43dd5c25b73256b8",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
@@ -153,10 +153,10 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": 3232,
-        "cpu_time_ms": 10.410999999999948,
+        "cpu_time_ms": 10.17800000000002,
         "feasible": true,
         "metrics": {
-          "bound_time_ms": 9.702948140329681,
+          "bound_time_ms": 9.50761898275232,
           "nodes_created": 458,
           "nodes_explored": 77,
           "nodes_pruned": 380,
@@ -179,7 +179,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": null,
         "status": "PROVEN_OPTIMAL_TSP",
         "stop_reason": "optimal",
-        "wall_time_ms": 10.410499991849065
+        "wall_time_ms": 10.179124998103362
       }
     },
     {
@@ -189,9 +189,9 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:46:31.404620Z",
+        "created_at_utc": "2026-10-14T08:09:48.117071Z",
         "git_dirty": false,
-        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "git_revision": "976760703f6b299c3d4bbd3d43dd5c25b73256b8",
         "input_name": "data/benchmarks/exact-euclidean-n10-s17.json",
         "input_sha256": "3cb0defa277d4dc0f8c54e1247fccafd45d50a6597418f0cc1b502bf05acde95",
         "matrix_hash": "d2d4e93e97d8c048c54f7b9ca96a2b3d266805186c3ee05956bdd96f9093f826",
@@ -214,7 +214,7 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": null,
-        "cpu_time_ms": 0.08099999999999774,
+        "cpu_time_ms": 0.06700000000003925,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -237,7 +237,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": null,
         "status": "HEURISTIC_FEASIBLE_TSP",
         "stop_reason": "completed",
-        "wall_time_ms": 0.08250000246334821
+        "wall_time_ms": 0.06637500337092206
       }
     },
     {
@@ -247,9 +247,9 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:46:31.441240Z",
+        "created_at_utc": "2026-10-14T08:09:48.133310Z",
         "git_dirty": false,
-        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "git_revision": "976760703f6b299c3d4bbd3d43dd5c25b73256b8",
         "input_name": "data/tsplib/eil51.tsp",
         "input_sha256": "66c05ad077ffd64d5778e358bbd16be049f8c8ae880cbd24f034487331d1ccce",
         "matrix_hash": "fc44db3d68b784409c051776f121425b5a337251c2fda66a3ebc17cb18c6ed85",
@@ -266,7 +266,7 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": null,
-        "cpu_time_ms": 0.5249999999999977,
+        "cpu_time_ms": 0.44399999999999995,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -289,7 +289,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": 426,
         "status": "HEURISTIC_FEASIBLE_TSP",
         "stop_reason": "completed",
-        "wall_time_ms": 0.5260420002741739
+        "wall_time_ms": 0.44337500003166497
       }
     },
     {
@@ -299,9 +299,9 @@ window.WAYBILL_EVIDENCE = {
           "max_nodes": null,
           "wall_time_ms": null
         },
-        "created_at_utc": "2026-10-13T06:46:31.503148Z",
+        "created_at_utc": "2026-10-14T08:09:48.186413Z",
         "git_dirty": false,
-        "git_revision": "ee4a85419e60e1858d78b271aabc81e491c59196",
+        "git_revision": "976760703f6b299c3d4bbd3d43dd5c25b73256b8",
         "input_name": "data/benchmarks/clustered-cvrptw-150-v6-s240519.json",
         "input_sha256": "45f8cc35a2ab2a780aa78bb0d38cd4e574baa5f5556dc11b7135652e24ac944e",
         "matrix_hash": "608925deea2c204b4affa1de8b963a33632bd466781bc898c43e5b3e676f707a",
@@ -324,7 +324,7 @@ window.WAYBILL_EVIDENCE = {
       },
       "result": {
         "best_lower_bound": null,
-        "cpu_time_ms": 32.93199999999996,
+        "cpu_time_ms": 30.716999999999995,
         "feasible": true,
         "metrics": {
           "bound_time_ms": 0.0,
@@ -354,7 +354,7 @@ window.WAYBILL_EVIDENCE = {
         "reference_value": null,
         "status": "HEURISTIC_FEASIBLE_CVRPTW",
         "stop_reason": "completed",
-        "wall_time_ms": 34.69916600442957
+        "wall_time_ms": 30.770792000112124
       }
     }
   ],
