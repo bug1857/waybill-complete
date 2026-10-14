@@ -8,10 +8,15 @@ Render provides `PORT`, `RENDER_EXTERNAL_URL` and `RENDER_GIT_COMMIT`; the serve
 requires the exact HTTPS origin and records the deployed commit in solve results.
 
 The container contains the canonical Python engine and a private OSRM process
-on `127.0.0.1:5000`. The September 2026 Monaco Geofabrik extract and OSRM image
-are pinned and verified during the build. Road routing is regional: coordinates
-outside Monaco are not supported by that extract. Haversine mode remains an
-explicitly labelled straight-line estimate, not a road-routing fallback.
+on `127.0.0.1:5000`. A small bundled Jaipur/Monaco extract and the OSRM image
+are checksum-pinned and verified during the build. The original regional
+sources, extraction recipe and snapshot dates are documented in
+`data/roads/README.md`. Only that bounded extract is preprocessed, not India.
+Jaipur stop coverage: latitude 26.72–27.13, longitude 75.50–76.02. Monaco's
+previous coverage remains unchanged. All road stops must belong to one area;
+mixed-area and outside-area road requests fail before reaching OSRM.
+Haversine mode remains an explicit geographic estimate (great-circle distance
+× 1.3), not a silent road-routing fallback. Road geometry is not live traffic.
 
 Use a **Free** instance and leave automatic deployment off to avoid unnecessary
 builds. Free services sleep after inactivity and have monthly usage limits;
@@ -44,4 +49,4 @@ curl -H 'Host: waybill.test' http://127.0.0.1:8003/api/health
 ```
 
 Map data: [OpenStreetMap contributors](https://www.openstreetmap.org/copyright),
-distributed by [Geofabrik](https://download.geofabrik.de/europe/monaco.html).
+distributed by [Geofabrik](https://download.geofabrik.de/asia/india/northern-zone.html).

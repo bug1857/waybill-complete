@@ -73,8 +73,9 @@ An offline distance estimate is also available.
 **Places & real data → Your own stops** supports public place search or manual
 coordinates. Choose a start/return depot, add delivery destinations, then send
 the dataset to the same canonical solver. Location names and source metadata
-survive export/import. Custom trips default to labelled geographic estimates;
-road routing is supported only within the bundled Monaco area.
+survive export/import. Custom trips inside one bundled Jaipur or Monaco area
+default to road routing. Outside those areas they use labelled geographic
+estimates (great-circle distance × 1.3), not driving distances or live traffic.
 The Route planner opens in TSP mode. Use **Compare all algorithms & routes**
 to run the required topic comparison, then view any returned tour without
 re-solving it. The Project & report tab explains the formulation and algorithms
@@ -104,7 +105,7 @@ Without this argument, the OSRM dataset is explicitly labelled unversioned.
 ## Hosted release
 
 The [free deployment guide](docs/deployment.md) describes the complete Docker
-workbench with its own pinned Monaco road router and clean-source release evidence.
+workbench with its own pinned Jaipur/Monaco road router and clean-source release evidence.
 The Python wheel is for engine/library use. The complete website runs from the
 source checkout or Docker image, which also supplies web assets and datasets.
 The preserved Google UI prototype is in `reference/google-ui`; it is not the

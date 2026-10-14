@@ -9,7 +9,7 @@ from threading import Lock, Thread
 import pytest
 
 from adapters.distance.haversine import HaversineProvider
-from adapters.distance.osrm import OsrmProvider
+from adapters.distance.osrm import OsrmError, OsrmProvider
 from api.server import Handler, ROOT, compare_request, solve_request
 from core.model.geometry import Coord
 from core.model.units import Unit
@@ -136,6 +136,34 @@ def test_pinned_monaco_router_rejects_outside_coverage_before_network(monkeypatc
 def test_estimates_remain_available_outside_monaco():
     result = solve_request({"stops": [{"lat": 26.9124, "lon": 75.7873}, {"lat": 26.9239, "lon": 75.8267}], "provider": "haversine"}, dataset_id="monaco-260901:test")
     assert result["feasible"] and result["report"]["objective_value"] > 0
+
+
+@pytest.mark.parametrize("operation", [solve_request, compare_request])
+@pytest.mark.parametrize("stops", [
+    [{"lat": 28.63, "lon": 77.22}, {"lat": 28.64, "lon": 77.23}],
+    [{"lat": 26.9124, "lon": 75.7873}, {"lat": 43.7355, "lon": 7.4256}],
+    [{"lat": 26.9239, "lon": 75.8267}, {"lat": 27.14, "lon": 75.8267}],
+])
+def test_combined_router_rejects_outside_or_mixed_regions_before_network(monkeypatch, operation, stops):
+    monkeypatch.setattr(OsrmProvider, "build", lambda *_: pytest.fail("unsupported trip reached OSRM"))
+    with pytest.raises(ValueError, match="Monaco.*Jaipur.*estimate"):
+        operation({"stops": stops, "provider": "osrm"}, dataset_id="monaco-jaipur-261013:test")
+
+
+@pytest.mark.parametrize("stops", [
+    [{"lat": 26.9124, "lon": 75.7873}, {"lat": 26.9239, "lon": 75.8267}],
+    [{"lat": 26.84, "lon": 75.56}, {"lat": 26.83, "lon": 75.80}],
+    [{"lat": 26.72, "lon": 75.50}, {"lat": 27.13, "lon": 76.02}],
+    [{"lat": 43.7355, "lon": 7.4256}, {"lat": 43.7397, "lon": 7.4276}],
+])
+def test_combined_router_accepts_one_supported_region(monkeypatch, stops):
+    monkeypatch.setattr(OsrmProvider, "build", lambda self, coords: HaversineProvider(unit=self.unit).build(coords))
+    def missing_geometry(*_):
+        raise OsrmError("test-only geometry unavailable")
+    monkeypatch.setattr(OsrmProvider, "route_geometry", missing_geometry)
+    result = compare_request({"stops": stops, "provider": "osrm"}, dataset_id="monaco-jaipur-261013:test")
+    assert len(result["results"]) == 3
+    assert all(r["feasible"] and r["report"]["objective_value"] > 0 for r in result["results"])
 
 
 def test_live_http_boundary():

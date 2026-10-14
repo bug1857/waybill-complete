@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 
 from adapters.distance.haversine import HaversineProvider
 from adapters.distance.osrm import OsrmError, OsrmProvider
-from adapters.places import REGIONS, PlacesBusy, PlacesError, fetch_places, places_options, search_places
+from adapters.places import PlacesBusy, PlacesError, fetch_places, places_options, road_regions, search_places
 from bench.evidence.provenance import GitState, ProvenanceError, capture_git_state
 from core.construct import ClarkeWrightSolver, NearestNeighborSolver
 from core.eval.feasibility import check, schedule
@@ -97,10 +97,12 @@ def _prepare_request(payload, *, osrm_url, dataset_id):
         coords.append(coord)
         stops.append(stop)
 
-    if provider_name == "osrm" and dataset_id and dataset_id.startswith("monaco-"):
-        south, west, north, east = REGIONS["monaco"]["bbox"]
-        if any(not (south <= c.x <= north and west <= c.y <= east) for c in coords):
-            raise ValueError("The pinned road router covers only the Monaco area. Choose the offline distance estimate for stops outside road coverage.")
+    coverage = road_regions(dataset_id)
+    if provider_name == "osrm" and coverage:
+        if not any(all(south <= c.x <= north and west <= c.y <= east for c in coords)
+                   for south, west, north, east in (region["bbox"] for region in coverage.values())):
+            names = ", ".join(region["name"] for region in coverage.values())
+            raise ValueError(f"All road stops must be inside one supported area ({names}); inter-city trips are not covered. Choose the offline distance estimate outside road coverage.")
 
     def provider(unit):
         if provider_name == "osrm":
@@ -267,7 +269,7 @@ class Handler(SimpleHTTPRequestHandler):
         elif self.path == "/api/example":
             self.send_json(json.loads((ROOT / "data" / "live" / "monaco.json").read_text()))
         elif self.path == "/api/places/options":
-            self.send_json(places_options())
+            self.send_json(places_options(getattr(self.server, "dataset_id", None)))
         elif self.path == "/":
             self.send_response(302)
             self.send_header("Location", "/live.html")

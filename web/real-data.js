@@ -28,11 +28,12 @@
       seen.add(key);
     }
   }
-  function buildCustomDataset(places) {
+  function buildCustomDataset(places, roadRegions = {}) {
     validateCustomPlaces(places);
     if (places.length < 2) throw new Error("Add a starting place and 1–99 delivery stops.");
+    const roads = Object.values(roadRegions).some(({ bbox: [south, west, north, east] }) => places.every(p => p.lat >= south && p.lat <= north && p.lon >= west && p.lon <= east));
     return { name: `Custom round trip · ${places[0].name}`, places: places.map(p => ({ ...p })), stops: places.map(({ lat, lon }) => ({ lat, lon })),
-      problem: "TSP", solver: "nearest_neighbor", provider: "haversine", vehicles: 1, capacity: 25, shift_end: 28800, wall_time_ms: 1000,
+      problem: "TSP", solver: "nearest_neighbor", provider: roads ? "osrm" : "haversine", vehicles: 1, capacity: 25, shift_end: 28800, wall_time_ms: 1000,
       provenance: { source: "User-selected custom places", selection: "first place is the start and return depot; remaining stops are optimized", locations_only: true,
         attribution: "Search results: © OpenStreetMap contributors · ODbL; manual coordinates are user supplied", planning_assumptions: { model: "TSP", actual_orders: false } } };
   }
@@ -48,6 +49,9 @@
     byId("custom-error").textContent = "";
     byId("custom-summary").textContent = selectedPlaces.length ? `${selectedPlaces.length} places · start and return: ${selectedPlaces[0].name}` : "Add your starting place, then the places you want to visit.";
     byId("use-custom-places").disabled = fileMode || selectedPlaces.length < 2;
+    const roads = selectedPlaces.length >= 2 && buildCustomDataset(selectedPlaces, options?.road_regions).provider === "osrm";
+    const areas = Object.values(options?.road_regions || {}).map(region => region.name).join(", ");
+    byId("custom-coverage").textContent = roads ? "These stops match bundled road coverage. OSRM will calculate actual street paths and driving distances; no live traffic. Up to 100 places including the start." : `Configured road areas: ${areas || "none loaded"}. All stops must lie in one area. Other trips use geographic estimates (straight-line distance × 1.3), not driving paths or live traffic.`;
     selectedPlaces.forEach((p, i) => {
       const row = node("article", undefined, "place-row"), info = node("div");
       info.append(node("strong", `${i ? `Stop ${i}` : "Start / return"} · ${p.name}`), node("small", `${p.lat.toFixed(5)}, ${p.lon.toFixed(5)} · ${p.coordinate_kind}`));
@@ -93,7 +97,7 @@
     finally { button.disabled = false; button.textContent = "Search places"; byId("custom-search-form").setAttribute("aria-busy", "false"); }
   });
   byId("use-custom-places").addEventListener("click", () => {
-    try { document.dispatchEvent(new CustomEvent("waybill:dataset", { detail: buildCustomDataset(selectedPlaces) })); } catch (e) { byId("custom-error").textContent = e.message; }
+    try { document.dispatchEvent(new CustomEvent("waybill:dataset", { detail: buildCustomDataset(selectedPlaces, options?.road_regions) })); } catch (e) { byId("custom-error").textContent = e.message; }
   });
   renderCustomStops();
   function answers() { return Object.fromEntries(["depot", "count", "model", "vehicles", "capacity", "demand", "service", "shift"].map((key) => [key, key === "model" ? byId(`real-${key}`).value : Number(byId(`real-${key}`).value)])); }
@@ -123,7 +127,7 @@
     byId("real-plan-summary").textContent = "";
     byId("places-error").textContent = ""; byId("dataset-error").textContent = "";
     const region = options?.regions[byId("real-region").value];
-    byId("real-coverage").textContent = region?.roads ? "Monaco road coverage · OSRM road distances and geometry" : "Real Indian locations · geographic distance estimates (not road distances or live traffic)";
+    byId("real-coverage").textContent = region?.roads ? `${region.name} road coverage · OSRM driving distances and street geometry · no live traffic` : "Geographic distance estimates (not driving distances or live traffic)";
   }
   byId("real-region").addEventListener("change", invalidate); byId("real-category").addEventListener("change", invalidate);
   fields.addEventListener("change", renderPreview);
@@ -178,6 +182,6 @@
     for (const [field, values] of [["real-region", options.regions], ["real-category", options.categories]]) {
       const select = byId(field); select.replaceChildren(); Object.entries(values).forEach(([key, value]) => { const option = node("option", value.name); option.value = key; select.append(option); }); select.disabled = false;
     }
-    button.disabled = false; invalidate();
+    button.disabled = false; invalidate(); renderCustomStops();
   }).catch((e) => { byId("places-error").textContent = e.message; });
 }());

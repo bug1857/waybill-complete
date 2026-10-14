@@ -16,6 +16,7 @@ vm.runInNewContext(placesSource, { location: {protocol:"file:"}, fetch() { fileR
 assert.equal(fileRequests, 0);
 assert.equal(fileNode("custom-search").disabled, true);
 assert.equal(fileNode("custom-query").disabled, true);
+assert.ok(fileNode("custom-coverage").textContent.includes("none loaded"));
 assert.equal(fileNode("custom-search-error").children[1].href, "http://127.0.0.1:8000/live.html#real-data");
 for (let i=0;i<2;i++) {
   fileNode("custom-name").value = `Offline test ${i}`; fileNode("custom-lat").value = String(i); fileNode("custom-lon").value = "0";
