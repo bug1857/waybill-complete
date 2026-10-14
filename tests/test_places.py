@@ -150,6 +150,8 @@ def test_search_preserves_coordinates_identity_and_cached_retrieval(monkeypatch)
         p.search_places({"query": "Another place"})
 
 
+
+
 @pytest.mark.parametrize("payload", [None, {}, {"query": []}, {"query": "ab"}, {"query": "x" * 201}, {"query": "place", "url": "https://evil.test"}])
 def test_invalid_search_never_reaches_network(payload):
     with pytest.raises(ValueError):
@@ -172,3 +174,11 @@ def test_search_empty_results_and_daily_limit(monkeypatch):
     p._search_attempts.clear(); p._search_attempts.extend(range(100))
     with pytest.raises(p.PlacesBusy):
         p.search_places({"query": "Another place"})
+@pytest.mark.parametrize("dataset_id, expected", [(None, set()), ("unknown:test", set()), ("monaco-260901:test", {"monaco"}), ("monaco-jaipur-261013:test", {"monaco", "jaipur"})])
+def test_places_options_only_advertise_the_configured_road_extract(dataset_id, expected):
+    result = p.places_options(dataset_id)
+    assert set(result["road_regions"]) == expected
+    assert {key for key, region in result["regions"].items() if region["roads"]} == expected
+    assert result["regions"]["jaipur"]["bbox"] == [26.895, 75.785, 26.945, 75.84]
+    if "jaipur" in expected:
+        assert result["road_regions"]["jaipur"]["bbox"] == [26.72, 75.50, 27.13, 76.02]

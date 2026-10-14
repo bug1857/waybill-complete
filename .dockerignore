@@ -5,6 +5,7 @@
 !api/**
 !web/**
 !data/live/**
+!data/roads/**
 !infra/start-hosted.sh
 **/__pycache__
 **/*.pyc

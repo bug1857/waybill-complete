@@ -74,6 +74,41 @@ The other chat's completed custom-place work is included, not omitted.
   links to the HTTP app. Photon is an explicit bounded search provider;
   availability and mapped-location accuracy are not guaranteed.
 
-The current generated solver bundle identifies clean source
+That combined release's solver bundle identifies clean source
 `ee4a85419e60e1858d78b271aabc81e491c59196`, separately from the later
 artifact/merge commit. Hosted verification and merge status are recorded in PR #1.
+
+## Jaipur roads release · 14 October 2026
+
+- Bundled a verified 7,359,430-byte Jaipur/Monaco PBF. Jaipur was extracted
+  from Geofabrik's Northern Zone dated 12 October, not Western Zone. Source
+  checksums, ODbL attribution and the complete-ways recipe are in
+  `data/roads/README.md`; Docker verifies the combined SHA-256 before processing.
+- Supported Jaipur stops: latitude 26.72–27.13, longitude 75.50–76.02.
+  Custom trips default to roads only when every stop belongs to one configured
+  area. The POI fetch still uses its small city-centre query. Outside-area and
+  mixed-city road requests are rejected; no fabricated or silent fallback roads.
+- **810 Python tests passed, none skipped**, with both the original Monaco
+  router and the new full hosted container online. All three Node suites,
+  33-module core purity, 20 benchmark manifests and the OSRM exit gate passed.
+- The Docker image built and its API/OSRM ran under a 512-MiB, one-CPU limit,
+  with approximately 140 MiB observed usage. This is a local resource check,
+  not a guarantee of unlimited hosted concurrency.
+- Actual Jaipur centre/airport/western-outskirts road comparison: all three
+  methods feasible, shared asymmetric matrix, 78,042 metres. Both exact
+  methods completed a proof for these four test coordinates. Objectives were
+  re-scored from the matrix; nonempty road geometry was returned. These test
+  coordinates are not real orders and do not verify entrances or car access.
+- The new image served all 99 customers in the 100-node synthetic Jaipur
+  stress fixture. Monaco regression objectives remained 10,792 / 9,547 / 9,547
+  metres for Greedy / Branch & Bound / Held–Karp.
+- The regenerated six-run benchmark bundle comes from clean source
+  `976760703f6b299c3d4bbd3d43dd5c25b73256b8`; its SHA-256 is
+  `972d469a4915594961651916189e5b5c0b839086722f84b4e41c2c3634affb04`.
+  Jaipur container checks are separate from those benchmark records.
+
+Hosted deployment/browser verification and CI results are recorded in the
+Jaipur release PR after they complete, not inferred from local tests. Print
+output, field-driving accuracy, live traffic/GPS and production dispatch remain
+unchecked. The previous release is preserved at
+`checkpoint/pre-jaipur-roads-20261014` (`e147c6e`).

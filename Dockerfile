@@ -1,14 +1,13 @@
 FROM ghcr.io/project-osrm/osrm-backend@sha256:3ac496ff8fd7e1af53846179d73d06a97f719c8ad2217d008ed868942398665c
 
-RUN apt-get update && apt-get install -y --no-install-recommends python3 curl ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends python3 ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
-RUN mkdir -p data/osm \
-    && curl --fail --location --retry 3 https://download.geofabrik.de/europe/monaco-260901.osm.pbf -o data/osm/monaco-release.osm.pbf \
-    && echo 'f2d904ee0aa156a2252c39c0ab80ca7b3fafb28da6a84b909084a26f068ac962  data/osm/monaco-release.osm.pbf' | sha256sum -c - \
-    && osrm-extract -t 1 -p /opt/car.lua data/osm/monaco-release.osm.pbf \
-    && osrm-partition -t 1 data/osm/monaco-release.osrm \
-    && osrm-customize -t 1 data/osm/monaco-release.osrm
+COPY data/roads/monaco-jaipur-release.osm.pbf data/osm/monaco-jaipur-release.osm.pbf
+RUN echo '3a31b6f8f58812732870d619f7e5de5c34dbc62b15ae4c5d77e10ed797f52b09  data/osm/monaco-jaipur-release.osm.pbf' | sha256sum -c - \
+    && osrm-extract -t 1 -p /opt/car.lua data/osm/monaco-jaipur-release.osm.pbf \
+    && osrm-partition -t 1 data/osm/monaco-jaipur-release.osrm \
+    && osrm-customize -t 1 data/osm/monaco-jaipur-release.osrm
 COPY core core
 COPY adapters adapters
 COPY bench bench

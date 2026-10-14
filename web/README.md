@@ -18,8 +18,10 @@ stops. Run Solve tour or the algorithm comparison; the list is the input, not a
 fixed visit order. Export input retains names and per-place location sources.
 Open the HTTP app served by `make live`, rather than double-clicking
 `live.html`: file mode disables searches and shows a link to the running app.
-Custom trips default to the labelled geographic distance estimate. The existing
-Monaco-only road router can be selected for locations within its coverage.
+Custom trips default to roads when all stops are inside one bundled Jaipur or
+Monaco coverage area. Other trips use the labelled geographic distance estimate
+(great-circle distance × 1.3), not a driving route. Coverage comes from the
+configured server dataset, not the place search result.
 
 Search uses the [Photon public demo](https://github.com/komoot/photon#demo-server),
 with explicit searches, five matches, no key, a 15-second timeout, six-hour
@@ -36,8 +38,10 @@ are retained in the export and the active run's location-source report.
 These are mapped locations, not actual customer orders or opening hours.
 Fleet parcel demand, service times and shift-wide windows are user assumptions.
 
-Monaco can use the hosted OSRM road extract. Indian areas use the explicitly
-labelled geographic distance estimate; they do not have road/traffic coverage.
+Jaipur and Monaco can use the hosted OSRM road extract. Jaipur stop coverage is
+latitude 26.72–27.13, longitude 75.50–76.02; the city-centre POI fetch remains
+bounded separately. Delhi, Bengaluru, Mumbai and outside-area stops use the
+explicitly labelled geographic estimate. No area has live-traffic coverage.
 The fixed HTTPS VK Maps Overpass endpoint rejects redirects. The main
 Overpass endpoint was unreachable from the Render host; this documented public
 instance is the selected provider, not an automatic retry/failover pool. Queries have a 20-second

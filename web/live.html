@@ -128,7 +128,7 @@
           <div>
             <h3>Your round trip</h3><p id="custom-summary" class="metric-copy" role="status"></p>
             <div id="custom-stops" class="places-preview"></div><p id="custom-error" class="metric-copy" role="status"></p>
-            <p class="coverage-note">Custom trips start with geographic distance estimates. These are straight-line distances, without road directions or traffic. Up to 100 places including the start.</p>
+            <p id="custom-coverage" class="coverage-note" role="status">Loading road coverage. Other trips use geographic distance estimates, not driving paths or live traffic.</p>
             <button id="use-custom-places" type="button" disabled>Use these stops in route planner ↗</button>
           </div>
         </div>
@@ -194,6 +194,6 @@
 
   <dialog id="solve-report-dialog" class="report-dialog"><div class="card-heading"><div><p class="eyebrow">Canonical response</p><h2>SolveReport &amp; provenance</h2></div><button id="close-report" type="button" class="secondary small-button">Close</button></div><pre id="result-json">No run yet.</pre></dialog>
   <footer class="site-footer"><span>Waybill · canonical Python engine</span><a href="https://www.openstreetmap.org/copyright">Road data © OpenStreetMap contributors</a><a href="index.html">Offline evidence viewer</a></footer>
-  <script src="evidence.js"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=2"></script><script src="real-data.js?v=4"></script><script src="live.js?v=11"></script>
+  <script src="evidence.js"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=2"></script><script src="real-data.js?v=5"></script><script src="live.js?v=11"></script>
 </body>
 </html>

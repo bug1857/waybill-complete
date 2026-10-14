@@ -16,7 +16,7 @@ MAX_RESPONSE_BYTES = 512 * 1024
 CACHE_SECONDS = 6 * 3600
 REGIONS = {
     "monaco": {"name": "Monaco", "bbox": [43.725, 7.405, 43.752, 7.44], "roads": True},
-    "jaipur": {"name": "Jaipur · city centre", "bbox": [26.895, 75.785, 26.945, 75.84], "roads": False},
+    "jaipur": {"name": "Jaipur · city centre", "bbox": [26.895, 75.785, 26.945, 75.84], "road_bbox": [26.72, 75.50, 27.13, 76.02], "roads": True},
     "delhi": {"name": "New Delhi · central", "bbox": [28.605, 77.195, 28.655, 77.245], "roads": False},
     "bengaluru": {"name": "Bengaluru · central", "bbox": [12.95, 77.565, 13.0, 77.615], "roads": False},
     "mumbai": {"name": "Mumbai · south", "bbox": [18.915, 72.805, 18.965, 72.855], "roads": False},
@@ -48,8 +48,20 @@ class NoRedirect(HTTPRedirectHandler):
         return None
 
 
-def places_options():
-    return {"regions": REGIONS, "categories": CATEGORIES}
+def road_regions(dataset_id):
+    if dataset_id and dataset_id.startswith("monaco-jaipur-"):
+        keys = ("monaco", "jaipur")
+    elif dataset_id and dataset_id.startswith("monaco-"):
+        keys = ("monaco",)
+    else:
+        keys = ()
+    return {key: {"name": REGIONS[key]["name"], "bbox": REGIONS[key].get("road_bbox", REGIONS[key]["bbox"])} for key in keys}
+
+
+def places_options(dataset_id=None):
+    coverage = road_regions(dataset_id)
+    return {"regions": {key: {**region, "roads": key in coverage} for key, region in REGIONS.items()},
+            "categories": CATEGORIES, "road_regions": coverage}
 
 
 def search_places(payload):
