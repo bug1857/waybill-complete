@@ -210,6 +210,13 @@ def test_live_http_boundary():
         client.request("GET", "/route-comparison.js?v=1")
         response = client.getresponse()
         assert response.status == 200 and b"WaybillComparison" in response.read()
+        for method in ("GET", "HEAD"):
+            client.request(method, "/map-context.js?v=1")
+            response = client.getresponse()
+            assert response.status == 200
+            body = response.read()
+            if method == "GET":
+                assert b"WaybillMap" in body
         client.request("POST", "/api/compare", "{}", {"Content-Type": "application/json", "Origin": "https://evil.example"})
         response = client.getresponse()
         assert response.status == 403

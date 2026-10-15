@@ -52,6 +52,14 @@ a clean commit for release evidence.
 
 ## Optional real-road integration
 
+Custom stops are saved locally in the current browser, with restore, explicit
+clear and JSON export. The coverage preview distinguishes Jaipur road-routing
+bounds from the smaller city-centre places query. Optional OpenStreetMap street
+backgrounds share viewport area with the tile provider only when enabled; they
+are not traffic data and do not alter the measured route. Release CI now runs
+the actual hosted Docker image plus desktop/mobile browser journeys. See
+[`docs/deployment.md`](docs/deployment.md) for limits and local test commands.
+
 OSRM is deliberately separate from the hermetic gate:
 
 ```sh

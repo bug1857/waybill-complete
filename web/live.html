@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="Courier Delivery Route Optimization System: TSP with Greedy nearest neighbour and Branch & Bound, measured on the same input.">
   <title>Waybill — Courier Delivery Route Optimization System</title>
-  <link rel="stylesheet" href="styles.css?v=11">
+  <link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body class="live-app">
   <header class="site-header">
@@ -72,9 +72,11 @@
         <section class="card route-card">
           <div class="card-heading"><div><p class="eyebrow">Route explorer</p><h2>Follow the delivery.</h2></div><div class="route-filter-wrap"><label for="route-filter">Visible vehicle</label><select id="route-filter" disabled><option value="all">All vehicles</option></select></div></div>
           <p id="map-caption" class="metric-copy">Calculate a plan to see its route. Depot is D.</p>
-          <div class="map-options"><label class="inline-check"><input type="checkbox" id="map-overview" checked> Full route</label><label class="inline-check"><input type="checkbox" id="map-labels" checked> All stop labels</label><div class="zoom-controls" role="group" aria-label="Map zoom"><button type="button" class="secondary small-button" id="map-zoom-in" aria-label="Zoom in">+</button><button type="button" class="secondary small-button" id="map-zoom-out" aria-label="Zoom out">−</button><button type="button" class="secondary small-button" id="map-fit">Fit route</button></div></div>
+          <div class="map-options"><label class="inline-check"><input type="checkbox" id="map-overview" checked> Full route</label><label class="inline-check"><input type="checkbox" id="map-labels" checked> All stop labels</label><label class="inline-check"><input type="checkbox" id="map-streets" aria-describedby="street-status"> Street background</label><div class="zoom-controls" role="group" aria-label="Map zoom"><button type="button" class="secondary small-button" id="map-zoom-in" aria-label="Zoom in">+</button><button type="button" class="secondary small-button" id="map-zoom-out" aria-label="Zoom out">−</button><button type="button" class="secondary small-button" id="map-fit">Fit route</button></div></div>
+          <p id="street-status" class="metric-copy" role="status">Optional: enabling the background sends the viewed map area to tile.openstreetmap.org. Keep it off for confidential locations.</p>
           <div class="playback-controls" role="group" aria-label="Route playback"><button type="button" id="play-route" class="small-button" disabled>Play route</button><button type="button" id="step-route" class="secondary small-button" disabled>Next stop</button><button type="button" id="reset-route" class="secondary small-button" disabled>Restart</button><label for="playback-speed">Speed<select id="playback-speed"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option></select></label></div>
           <svg id="route-map" viewBox="0 0 900 550" role="img" tabindex="0" aria-label="Delivery route map. Drag to pan; arrow keys pan, plus and minus zoom, Escape fits route." aria-describedby="map-help"><text x="450" y="275" text-anchor="middle" fill="#686660">Solve a tour to explore its route</text></svg>
+          <p class="map-attribution">Street map © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a> · <a href="https://www.openstreetmap.org/fixthemap" target="_blank" rel="noopener">Report a map issue</a></p>
           <label class="visually-hidden" for="route-progress">Route playback progress</label><input type="range" id="route-progress" min="0" max="1" step="0.01" value="0" disabled>
           <div class="playback-info"><strong id="playback-status" role="status">Calculate a route to enable playback.</strong><span id="playback-count">0 stops visited</span></div>
           <p id="map-help" class="metric-copy">Illustrative route replay—not live GPS or simulated ETA. Distance-paced movement follows the calculated geometry. Drag to pan; Fit route shows the whole journey.</p>
@@ -127,12 +129,19 @@
           </div>
           <div>
             <h3>Your round trip</h3><p id="custom-summary" class="metric-copy" role="status"></p>
+            <p id="custom-draft-status" class="metric-copy" role="status">Custom stops are saved only in this browser. Clear them on shared devices.</p>
             <div id="custom-stops" class="places-preview"></div><p id="custom-error" class="metric-copy" role="status"></p>
             <p id="custom-coverage" class="coverage-note" role="status">Loading road coverage. Other trips use geographic distance estimates, not driving paths or live traffic.</p>
             <button id="use-custom-places" type="button" disabled>Use these stops in route planner ↗</button>
+            <div class="drawer-actions"><button id="download-custom-places" type="button" class="secondary" disabled>Export custom dataset</button><button id="clear-custom-places" type="button" class="secondary" disabled>Clear saved stops</button></div>
           </div>
         </div>
       </section>
+      <details class="card coverage-preview"><summary>Check the supported road-routing area</summary>
+        <label for="coverage-region">Road-routing area</label><select id="coverage-region" disabled><option>Loading coverage…</option></select>
+        <p class="metric-copy">Dashed outline: bundled road routing. Solid inset: the smaller public-place query area. Dots: your custom stops inside this boundary. This is a coverage diagram, not a street map; a point inside can still be unreachable on the car network.</p>
+        <svg id="coverage-map" viewBox="0 0 600 340" role="img" aria-label="Road coverage is loading"></svg>
+      </details>
       <div class="data-workspace">
         <form id="places-form" class="card data-form">
           <div class="question-heading"><span>01</span><div><h2>Where are we delivering?</h2><p class="metric-copy">Small city-centre areas keep queries fast and fair.</p></div></div>
@@ -194,6 +203,6 @@
 
   <dialog id="solve-report-dialog" class="report-dialog"><div class="card-heading"><div><p class="eyebrow">Canonical response</p><h2>SolveReport &amp; provenance</h2></div><button id="close-report" type="button" class="secondary small-button">Close</button></div><pre id="result-json">No run yet.</pre></dialog>
   <footer class="site-footer"><span>Waybill · canonical Python engine</span><a href="https://www.openstreetmap.org/copyright">Road data © OpenStreetMap contributors</a><a href="index.html">Offline evidence viewer</a></footer>
-  <script src="evidence.js"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=2"></script><script src="real-data.js?v=5"></script><script src="live.js?v=11"></script>
+  <script src="evidence.js"></script><script src="map-context.js?v=1"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=3"></script><script src="real-data.js?v=6"></script><script src="live.js?v=12"></script>
 </body>
 </html>
