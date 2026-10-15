@@ -32,8 +32,14 @@ for (const raw of ['{broken', JSON.stringify({version:2,places:[]}), JSON.string
   assert.equal(damaged.getNode('custom-stops').children.length, 0);
   assert.equal(damaged.storage.get('waybill.custom-stops.v1'), raw);
   assert.ok(damaged.getNode('custom-draft-status').textContent.includes('Nothing was overwritten'));
+  damaged.getNode('custom-name').value='Replacement fixture'; damaged.getNode('custom-lat').value='0'; damaged.getNode('custom-lon').value='1';
+  damaged.getNode('custom-manual-form').listeners.submit({preventDefault(){}});
+  assert.equal(damaged.storage.get('waybill.custom-stops.v1'), raw);
+  assert.ok(damaged.getNode('custom-draft-status').textContent.includes('not saved'));
   damaged.getNode('clear-custom-places').listeners.click();
   assert.equal(damaged.storage.has('waybill.custom-stops.v1'), false);
+  damaged.getNode('custom-manual-form').listeners.submit({preventDefault(){}});
+  assert.equal(JSON.parse(damaged.storage.get('waybill.custom-stops.v1')).places.length, 1);
 }
 const denied = draftPage(null, true);
 denied.getNode('custom-name').value='Unsaved fixture'; denied.getNode('custom-lat').value='0'; denied.getNode('custom-lon').value='1';

@@ -46,7 +46,9 @@
   const selectedPlaces = [];
   const draftKey = "waybill.custom-stops.v1";
   let hasSavedDraft = false;
+  let draftBlocked = false;
   function saveDraft() {
+    if (draftBlocked) { byId("custom-draft-status").textContent = "The unreadable saved draft is preserved. Current stops are not saved—export them, or explicitly clear the saved draft before starting again."; return; }
     try {
       if (selectedPlaces.length) localStorage.setItem(draftKey, JSON.stringify({ version: 1, places: selectedPlaces }));
       else localStorage.removeItem(draftKey);
@@ -65,7 +67,7 @@
       validateCustomPlaces(draft.places);
       selectedPlaces.push(...draft.places);
       byId("custom-draft-status").textContent = "Saved custom stops restored. Review them, then use them in the planner; old solve results are not restored.";
-    } catch (_) { byId("custom-draft-status").textContent = "The saved draft could not be read or storage is blocked. Nothing was overwritten. Add stops manually or clear the saved draft."; }
+    } catch (_) { draftBlocked = true; byId("custom-draft-status").textContent = "The saved draft could not be read or storage is blocked. Nothing was overwritten. New stops will not be saved until you explicitly clear the saved draft."; }
   }
   function renderCoverage() {
     const key = byId("coverage-region").value, region = options?.road_regions[key];
@@ -135,7 +137,11 @@
   });
   byId("clear-custom-places").addEventListener("click", () => {
     if (!window.confirm("Clear the custom stop list and its saved draft on this browser? Export it first if you need a backup. Any dataset already loaded in the route planner is kept.")) return;
-    selectedPlaces.length = 0; saveDraft(); renderCustomStops(); byId("custom-query").focus();
+    try { localStorage.removeItem(draftKey); }
+    catch (_) { byId("custom-draft-status").textContent = "Browser storage could not be cleared. The current stop list and saved draft were kept."; return; }
+    selectedPlaces.length = 0; hasSavedDraft = false; draftBlocked = false;
+    byId("custom-draft-status").textContent = "No saved custom stops. New stops will be saved only in this browser.";
+    renderCustomStops(); byId("custom-query").focus();
   });
   byId("coverage-region").addEventListener("change", renderCoverage);
   restoreDraft();

@@ -139,7 +139,7 @@
       </section>
       <details class="card coverage-preview"><summary>Check the supported road-routing area</summary>
         <label for="coverage-region">Road-routing area</label><select id="coverage-region" disabled><option>Loading coverage…</option></select>
-        <p class="metric-copy">Dashed outline: bundled road routing. Solid inset: the smaller public-place query area. Dots: your custom stops inside this boundary. This is a coverage diagram, not a street map; a point inside can still be unreachable on the car network.</p>
+        <p class="metric-copy">Dashed outline: bundled road routing. Solid inset, when different: public-place query area. Identical boundaries are shown once. Dots: your custom stops inside this boundary. This is a coverage diagram, not a street map; a point inside can still be unreachable on the car network.</p>
         <svg id="coverage-map" viewBox="0 0 600 340" role="img" aria-label="Road coverage is loading"></svg>
       </details>
       <div class="data-workspace">
@@ -203,6 +203,6 @@
 
   <dialog id="solve-report-dialog" class="report-dialog"><div class="card-heading"><div><p class="eyebrow">Canonical response</p><h2>SolveReport &amp; provenance</h2></div><button id="close-report" type="button" class="secondary small-button">Close</button></div><pre id="result-json">No run yet.</pre></dialog>
   <footer class="site-footer"><span>Waybill · canonical Python engine</span><a href="https://www.openstreetmap.org/copyright">Road data © OpenStreetMap contributors</a><a href="index.html">Offline evidence viewer</a></footer>
-  <script src="evidence.js"></script><script src="map-context.js?v=1"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=3"></script><script src="real-data.js?v=6"></script><script src="live.js?v=12"></script>
+  <script src="evidence.js"></script><script src="map-context.js?v=2"></script><script src="route-motion.js?v=3"></script><script src="route-comparison.js?v=3"></script><script src="real-data.js?v=7"></script><script src="live.js?v=12"></script>
 </body>
 </html>
