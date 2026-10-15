@@ -60,6 +60,9 @@ test('damaged or unavailable storage leaves usable controls and never silently o
   await page.reload();
   await expect(page.locator('#custom-draft-status')).toContainText('Nothing was overwritten');
   expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe('{broken');
+  await addManual(page, 'Test-only replacement kept in memory', 26.9124, 75.7873);
+  expect(await page.evaluate(key => localStorage.getItem(key), draftKey)).toBe('{broken');
+  await expect(page.locator('#custom-draft-status')).toContainText('not saved');
   page.once('dialog', dialog => dialog.accept());
   await page.getByRole('button', {name:'Clear saved stops', exact:true}).click();
   await page.addInitScript(() => { Storage.prototype.setItem = () => { throw new DOMException('Test-only storage denied', 'QuotaExceededError'); }; });
@@ -75,6 +78,10 @@ test('coverage distinguishes the Jaipur query inset and wider road area; search 
   await expect(page.locator('#coverage-map')).toHaveAttribute('aria-label', /western corridor.*26.72.*27.13/);
   await expect(page.locator('.coverage-boundary')).toHaveCount(1);
   await expect(page.locator('.coverage-query')).toHaveCount(1);
+  await page.locator('#coverage-region').selectOption('monaco');
+  await expect(page.locator('.coverage-boundary')).toHaveCount(1);
+  await expect(page.locator('.coverage-query')).toHaveCount(0);
+  await expect(page.locator('#coverage-map')).toContainText('boundaries coincide');
   await page.route('**/api/places/search', route => route.fulfill({json:{places:[{name:'Test-only public-search fixture',lat:26.9239299,lon:75.8268692,coordinate_kind:'test fixture'}]}}));
   await page.getByLabel('Place / address and city', {exact:true}).fill('Test-only Jaipur fixture');
   await page.getByRole('button', {name:'Search places', exact:true}).click();

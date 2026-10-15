@@ -58,7 +58,9 @@
       return svgNode("rect", { x, y, width: right - x, height: bottom - y, class: cls });
     }
     svg.append(box(region.bbox, "coverage-boundary"));
-    if (queryBox) svg.append(box(queryBox, "coverage-query"));
+    const sharedBounds = queryBox?.every((value, i) => value === region.bbox[i]);
+    if (queryBox && !sharedBounds) svg.append(box(queryBox, "coverage-query"));
+    if (sharedBounds) svg.append(svgNode("text", { x: 14, y: 46, class: "coverage-coordinate" }, "Road and query boundaries coincide · shown once"));
     let outside = 0;
     stops.forEach((stop, i) => {
       if (stop.lat < south || stop.lat > north || stop.lon < west || stop.lon > east) { outside++; return; }
