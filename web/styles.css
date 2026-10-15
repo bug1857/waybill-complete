@@ -403,6 +403,22 @@ pre { overflow: auto; max-height: 450px; white-space: pre-wrap; overflow-wrap: a
 .comparison-map-card button { margin-top: auto; }
 .comparison-sequence { font-family: ui-monospace, monospace; font-size: 12px; overflow-wrap: anywhere; }
 .comparison-skipped { background: #f6f8f3 !important; justify-content: center; }
+
+/* Optional context stays behind the independently calculated route. */
+.street-tiles { opacity: .68; pointer-events: none; }
+#route-map:has(.street-tiles) .route-context { opacity: .7; stroke-width: 3; }
+.comparison-map:has(.street-tiles) .comparison-route-context { opacity: .6; stroke-width: 2; }
+.map-attribution { font-size: 11px; line-height: 1.6; margin: 0 0 12px; color: #59675e; }
+.map-attribution a { color: inherit; text-underline-offset: 3px; }
+.coverage-preview { margin-block: 0 28px; }
+.coverage-preview select { max-width: 420px; }
+#coverage-map { display: block; width: 100%; max-width: 760px; margin: 16px auto 0; background: #f3f7f2; border: 1px solid #dce3db; border-radius: 10px; }
+.coverage-boundary { fill: #e4eee5; stroke: #2d6051; stroke-width: 2; stroke-dasharray: 7 5; }
+.coverage-query { fill: #bbd6c9; stroke: #2d6051; stroke-width: 1.5; }
+.coverage-stop { fill: #124d77; stroke: #fff; stroke-width: 1.5; }
+.coverage-coordinate { font: 11px ui-monospace, monospace; fill: #334b3c; }
+.custom-places .drawer-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 760px) { .custom-places .drawer-actions button { width: 100%; }.comparison-map-grid { grid-template-columns: 1fr; } }
 @media (max-width: 1080px) { .comparison-map-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 760px) { .comparison-controls, .comparison-map-grid { grid-template-columns: 1fr; }.comparison-map-options { grid-column: 1; }.live-app .hero-actions .secondary { width: 100%; } }
 .live-app .comparison-map-section > .card-heading h2 { font: 400 clamp(25px, 3vw, 34px)/1.2 Georgia, serif; }

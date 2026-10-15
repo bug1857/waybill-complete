@@ -27,7 +27,7 @@ let width = 0, writes = [];
 const marker = {dataset:{node:'1'},setAttribute:(name,value)=>writes.push([name,value])};
 const map = {getBoundingClientRect:()=>({width}), setAttribute:(name,value)=>writes.push([name,value]),
   querySelectorAll:selector=>selector==='.map-node' ? [marker] : []};
-const context = {byId:()=>map, playback:null, mapScale:0};
+const context = {byId:()=>map, playback:null, mapScale:0, mapProjection:null};
 require('node:vm').runInNewContext(mapViewCode+'setMapView([0,0,900,550]);', context);
 assert.deepEqual(writes, []);
 width = 450;

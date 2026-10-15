@@ -182,3 +182,5 @@ def test_places_options_only_advertise_the_configured_road_extract(dataset_id, e
     assert result["regions"]["jaipur"]["bbox"] == [26.895, 75.785, 26.945, 75.84]
     if "jaipur" in expected:
         assert result["road_regions"]["jaipur"]["bbox"] == [26.72, 75.50, 27.13, 76.02]
+        assert result["road_regions"]["jaipur"]["name"] == "Jaipur · city, airport & western corridor"
+        assert result["regions"]["jaipur"]["name"] == "Jaipur · city centre"

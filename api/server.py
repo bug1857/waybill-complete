@@ -255,7 +255,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "/live.html")
             self.end_headers()
-        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/route-motion.js", "/route-comparison.js", "/real-data.js", "/evidence.js"}:
+        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/map-context.js", "/route-motion.js", "/route-comparison.js", "/real-data.js", "/evidence.js"}:
             super().do_HEAD()
         else:
             self.send_error(404)
@@ -274,7 +274,7 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_response(302)
             self.send_header("Location", "/live.html")
             self.end_headers()
-        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/route-motion.js", "/route-comparison.js", "/real-data.js", "/evidence.js"}:
+        elif self.path.split("?", 1)[0] in {"/index.html", "/live.html", "/styles.css", "/app.js", "/live.js", "/map-context.js", "/route-motion.js", "/route-comparison.js", "/real-data.js", "/evidence.js"}:
             super().do_GET()
         else:
             self.send_json({"error": "not found"}, 404)

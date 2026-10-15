@@ -44,11 +44,40 @@
   const fields = byId("real-build-fields"), preview = byId("places-preview"), button = byId("fetch-places");
   function node(tag, text, cls) { const el = document.createElement(tag); if (text !== undefined) el.textContent = text; if (cls) el.className = cls; return el; }
   const selectedPlaces = [];
+  const draftKey = "waybill.custom-stops.v1";
+  let hasSavedDraft = false;
+  function saveDraft() {
+    try {
+      if (selectedPlaces.length) localStorage.setItem(draftKey, JSON.stringify({ version: 1, places: selectedPlaces }));
+      else localStorage.removeItem(draftKey);
+      hasSavedDraft = selectedPlaces.length > 0;
+      byId("custom-draft-status").textContent = hasSavedDraft ? "Draft saved in this browser only. Clear saved stops on shared devices." : "No saved custom stops. New stops will be saved only in this browser.";
+    } catch (_) { byId("custom-draft-status").textContent = "Browser storage is unavailable. Current changes are not saved—export the custom dataset before closing."; }
+  }
+  function restoreDraft() {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      hasSavedDraft = true;
+      if (raw.length > 262144) throw new Error("Oversized draft");
+      const draft = JSON.parse(raw);
+      if (draft?.version !== 1) throw new Error("Unknown draft version");
+      validateCustomPlaces(draft.places);
+      selectedPlaces.push(...draft.places);
+      byId("custom-draft-status").textContent = "Saved custom stops restored. Review them, then use them in the planner; old solve results are not restored.";
+    } catch (_) { byId("custom-draft-status").textContent = "The saved draft could not be read or storage is blocked. Nothing was overwritten. Add stops manually or clear the saved draft."; }
+  }
+  function renderCoverage() {
+    const key = byId("coverage-region").value, region = options?.road_regions[key];
+    if (region) window.WaybillMap.coverage(byId("coverage-map"), region, options.regions[key]?.bbox, selectedPlaces);
+  }
   function renderCustomStops() {
     const list = byId("custom-stops"); list.replaceChildren();
     byId("custom-error").textContent = "";
     byId("custom-summary").textContent = selectedPlaces.length ? `${selectedPlaces.length} places · start and return: ${selectedPlaces[0].name}` : "Add your starting place, then the places you want to visit.";
     byId("use-custom-places").disabled = fileMode || selectedPlaces.length < 2;
+    byId("download-custom-places").disabled = selectedPlaces.length < 2;
+    byId("clear-custom-places").disabled = !selectedPlaces.length && !hasSavedDraft;
     const roads = selectedPlaces.length >= 2 && buildCustomDataset(selectedPlaces, options?.road_regions).provider === "osrm";
     const areas = Object.values(options?.road_regions || {}).map(region => region.name).join(", ");
     byId("custom-coverage").textContent = roads ? "These stops match bundled road coverage. OSRM will calculate actual street paths and driving distances; no live traffic. Up to 100 places including the start." : `Configured road areas: ${areas || "none loaded"}. All stops must lie in one area. Other trips use geographic estimates (straight-line distance × 1.3), not driving paths or live traffic.`;
@@ -58,18 +87,19 @@
       const actions = node("div", undefined, "custom-stop-actions");
       if (i) {
         const start = node("button", "Start here", "secondary small-button"); start.type = "button"; start.setAttribute("aria-label", `Start and return at ${p.name}`);
-        start.addEventListener("click", () => { selectedPlaces.unshift(selectedPlaces.splice(i, 1)[0]); renderCustomStops(); byId("use-custom-places").focus(); }); actions.append(start);
+        start.addEventListener("click", () => { selectedPlaces.unshift(selectedPlaces.splice(i, 1)[0]); saveDraft(); renderCustomStops(); byId("use-custom-places").focus(); }); actions.append(start);
       }
       const remove = node("button", "Remove", "secondary small-button"); remove.type = "button"; remove.setAttribute("aria-label", `Remove ${p.name}`);
-      remove.addEventListener("click", () => { selectedPlaces.splice(i, 1); renderCustomStops(); byId("custom-query").focus(); }); actions.append(remove);
+      remove.addEventListener("click", () => { selectedPlaces.splice(i, 1); saveDraft(); renderCustomStops(); byId("custom-query").focus(); }); actions.append(remove);
       row.append(info, actions); list.append(row);
     });
+    renderCoverage();
   }
   function addCustomPlace(place) {
     byId("custom-error").textContent = "";
     try {
       validateCustomPlaces([...selectedPlaces, place]);
-      selectedPlaces.push({ ...place }); renderCustomStops();
+      selectedPlaces.push({ ...place }); saveDraft(); renderCustomStops();
       byId("custom-error").textContent = `${place.name} added.`;
     } catch (e) { byId("custom-error").textContent = e.message; }
   }
@@ -99,6 +129,16 @@
   byId("use-custom-places").addEventListener("click", () => {
     try { document.dispatchEvent(new CustomEvent("waybill:dataset", { detail: buildCustomDataset(selectedPlaces, options?.road_regions) })); } catch (e) { byId("custom-error").textContent = e.message; }
   });
+  byId("download-custom-places").addEventListener("click", () => {
+    try { document.dispatchEvent(new CustomEvent("waybill:download", { detail: { name: "waybill-custom-stops.json", value: JSON.stringify(buildCustomDataset(selectedPlaces, options?.road_regions), null, 2) } })); }
+    catch (e) { byId("custom-error").textContent = e.message; }
+  });
+  byId("clear-custom-places").addEventListener("click", () => {
+    if (!window.confirm("Clear the custom stop list and its saved draft on this browser? Export it first if you need a backup. Any dataset already loaded in the route planner is kept.")) return;
+    selectedPlaces.length = 0; saveDraft(); renderCustomStops(); byId("custom-query").focus();
+  });
+  byId("coverage-region").addEventListener("change", renderCoverage);
+  restoreDraft();
   renderCustomStops();
   function answers() { return Object.fromEntries(["depot", "count", "model", "vehicles", "capacity", "demand", "service", "shift"].map((key) => [key, key === "model" ? byId(`real-${key}`).value : Number(byId(`real-${key}`).value)])); }
   function currentDataset() { if (!catalog) throw new Error("Fetch places first."); return buildDataset(catalog, answers()); }
@@ -182,6 +222,11 @@
     for (const [field, values] of [["real-region", options.regions], ["real-category", options.categories]]) {
       const select = byId(field); select.replaceChildren(); Object.entries(values).forEach(([key, value]) => { const option = node("option", value.name); option.value = key; select.append(option); }); select.disabled = false;
     }
+    const coverage = byId("coverage-region"); coverage.replaceChildren();
+    for (const [key, region] of Object.entries(options.road_regions)) { const option = node("option", region.name); option.value = key; coverage.append(option); }
+    coverage.disabled = !coverage.children.length;
+    if (options.road_regions.jaipur) coverage.value = "jaipur";
+    if (coverage.disabled) { coverage.append(node("option", "No configured road coverage")); byId("coverage-map").setAttribute("aria-label", "No configured road coverage. Use geographic distance estimates."); }
     button.disabled = false; invalidate(); renderCustomStops();
   }).catch((e) => { byId("places-error").textContent = e.message; });
 }());

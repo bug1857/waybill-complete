@@ -27,7 +27,49 @@ Do not add a payment method or paid resources for this deployment.
 The API allows 100 nodes, six vehicles, a two-second solver budget and one
 concurrent solve. Other solves receive HTTP 429; static pages remain responsive.
 HTTP Host/Origin checks and bounded bodies are retained. There are no accounts,
-persistent storage, GPS tracking, or production dispatch integrations.
+server-side persistent storage, GPS tracking, or production dispatch integrations.
+Custom stops now have a validated, versioned browser-local draft. Refresh restores
+the stop list, not old solve results. Export it before clearing or moving devices;
+private browsing, cleared site data or blocked browser storage can lose the draft.
+
+## Optional map context and privacy
+
+The road-coverage diagram separates the larger Jaipur road boundary from the
+smaller city-centre public-place query. It does not promise that every point
+inside the boundary is reachable on the car network.
+
+Street backgrounds are off by default. Enabling them sends only current viewport
+tile requests directly to `https://tile.openstreetmap.org`; browser HTTP caching,
+normal Referer/User-Agent headers and visible attribution are retained. There is
+no prefetch, offline tile download or tile proxy. Only the active viewport is
+requested (at most 48 tiles per view). Keep backgrounds off for confidential
+locations. Missing tiles do not change routes, distances or solver proof states.
+Mercator display clamps polar latitudes to ±85.0511 degrees; it does not change
+the coordinates used by the solver. Public tiles have no availability guarantee.
+See the [OSMF tile policy](https://operations.osmfoundation.org/policies/tiles/).
+
+## Automated release checks
+
+GitHub Actions builds the production Docker image, starts it with 512 MiB / one
+CPU, and requires OSRM readiness before running all four actual Jaipur/Monaco
+integration checks. Playwright then tests Chromium desktop and emulated mobile
+journeys: custom draft restore/reorder/export/reset, broken/blocked storage,
+coverage boundaries, file import/export, three-way road comparison and graceful
+street-tile failures. Public place search uses an explicitly synthetic browser
+fixture; tiles are intercepted rather than downloaded by CI. These checks do
+not prove public-provider uptime or real-device Safari behavior.
+
+With the image running on loopback port 10000:
+
+```sh
+npm ci
+npx playwright install chromium
+WAYBILL_JAIPUR_API=http://127.0.0.1:10000 python -m pytest -q tests/test_jaipur_integration.py
+npm run test:browser
+```
+
+Playwright is a pinned development-only dependency. The shipped website and
+production image have no new JavaScript runtime dependency.
 
 ## Release evidence
 

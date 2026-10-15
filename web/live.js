@@ -19,6 +19,7 @@
   let mapView = [0, 0, 900, 550];
   let mapScale = 0;
   let mapPositions = new Map();
+  let mapProjection = null;
   const solverLabel = (name) => ({ nearest_neighbor: "Greedy · nearest neighbour", branch_and_bound_min_in_out: "Branch & Bound", held_karp: "Held–Karp", clarke_wright_savings: "Clarke–Wright" }[name] || name);
 
   function element(tag, text, className) {
@@ -113,6 +114,7 @@
       mapScale = unit;
     }
     if (playback) { playback.vehicle.dataset.scale = unit; if (repaint) paintPlayback(); }
+    if (mapProjection) window.WaybillMap.drawTiles(map, mapProjection, mapView, byId("map-streets").checked, byId("street-status"));
   }
 
   function fitMap(stopsOnly = false) {
@@ -189,14 +191,8 @@
     const visible = data.routes.filter((route) => filter === "all" || String(route.vehicle_id) === filter);
     const lines = visible.map((route) => route.geometry ? { route, points: motion.decodePolyline(route.geometry.polyline), road: true } : data.provenance.geometry_kind === "straight_line_estimate" ? { route, points: route.nodes.map((i) => data.stops[i]), road: false } : { route, points: [], road: true });
     const points = [...data.stops, ...lines.flatMap((line) => line.points)];
-    // ponytail: city-scale projection; add a tile map only when global navigation is required.
-    const centreLat = points.reduce((sum, point) => sum + point.lat, 0) / points.length;
-    const lonScale = Math.max(0.01, Math.cos(centreLat * Math.PI / 180));
-    // Avoid spreading long road geometries into function arguments.
-    const bounds = points.reduce((b, p) => [Math.min(b[0], p.lon * lonScale), Math.max(b[1], p.lon * lonScale), Math.min(b[2], -p.lat), Math.max(b[3], -p.lat)], [Infinity, -Infinity, Infinity, -Infinity]);
-    const [minX, maxX, minY, maxY] = bounds;
-    const scale = Math.min(780 / Math.max(maxX - minX, .00001), 430 / Math.max(maxY - minY, .00001));
-    const project = (p) => [450 + (p.lon * lonScale - (minX + maxX) / 2) * scale, 275 + (-p.lat - (minY + maxY) / 2) * scale];
+    mapProjection = window.WaybillMap.projection(points);
+    const project = mapProjection.project;
     const map = byId("route-map"); map.replaceChildren();
     mapScale = 0;
     map.classList.toggle("dense-map", data.stops.length > 30);
@@ -563,6 +559,7 @@
   byId("reset-route").addEventListener("click", () => { pausePlayback(); if (playback) { playback.progress = 0; paintPlayback(true); } });
   byId("route-progress").addEventListener("input", () => { pausePlayback(); if (playback) { playback.progress = Number(byId("route-progress").value); paintPlayback(true); } });
   for (const id of ["map-overview", "map-labels"]) byId(id).addEventListener("change", () => drawMap(true));
+  byId("map-streets").addEventListener("change", () => { if (mapProjection) window.WaybillMap.drawTiles(byId("route-map"), mapProjection, mapView, byId("map-streets").checked, byId("street-status")); });
   byId("map-zoom-in").addEventListener("click", () => zoomMap(.75));
   byId("map-zoom-out").addEventListener("click", () => zoomMap(1 / .75));
   byId("map-fit").addEventListener("click", () => fitMap());

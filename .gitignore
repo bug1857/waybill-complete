@@ -42,3 +42,6 @@ data/osm/*.timestamp
 web/node_modules/
 web/dist/
 web/.vite/
+node_modules/
+test-results/
+playwright-report/

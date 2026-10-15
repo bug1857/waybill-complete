@@ -23,4 +23,56 @@ jobs:
       - run: node tests/test_route_motion.cjs
       - run: node tests/test_route_comparison.cjs
       - run: node tests/test_live_ui.cjs
+      - run: node tests/test_map_context.cjs
       - run: python -m tools.verify_gate
+  hosted-image:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: python -m pip install '.[dev]'
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: docker build -t waybill-ci .
+      - name: Start the production image with bounded resources
+        run: |
+          docker run -d --name waybill-ci --memory=512m --cpus=1 -p 127.0.0.1:10000:10000 \
+            -e RENDER_EXTERNAL_URL=https://waybill.test -e RENDER_GIT_COMMIT="$GITHUB_SHA" waybill-ci
+          python - <<'PY'
+          import json, time
+          from urllib.request import urlopen
+          for attempt in range(60):
+              try:
+                  with urlopen("http://127.0.0.1:10000/api/health", timeout=3) as response:
+                      health = json.load(response)
+                  if health["osrm_available"]:
+                      print(health)
+                      break
+              except OSError:
+                  pass
+              time.sleep(1)
+          else:
+              raise SystemExit("Container road engine did not become ready")
+          PY
+      - name: Verify actual Jaipur and Monaco road routing
+        run: python -m pytest --override-ini addopts='' -q tests/test_jaipur_integration.py
+        env:
+          WAYBILL_JAIPUR_API: http://127.0.0.1:10000
+      - name: Verify desktop and mobile browser journeys
+        run: npm run test:browser
+      - name: Collect container diagnostics
+        if: always()
+        run: docker logs waybill-ci
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: browser-failure-evidence
+          path: test-results/
+          retention-days: 7

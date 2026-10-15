@@ -14,6 +14,32 @@ let fileRequests = 0;
 vm.runInNewContext(placesSource, { location: {protocol:"file:"}, fetch() { fileRequests++; throw new Error("file mode must not fetch"); },
   document: {getElementById:fileNode, createElement:makeNode, createTextNode:text=>({textContent:text})} });
 assert.equal(fileRequests, 0);
+// Draft restoration validates untrusted browser storage and preserves corrupt data.
+function draftPage(raw, blocked = false) {
+  const nodes = new Map(), storage = new Map(raw === null ? [] : [["waybill.custom-stops.v1", raw]]);
+  const getNode = id => { if (!nodes.has(id)) nodes.set(id, makeNode()); return nodes.get(id); };
+  vm.runInNewContext(placesSource, { location: {protocol:"file:"}, window:{confirm:()=>true},
+    localStorage: { getItem:key=>storage.get(key)??null, setItem(key,value) { if(blocked) throw new Error('Test-only quota denied'); storage.set(key,value); }, removeItem:key=>storage.delete(key) },
+    document:{getElementById:getNode,createElement:makeNode,createTextNode:text=>({textContent:text})} });
+  return {getNode,storage};
+}
+const saved = JSON.stringify({version:1,places:[{name:'Test-only depot',lat:26.9,lon:75.8}]});
+const restored = draftPage(saved);
+assert.equal(restored.getNode('custom-stops').children.length, 1);
+assert.ok(restored.getNode('custom-draft-status').textContent.includes('restored'));
+for (const raw of ['{broken', JSON.stringify({version:2,places:[]}), JSON.stringify({version:1,places:[{name:'Invalid',lat:91,lon:0}]}), 'x'.repeat(262145)]) {
+  const damaged = draftPage(raw);
+  assert.equal(damaged.getNode('custom-stops').children.length, 0);
+  assert.equal(damaged.storage.get('waybill.custom-stops.v1'), raw);
+  assert.ok(damaged.getNode('custom-draft-status').textContent.includes('Nothing was overwritten'));
+  damaged.getNode('clear-custom-places').listeners.click();
+  assert.equal(damaged.storage.has('waybill.custom-stops.v1'), false);
+}
+const denied = draftPage(null, true);
+denied.getNode('custom-name').value='Unsaved fixture'; denied.getNode('custom-lat').value='0'; denied.getNode('custom-lon').value='1';
+denied.getNode('custom-manual-form').listeners.submit({preventDefault(){}});
+assert.equal(denied.getNode('custom-stops').children.length,1);
+assert.ok(denied.getNode('custom-draft-status').textContent.includes('not saved'));
 assert.equal(fileNode("custom-search").disabled, true);
 assert.equal(fileNode("custom-query").disabled, true);
 assert.ok(fileNode("custom-coverage").textContent.includes("none loaded"));

@@ -4,6 +4,7 @@
   const labels = { nearest_neighbor: "Greedy · nearest neighbour", branch_and_bound_min_in_out: "Branch & Bound", held_karp: "Held–Karp", clarke_wright_savings: "Clarke–Wright" };
   const label = (name) => labels[name] || name;
   const nodeLabel = (node) => node === 0 ? "D" : String(node);
+  const maps = typeof module !== "undefined" && module.exports ? require("./map-context.js") : window.WaybillMap;
 
   function edges(result) {
     return result.routes.flatMap((route, routeIndex) => route.nodes.slice(1).map((to, leg) => ({
@@ -25,11 +26,7 @@
 
   function sharedProjection(points) {
     if (!points.length) throw new Error("Comparison needs stop coordinates");
-    const lonScale = Math.max(.01, Math.cos(points.reduce((s, p) => s + p.lat, 0) / points.length * Math.PI / 180));
-    const bounds = points.reduce((b, p) => [Math.min(b[0], p.lon * lonScale), Math.max(b[1], p.lon * lonScale), Math.min(b[2], -p.lat), Math.max(b[3], -p.lat)], [Infinity, -Infinity, Infinity, -Infinity]);
-    const [minX, maxX, minY, maxY] = bounds;
-    const scale = Math.min(500 / Math.max(maxX - minX, .00001), 300 / Math.max(maxY - minY, .00001));
-    return (p) => [300 + (p.lon * lonScale - (minX + maxX) / 2) * scale, 200 + (-p.lat - (minY + maxY) / 2) * scale];
+    return maps.projection(points, 600, 400, 50).project;
   }
 
   function routeGeometry(result, decode) {
@@ -64,11 +61,14 @@
     results[0].stops.forEach((_, n) => { const option = el("option", `${nodeLabel(n)} · ${stopName(n)}${!n && results[0].routes.length > 1 ? " (first vehicle departure)" : ""}`); option.value = n; depart.append(option); });
     departGroup.append(departLabel, depart);
     const checks = el("div", undefined, "comparison-map-options"), full = el("input"), names = el("input"); full.type = names.type = "checkbox"; full.checked = results[0].stops.length <= 30; names.checked = results[0].stops.length <= 20;
-    for (const [control, text] of [[full, "Full tour"], [names, "All stop IDs"]]) { const wrapper = el("label", undefined, "inline-check"); wrapper.append(control, document.createTextNode(` ${text}`)); checks.append(wrapper); }
+    const streets = el("input"); streets.type = "checkbox";
+    for (const [control, text] of [[full, "Full tour"], [names, "All stop IDs"], [streets, "Street backgrounds"]]) { const wrapper = el("label", undefined, "inline-check"); wrapper.append(control, document.createTextNode(` ${text}`)); checks.append(wrapper); }
+    const streetStatus = el("p", "Optional: street backgrounds send the viewed area to tile.openstreetmap.org. Keep off for confidential locations.", "metric-copy"); streetStatus.setAttribute("role", "status");
+    checks.append(streetStatus);
     controls.append(stepGroup, departGroup, checks); section.append(controls);
     const status = el("p", undefined, "coverage-note"); status.setAttribute("role", "status"); section.append(status);
     const geometry = results.map((r) => routeGeometry(r, decode));
-    const project = sharedProjection([...results[0].stops, ...geometry.flatMap((routes) => routes.flatMap((g) => [...g.overview, ...g.legs.flat()]))]);
+    const projection = maps.projection([...results[0].stops, ...geometry.flatMap((routes) => routes.flatMap((g) => [...g.overview, ...g.legs.flat()]))], 600, 400, 50), project = projection.project;
     const grid = el("div", undefined, "comparison-map-grid"), cards = [];
     grid.style.setProperty("--comparison-columns", Math.min(3, results.length + skipped.length));
     results.forEach((result, index) => {
@@ -78,6 +78,7 @@
       const map = svgEl("svg", { viewBox: "0 0 600 400", role: "img", class: "comparison-map" });
       const legText = el("p", undefined, "comparison-leg"), progressText = el("p", undefined, "metric-copy");
       card.append(map, legText, progressText);
+      const attribution = el("p", undefined, "map-attribution"), credit = el("a", "© OpenStreetMap contributors"); credit.href = "https://www.openstreetmap.org/copyright"; attribution.append(credit); card.append(attribution);
       const details = el("details"), summary = el("summary", "Visit order & route details"); details.append(summary);
       for (const route of result.routes) details.append(el("p", `Vehicle ${route.vehicle_id}: ${route.nodes.map(nodeLabel).join(" → ")}`, "comparison-sequence"));
       if (index) { const same = overlap(results[0], result); details.append(el("p", `${same.shared} of ${same.total} Greedy directed stop-to-stop edges also occur in this tour. This is not road-segment overlap.`, "metric-copy")); }
@@ -98,10 +99,12 @@
       const selected = results.map((r) => selectEdge(r, step, departure));
       status.textContent = `${departure === null ? `Visit step ${step + 1}` : `Departing from ${nodeLabel(departure)} · ${stopName(departure)}`}: ${selected.map((edge, i) => `${label(results[i].report.solver_name)} ${edge ? `${nodeLabel(edge.from)} → ${nodeLabel(edge.to)}` : "no served edge"}`).join(" · ")}`;
       cards.forEach(({ map, legText, progressText, result, index, title }) => {
-        map.replaceChildren();
+        const tiles = map.querySelector(".street-tiles");
+        map.replaceChildren(...(tiles ? [tiles] : []));
+        maps.drawTiles(map, projection, [0, 0, 600, 400], streets.checked, streetStatus);
         const edge = selected[index], visited = new Set(edge ? result.routes[edge.routeIndex].sequence.slice(0, edge.leg) : []), markerId = `comparison-arrow-${index}`;
         const defs = svgEl("defs", {}), arrow = svgEl("marker", { id: markerId, viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 5, markerHeight: 5, orient: "auto-start-reverse" }); arrow.append(svgEl("path", { d: "M0 0L10 5L0 10Z", fill: "#2d6051" })); defs.append(arrow); map.append(defs);
-        const path = (points, active) => svgEl("polyline", { points: points.map((p) => project(p).join(",")).join(" "), fill: "none", stroke: "#2d6051", "stroke-width": active ? 3 : 1.5, opacity: active ? 1 : .18, "stroke-linecap": "round", "stroke-linejoin": "round", "stroke-dasharray": result.provenance.geometry_kind === "road" ? "none" : "7 5", ...(active ? { "marker-end": `url(#${markerId})` } : {}) });
+        const path = (points, active) => svgEl("polyline", { points: points.map((p) => project(p).join(",")).join(" "), class: active ? "comparison-route-active" : "comparison-route-context", fill: "none", stroke: "#2d6051", "stroke-width": active ? 3 : 1.5, opacity: active ? 1 : .18, "stroke-linecap": "round", "stroke-linejoin": "round", "stroke-dasharray": result.provenance.geometry_kind === "road" ? "none" : "7 5", ...(active ? { "marker-end": `url(#${markerId})` } : {}) });
         if (full.checked) for (const route of geometry[index]) if (route.overview.length) map.append(path(route.overview, false));
         const activePoints = edge ? geometry[index][edge.routeIndex].legs[edge.leg] || [] : [];
         if (activePoints.length) map.append(path(activePoints, true));
@@ -117,7 +120,7 @@
         map.setAttribute("aria-label", `${title}. ${legText.textContent} ${progressText.textContent}`);
       });
     }
-    range.addEventListener("input", paint); depart.addEventListener("change", paint); full.addEventListener("change", paint); names.addEventListener("change", paint);
+    range.addEventListener("input", paint); depart.addEventListener("change", paint); full.addEventListener("change", paint); names.addEventListener("change", paint); streets.addEventListener("change", paint);
     prev.addEventListener("click", () => { range.value = Math.max(0, Number(range.value) - 1); paint(); });
     next.addEventListener("click", () => { range.value = Math.min(Number(range.max), Number(range.value) + 1); paint(); });
     paint();

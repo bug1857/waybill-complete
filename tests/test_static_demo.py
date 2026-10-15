@@ -38,10 +38,13 @@ def test_live_workbench_exposes_each_connected_surface() -> None:
     assert "renderTimeline()" in script
     assert "function solveHeldKarp" not in script
     assert 'src="route-motion.js?v=3"' in html
-    assert 'src="real-data.js?v=5"' in html
+    assert 'src="real-data.js?v=6"' in html
     assert 'id="custom-search-form"' in html
     assert 'id="use-custom-places"' in html
-    assert 'src="route-comparison.js?v=2"' in html
+    assert 'src="route-comparison.js?v=3"' in html
+    assert 'src="map-context.js?v=1"' in html
+    for control in ("custom-draft-status", "clear-custom-places", "coverage-map", "map-streets"):
+        assert f'id="{control}"' in html
     assert 'request("/api/compare"' in script
     assert "window.WaybillComparison.mount" in script
     assert ".comparison-map-card:only-child { grid-column: 1 / -1; }" in (ROOT / "web" / "styles.css").read_text()
